@@ -56,8 +56,8 @@ const linuxSpeechNativeResource = {
   to: 'node_modules/sherpa-onnx-linux-${arch}'
 }
 const winSpeechNativeResource = {
-  from: 'node_modules/sherpa-onnx-win-x64',
-  to: 'node_modules/sherpa-onnx-win-x64'
+  from: 'node_modules/sherpa-onnx-win-${arch}',
+  to: 'node_modules/sherpa-onnx-win-${arch}'
 }
 
 /** @type {import('electron-builder').Configuration} */
@@ -256,8 +256,8 @@ module.exports = {
         to: 'bin/orca.exe'
       },
       {
-        from: 'node_modules/agent-browser/bin/agent-browser-win32-x64.exe',
-        to: 'agent-browser-win32-x64.exe'
+        from: 'node_modules/agent-browser/bin/agent-browser-win32-${arch}.exe',
+        to: 'agent-browser-win32-${arch}.exe'
       },
       {
         from: 'native/computer-use-windows/runtime.ps1',
