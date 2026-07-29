@@ -17,7 +17,8 @@ O spike cobre somente toolchain, builds nativos, `opencode serve`, integração 
 - Git: `2.51`.
 - Bun: `1.3.14`.
 - `pnpm`: ausente.
-- Orca: `C:\Dev2026\external_repos\orca`.
+- Orca durante a prova: `C:\Dev2026\external_repos\orca`; snapshot ativo após
+  o gate: `apps/desktop/orca`.
 - OpenCode: `C:\Dev2026\external_repos\opencode`.
 
 ## Regras de execução
@@ -107,7 +108,8 @@ O spike cobre somente toolchain, builds nativos, `opencode serve`, integração 
 ### PLAT-006 — Checkout, instalação e build mínimo do Orca
 
 - **Prioridade:** P0 — Windows 11 ARM64.
-- **Objetivo:** validar que `C:\Dev2026\external_repos\orca` executa seu caminho de build mínimo no host alvo.
+- **Objetivo:** validar que o Orca executa seu caminho de build mínimo no host
+  alvo; o código aprovado agora vive em `apps/desktop/orca`.
 - **Dependências:** PLAT-002.
 - **Passos:**
   1. Confirmar revisão e instruções de build do Orca.

@@ -10,8 +10,9 @@ Nome provisório para uma IDE agêntica integrada e distribuída.
 
 ## Fase atual
 
-Estamos no **Platform Spike**. Antes de construir scheduler, Kanban ou
-aprendizado, o projeto deve provar:
+O **Platform Spike** terminou com decisão Go em Windows ARM64, Windows x64 e
+Linux ARM64. O projeto entra agora na auditoria `DEVX-001`, antes de construir
+scheduler, Kanban ou aprendizado:
 
 - toolchain nativa e reproduzível;
 - runtime OpenCode em Windows ARM64;
@@ -19,15 +20,16 @@ aprendizado, o projeto deve provar:
 - Git, worktrees, terminal e processos filhos;
 - empacotamento e smoke tests nas três plataformas.
 
-O código upstream pesquisado permanece em `C:\Dev2026\external_repos`. Nada foi
-mesclado neste repositório; documentação, contratos, skills e ferramentas
-próprias vivem aqui.
+O snapshot Orca validado foi incorporado em `apps/desktop/orca`. Upstreams em
+`C:\Dev2026\external_repos` são somente referências de consulta. OpenCode
+continua sendo um runtime externo, executado como processo, e não código
+vendorizado.
 
 ## Estrutura planejada
 
 ```text
 apps/
-  desktop/          Electron para Windows
+  desktop/orca/     snapshot ativo da casca Electron
   web/              renderer compartilhado
 services/
   coordinator/      tarefas, leases, eventos e UI web
@@ -46,8 +48,9 @@ docs/
   policies/         limites de autonomia
 ```
 
-As pastas de código permanecem vazias até o Platform Spike determinar o
-menor conjunto de dependências que funciona nativamente.
+O desenvolvimento da IDE acontece neste repositório. Alterações no shell
+Electron devem ser feitas em `apps/desktop/orca`, nunca no clone de consulta em
+`external_repos`.
 
 ## Próximo gate
 

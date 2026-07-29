@@ -19,12 +19,12 @@ suporte nativo ARM64.
 
 ## Escopo atual
 
-O Platform Spike não autoriza:
-
-- importar ou mesclar repositórios upstream;
-- adicionar scheduler, Kanban, RL/DPO ou memória semântica;
-- criar abstrações para implementações inexistentes;
-- adicionar Docker, Python, Postgres ou serviços externos.
+- O código ativo da IDE está em `apps/desktop/orca`.
+- `external_repos` é somente leitura/consulta; nunca implemente uma task lá.
+- OpenCode permanece um processo externo. Não copie seu código sem task e ADR.
+- Antes de criar scheduler, banco ou worktree manager, conclua `DEVX-001`.
+- Não adicione Kanban, RL/DPO, memória semântica, Docker, Python, Postgres ou
+  serviços externos sem uma task que demonstre a necessidade.
 
 ## Execução
 

@@ -26,8 +26,8 @@
 ## Outcome
 
 Produce a verified matrix mapping every requirement in
-`docs/coop/development-loop.md` to an existing primitive/test in the sibling
-Orca checkout or a specific implementation gap.
+`docs/coop/development-loop.md` to an existing primitive/test in the imported
+Orca snapshot or a specific implementation gap.
 
 ## Acceptance
 
@@ -46,16 +46,16 @@ Orca checkout or a specific implementation gap.
 - Do not modify runtime, database, CLI or UI code.
 - Do not implement any identified gap.
 - Do not import the frozen SuperApp/Nexus backend.
-- Do not merge Orca into this repository.
+- Do not edit the imported Orca runtime during this audit.
 
 ## Sources and decisions
 
 - `docs/coop/development-loop.md`
 - `docs/coop/development-roadmap.md`
 - `docs/planning/task-index.md`
-- `../external_repos/orca/ORCHESTRATION_IMPLEMENTATION_CHECKLIST.md`
-- `../external_repos/orca/ORCHESTRATION_STRUCTURED_OUTPUT_DESIGN.md`
-- `../external_repos/orca/skills/orchestration/SKILL.md`
+- `apps/desktop/orca/ORCHESTRATION_IMPLEMENTATION_CHECKLIST.md`
+- `apps/desktop/orca/ORCHESTRATION_STRUCTURED_OUTPUT_DESIGN.md`
+- `apps/desktop/orca/skills/orchestration/SKILL.md`
 
 ## Plan and test mapping
 

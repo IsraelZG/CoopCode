@@ -1,0 +1,197 @@
+name: Windows ARM64 Native Spike
+
+# The branch trigger allows the first run before this file exists on main.
+on:
+  push:
+    branches:
+      - plat-010-windows-arm64
+    paths:
+      - '.github/workflows/windows-arm64-spike.yml'
+      - 'config/**'
+      - 'src/main/cli/**'
+      - 'tools/windows-arm64-spike/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-arm64-native-spike-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENCODE_COMMIT: 017a5977d2107092007623e507fc5c6eb337d3b2
+
+jobs:
+  opencode:
+    name: OpenCode build + serve
+    runs-on: windows-11-arm
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Orca gates
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # Orca consumes OpenCode through PATH; it does not vendor OpenCode.
+      - name: Checkout proven OpenCode revision
+        uses: actions/checkout@v6
+        with:
+          repository: anomalyco/opencode
+          ref: ${{ env.OPENCODE_COMMIT }}
+          path: external/opencode
+          persist-credentials: false
+
+      - name: Setup native Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          architecture: arm64
+
+      - name: Setup native Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: external/opencode/package.json
+
+      - name: Assert native ARM64 toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+          $node = node -p "JSON.stringify({version:process.version,platform:process.platform,arch:process.arch})"
+          $bun = bun -e "console.log(JSON.stringify({version:Bun.version,platform:process.platform,arch:process.arch}))"
+          @(
+            "RUNNER_ARCH=$env:RUNNER_ARCH"
+            "OS_ARCH=$osArch"
+            "PROCESS_ARCH=$processArch"
+            "NODE=$node"
+            "BUN=$bun"
+          ) | Tee-Object -FilePath artifacts/runner.log
+          if ($env:RUNNER_ARCH -ne 'ARM64' -or $osArch -ne 'Arm64' -or $processArch -ne 'Arm64') {
+            throw 'The workflow is not running natively on Windows ARM64.'
+          }
+
+      - name: Install OpenCode dependencies
+        working-directory: external/opencode
+        run: |
+          bun install --linker hoisted --frozen-lockfile
+          bun add --no-save --ignore-scripts node-gyp@13.0.1
+
+      - name: Build native OpenCode
+        working-directory: external/opencode
+        shell: pwsh
+        run: |
+          bun ./packages/opencode/script/build.ts --single 2>&1 |
+            Tee-Object -FilePath ../../artifacts/opencode-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke compiled OpenCode server
+        shell: pwsh
+        run: |
+          ./tools/windows-arm64-spike/verify-opencode-serve.ps1 `
+            -BinaryPath external/opencode/packages/opencode/dist/opencode-windows-arm64/bin/opencode.exe `
+            -LogDirectory artifacts 2>&1 |
+            Tee-Object -FilePath artifacts/opencode-serve.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload OpenCode binary and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: opencode-windows-arm64-${{ github.sha }}
+          path: |
+            artifacts/**
+            external/opencode/packages/opencode/dist/opencode-windows-arm64/bin/opencode.exe
+          retention-days: 7
+          if-no-files-found: warn
+
+  orca:
+    name: Orca package
+    runs-on: windows-11-arm
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Orca
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Setup native Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          architecture: arm64
+          cache: pnpm
+
+      - name: Restore Electron caches
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: electron-builder-windows-arm64-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            electron-builder-windows-arm64-
+
+      - name: Assert native ARM64 toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+          $node = node -p "JSON.stringify({version:process.version,platform:process.platform,arch:process.arch})"
+          @(
+            "RUNNER_ARCH=$env:RUNNER_ARCH"
+            "OS_ARCH=$osArch"
+            "PROCESS_ARCH=$processArch"
+            "NODE=$node"
+          ) | Tee-Object -FilePath artifacts/runner.log
+          if ($env:RUNNER_ARCH -ne 'ARM64' -or $osArch -ne 'Arm64' -or $processArch -ne 'Arm64') {
+            throw 'The workflow is not running natively on Windows ARM64.'
+          }
+
+      - name: Install Orca dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test packaged CLI asset contract
+        shell: pwsh
+        run: |
+          pnpm exec vitest run --config config/vitest.config.ts `
+            src/main/cli/packaged-cli-assets.test.ts 2>&1 |
+            Tee-Object -FilePath artifacts/orca-test.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Orca ARM64 installer
+        shell: pwsh
+        run: |
+          pnpm run build:win --arm64 --publish never 2>&1 |
+            Tee-Object -FilePath artifacts/orca-package.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify Orca ARM64 package
+        shell: pwsh
+        run: |
+          ./tools/windows-arm64-spike/verify-orca-package.ps1 2>&1 |
+            Tee-Object -FilePath artifacts/orca-verification.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload Orca installer and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: orca-windows-arm64-${{ github.sha }}
+          path: |
+            artifacts/**
+            dist/orca-windows-setup.exe
+            dist/builder-debug.yml
+          retention-days: 7
+          if-no-files-found: warn

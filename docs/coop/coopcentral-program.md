@@ -114,7 +114,8 @@ sociais amplas.
 ## Regras de portfólio
 
 - `C:\Dev2026\agentic-ide` é o checkout de desenvolvimento do CoopCode.
-- `C:\Dev2026\external_repos` contém somente upstreams e fixtures externas.
+- `apps/desktop/orca` contém o snapshot ativo da casca Electron.
+- `C:\Dev2026\external_repos` contém somente upstreams e fixtures de consulta.
 - CoopRouter e CoopBruma terão repositórios e releases próprios.
 - CoopCentral Core não entra como dependência do MVP antes da fase 3.
 - Toda participação em compute ou storage é opt-in separado.

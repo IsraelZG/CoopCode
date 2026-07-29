@@ -1,0 +1,111 @@
+name: PLAT-012 Linux ARM64 Spike
+
+on:
+  push:
+    branches:
+      - plat-012-linux-arm64
+    paths:
+      - '.github/workflows/plat-012-linux-arm64-spike.yml'
+      - 'tools/linux-arm64-spike/**'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plat-012-linux-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENCODE_COMMIT: 017a5977d2107092007623e507fc5c6eb337d3b2
+
+jobs:
+  opencode:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v6
+        with:
+          repository: anomalyco/opencode
+          ref: ${{ env.OPENCODE_COMMIT }}
+          path: external/opencode
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          architecture: arm64
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version-file: external/opencode/package.json
+      - name: Assert native ARM64 toolchain
+        run: |
+          mkdir -p artifacts
+          printf 'RUNNER_ARCH=%s\nNODE=%s\nBUN=%s\n' "$RUNNER_ARCH" "$(node -p 'process.arch')" "$(bun -e 'console.log(process.arch)')" | tee artifacts/runner.log
+          test "$RUNNER_ARCH" = ARM64
+          test "$(node -p 'process.arch')" = arm64
+          test "$(bun -e 'console.log(process.arch)')" = arm64
+      - name: Build native OpenCode
+        working-directory: external/opencode
+        run: |
+          bun install --linker hoisted --frozen-lockfile
+          bun add --no-save --ignore-scripts node-gyp@13.0.1
+          bun ./packages/opencode/script/build.ts --single 2>&1 | tee ../../artifacts/opencode-build.log
+      - name: Smoke compiled OpenCode server
+        run: bash tools/linux-arm64-spike/verify-opencode-serve.sh external/opencode/packages/opencode/dist/opencode-linux-arm64/bin/opencode artifacts 2>&1 | tee artifacts/opencode-serve.log
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plat-012-opencode-linux-arm64-${{ github.sha }}
+          path: |
+            artifacts/**
+            external/opencode/packages/opencode/dist/opencode-linux-arm64/bin/opencode
+          retention-days: 7
+          if-no-files-found: warn
+
+  orca:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          architecture: arm64
+          cache: pnpm
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-gi gir1.2-atspi-2.0 at-spi2-core xclip xdotool
+          npm install -g node-gyp@11.5.0
+          echo "npm_config_node_gyp=$(npm root -g)/node-gyp/bin/node-gyp.js" >> "$GITHUB_ENV"
+      - name: Install and build Orca
+        run: |
+          mkdir -p artifacts
+          printf 'RUNNER_ARCH=%s\nNODE=%s\n' "$RUNNER_ARCH" "$(node -p 'process.arch')" | tee artifacts/runner.log
+          test "$RUNNER_ARCH" = ARM64
+          test "$(node -p 'process.arch')" = arm64
+          pnpm install --frozen-lockfile
+          pnpm run build:release 2>&1 | tee artifacts/orca-build.log
+      - name: Package Orca ARM64 without publishing
+        run: ORCA_LINUX_ARM64_RELEASE=1 pnpm exec electron-builder --config config/electron-builder.config.cjs --linux AppImage deb --arm64 --publish never 2>&1 | tee artifacts/orca-package.log
+      - name: Verify Orca ARM64 package
+        run: bash tools/linux-arm64-spike/verify-orca-package.sh dist artifacts 2>&1 | tee artifacts/orca-verification.log
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: plat-012-orca-linux-arm64-${{ github.sha }}
+          path: |
+            artifacts/**
+            dist/*arm64*.AppImage
+            dist/*arm64*.deb
+            dist/builder-debug.yml
+          retention-days: 7
+          if-no-files-found: warn

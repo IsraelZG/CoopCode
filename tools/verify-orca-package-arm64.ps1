@@ -1,9 +1,17 @@
 param(
-    [string]$AppDir = 'C:\Dev2026\external_repos\orca\dist\win-arm64-unpacked',
-    [string]$Installer = 'C:\Dev2026\external_repos\orca\dist\orca-windows-setup.exe'
+    [string]$AppDir,
+    [string]$Installer
 )
 
 $ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if (-not $AppDir) {
+    $AppDir = Join-Path $repoRoot 'apps\desktop\orca\dist\win-arm64-unpacked'
+}
+if (-not $Installer) {
+    $Installer = Join-Path $repoRoot 'apps\desktop\orca\dist\orca-windows-setup.exe'
+}
+
 $arm64 = 0xAA64
 $passed = 0
 $failed = 0

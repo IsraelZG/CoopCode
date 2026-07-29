@@ -29,7 +29,7 @@ que a porta foi liberada.
 Para repetir o gate mínimo do Orca:
 
 ```text
-cd C:\Dev2026\external_repos\orca
+cd C:\Dev2026\agentic-ide\apps\desktop\orca
 rtk C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd install --frozen-lockfile
 rtk C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd run typecheck
 rtk C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd run build:electron-vite
@@ -45,8 +45,8 @@ rtk tools\orca-opencode-arm64.cmd --check
 rtk tools\orca-opencode-arm64.cmd
 ```
 
-`--check` mostra o executável e a versão que serão herdados pelo Orca sem abrir
-a interface.
+`--check` mostra o executável que será herdado pelo Orca sem inicializar o
+OpenCode nem abrir a interface.
 
 Para repetir a auditoria dos binários nativos Windows ARM64:
 
@@ -61,7 +61,7 @@ e estão documentadas em `docs/planning/evidence/PLAT-008.md`.
 Para gerar o pacote Orca Windows ARM64 completo:
 
 ```text
-cd C:\Dev2026\external_repos\orca
+cd C:\Dev2026\agentic-ide\apps\desktop\orca
 rtk C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd run build:win -- --arm64
 ```
 

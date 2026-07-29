@@ -1,6 +1,6 @@
 param(
     [string]$OpenCodeRoot = (Join-Path $PSScriptRoot '..\..\external_repos\opencode'),
-    [string]$OrcaRoot = (Join-Path $PSScriptRoot '..\..\external_repos\orca')
+    [string]$OrcaRoot = (Join-Path $PSScriptRoot '..\apps\desktop\orca')
 )
 
 $ErrorActionPreference = 'Stop'

@@ -2,10 +2,10 @@
 
 ## Correção de rumo
 
-O Orca de referência já possui Run, Task, Dispatch, worktrees paralelas,
-execução remota, federação, observação e controle de workers. Antes de
-implementar o coordinator/worker planejado no scaffold, `DEVX-001` verifica
-quais primitives podem ser absorvidas ou adaptadas.
+O Orca importado em `apps/desktop/orca` já possui Run, Task, Dispatch,
+worktrees paralelas, execução remota, federação, observação e controle de
+workers. Antes de implementar o coordinator/worker planejado no scaffold,
+`DEVX-001` verifica quais primitives devem ser reutilizadas ou adaptadas.
 
 Nenhum scheduler, banco ou gerenciador de worktrees novo será criado sem gap
 demonstrado.
