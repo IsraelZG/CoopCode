@@ -27,11 +27,14 @@ Os detalhes executáveis ficam em `platform-spike.md`.
 | ID | Tarefa | Depende de |
 |---|---|---|
 | DEVX-001 | Auditar primitives existentes contra o ciclo distribuído | PLAT-013 |
+| DEVX-002 | Consolidar Task Spec v1 e estados necessários | DEVX-001 |
+| DEVX-003 | Definir Gate Artifact ligado ao SHA | DEVX-001 |
+| DEVX-004 | Fixar budgets e política overnight | DEVX-002 |
+| DEVX-010 | Selecionar próxima task elegível deterministicamente | DEVX-002 |
 
-O contrato executável está em
-[`docs/coop/tasks/DEVX-001.md`](../coop/tasks/DEVX-001.md). O restante do
-roadmap DEVX só será endurecido depois desse inventário, evitando duplicar
-scheduler, banco ou gerenciador de worktrees já presentes no Orca.
+Os contratos executáveis estão em [`docs/coop/tasks`](../coop/tasks). Tasks
+posteriores permanecem no roadmap até que as saídas desta fila eliminem
+ambiguidade suficiente para endurecê-las.
 
 ### P1 — Vertical slice local
 
