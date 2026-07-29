@@ -9,6 +9,10 @@ Own one attempt, not the roadmap.
 
 ## Start
 
+If the worktree was prepared by `tools/coop-dev/prepare-task.mjs`, the short
+generated prompt plus the task spec is the complete assignment. Do not require
+the dispatcher to repeat this skill or the task contents.
+
 1. Confirm task ID, attempt, immutable base SHA and assigned worktree.
 2. Read the complete task and its cited sources.
 3. Confirm state is executable and every required decision is present.

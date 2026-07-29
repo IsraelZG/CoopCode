@@ -27,10 +27,13 @@ node tools/coop-dev/install-skills.mjs --check
 As cópias em `.agents/skills` e `.claude/skills` são locais e ignoradas pelo
 Git. Edite somente `skills/coop-*` e reinstale os espelhos.
 
-Valide uma task antes de despachá-la:
+Prepare branch, worktree, mirrors e o prompt curto de dispatch:
 
 ```powershell
-node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-001.md
+node tools/coop-dev/prepare-task.mjs docs/coop/tasks/DEVX-001.md
 ```
+
+O script recusa checkout sujo, branch/worktree já existentes e task inválida.
+Use `--dry-run` para visualizar a preparação sem alterar Git nem filesystem.
 
 Próxima task executável: [`DEVX-001`](tasks/DEVX-001.md).
