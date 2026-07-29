@@ -11,7 +11,15 @@ file "$binary" | grep -Eq 'ARM aarch64|aarch64'
 
 home_dir=$(mktemp -d)
 cleanup() {
-  if [[ -n "${pid:-}" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
+  if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
+    kill "$pid" 2>/dev/null || true
+    for _ in {1..50}; do
+      kill -0 "$pid" 2>/dev/null || break
+      sleep 0.1
+    done
+    kill -9 "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  fi
   rm -rf "$home_dir"
 }
 trap cleanup EXIT
