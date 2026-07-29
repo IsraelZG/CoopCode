@@ -77,7 +77,9 @@ jobs:
 
       - name: Install OpenCode dependencies
         working-directory: external/opencode
-        run: bun install --linker hoisted --frozen-lockfile
+        run: |
+          bun install --linker hoisted --frozen-lockfile
+          bun add --no-save --ignore-scripts node-gyp@13.0.1
 
       - name: Build native OpenCode
         working-directory: external/opencode
@@ -171,7 +173,7 @@ jobs:
       - name: Build Orca ARM64 installer
         shell: pwsh
         run: |
-          pnpm run build:win -- --arm64 2>&1 |
+          pnpm run build:win --arm64 --publish never 2>&1 |
             Tee-Object -FilePath artifacts/orca-package.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
