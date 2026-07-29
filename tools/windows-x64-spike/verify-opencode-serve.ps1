@@ -26,8 +26,8 @@ if ((Get-PeMachine $binary) -ne $x64) {
 }
 
 $logRoot = [IO.Path]::GetFullPath($LogDirectory)
-$home = Join-Path ($env:RUNNER_TEMP ?? [IO.Path]::GetTempPath()) 'opencode-x64-smoke-home'
-New-Item -ItemType Directory -Force $logRoot, $home | Out-Null
+$isolatedHome = Join-Path ($env:RUNNER_TEMP ?? [IO.Path]::GetTempPath()) 'opencode-x64-smoke-home'
+New-Item -ItemType Directory -Force $logRoot, $isolatedHome | Out-Null
 
 try {
     $start = [Diagnostics.ProcessStartInfo]::new($binary, "serve --hostname 127.0.0.1 --port $Port --pure --log-level ERROR")
@@ -39,9 +39,9 @@ try {
         $start.Environment[$name] = '1'
     }
     $start.Environment['OPENCODE_AUTH_CONTENT'] = '{}'
-    $start.Environment['HOME'] = $home
-    $start.Environment['USERPROFILE'] = $home
-    $start.Environment['OPENCODE_TEST_HOME'] = $home
+    $start.Environment['HOME'] = $isolatedHome
+    $start.Environment['USERPROFILE'] = $isolatedHome
+    $start.Environment['OPENCODE_TEST_HOME'] = $isolatedHome
     $server = [Diagnostics.Process]::new()
     $server.StartInfo = $start
     if (-not $server.Start()) { throw 'Could not start OpenCode.' }
