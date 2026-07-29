@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coop Worker"
+  short_description: "Implement or rework one scoped Coop task"
+  default_prompt: "Use $coop-worker to implement this task in its assigned worktree."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coop Integrator"
+  short_description: "Integrate only approved Coop task results"
+  default_prompt: "Use $coop-integrator to integrate this approved task safely."

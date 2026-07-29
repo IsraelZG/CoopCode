@@ -1,0 +1,146 @@
+version: 1
+platform_priority:
+  - windows-arm64
+  - windows-x64
+  - linux-arm64
+
+tasks:
+  - id: PLAT-001
+    title: Inventariar host Windows ARM64
+    depends_on: []
+    status: completed
+
+  - id: PLAT-002
+    title: Fixar Node 24, pnpm e Bun
+    depends_on: [PLAT-001]
+    status: completed
+
+  - id: PLAT-003
+    title: Instalar OpenCode de forma limpa
+    depends_on: [PLAT-002]
+    status: completed
+
+  - id: PLAT-004
+    title: Compilar OpenCode ARM64
+    depends_on: [PLAT-003]
+    status: completed
+
+  - id: PLAT-005
+    title: Validar opencode serve
+    depends_on: [PLAT-004]
+    status: completed
+
+  - id: PLAT-006
+    title: Instalar e compilar Orca ARM64
+    depends_on: [PLAT-002]
+    status: completed
+
+  - id: PLAT-007
+    title: Provar integração local Orca com OpenCode
+    depends_on: [PLAT-005, PLAT-006]
+    status: completed
+
+  - id: PLAT-008
+    title: Auditar módulos e assets nativos
+    depends_on: [PLAT-004, PLAT-006, PLAT-007]
+    status: completed
+
+  - id: PLAT-009
+    title: Gerar packaging mínimo Windows ARM64
+    depends_on: [PLAT-007, PLAT-008]
+    status: completed
+
+  - id: PLAT-010
+    title: Automatizar CI Windows ARM64
+    depends_on: [PLAT-009]
+    status: completed
+
+  - id: PLAT-011
+    title: Repetir provas em Windows x64
+    depends_on: [PLAT-010]
+    status: completed
+
+  - id: PLAT-012
+    title: Repetir provas em Linux ARM64
+    depends_on: [PLAT-011]
+    status: completed
+
+  - id: PLAT-013
+    title: Consolidar decisão Go ou No-Go
+    depends_on: [PLAT-010, PLAT-011, PLAT-012]
+    status: completed
+
+  - id: DEVX-001
+    title: Auditar primitives existentes contra o ciclo distribuído
+    depends_on: [PLAT-013]
+    status: ready
+
+  - id: CORE-001
+    title: Definir protocolo coordinator/worker
+    depends_on: [PLAT-010, DEVX-001]
+    status: pending
+
+  - id: CORE-002
+    title: Registrar worker e capabilities
+    depends_on: [CORE-001]
+    status: pending
+
+  - id: CORE-003
+    title: Implementar fila FIFO com dependências
+    depends_on: [CORE-002]
+    status: pending
+
+  - id: CORE-004
+    title: Criar lease, heartbeat e expiração
+    depends_on: [CORE-003]
+    status: pending
+
+  - id: CORE-005
+    title: Criar clone e worktree local
+    depends_on: [CORE-004]
+    status: pending
+
+  - id: CORE-006
+    title: Supervisionar sessão OpenCode
+    depends_on: [PLAT-002, CORE-005]
+    status: pending
+
+  - id: FLOW-001
+    title: Executar tarefa e produzir diff e commit
+    depends_on: [CORE-006]
+    status: pending
+
+  - id: FLOW-002
+    title: Executar gates de aceitação
+    depends_on: [FLOW-001]
+    status: pending
+
+  - id: FLOW-003
+    title: Registrar evidências e finalizar tentativa
+    depends_on: [FLOW-002]
+    status: pending
+
+  - id: DIST-001
+    title: Conectar worker Windows x64
+    depends_on: [PLAT-011, FLOW-003]
+    status: pending
+
+  - id: DIST-002
+    title: Selecionar worker por capability
+    depends_on: [DIST-001]
+    status: pending
+
+  - id: DIST-003
+    title: Recuperar lease após desconexão
+    depends_on: [DIST-002]
+    status: pending
+
+  - id: DIST-004
+    title: Conectar worker Linux ARM64
+    depends_on: [PLAT-012, DIST-003]
+    status: pending
+
+  - id: DIST-005
+    title: Integrar branches por Git
+    depends_on: [DIST-004]
+    status: pending

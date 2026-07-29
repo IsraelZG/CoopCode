@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coop Spec"
+  short_description: "Create executable, minimal task specifications"
+  default_prompt: "Use $coop-spec to turn this requirement into an executable task spec."

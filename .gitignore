@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+*.db
+*.db-shm
+*.db-wal
+.context/runtime/
+.context/artifacts/
+.toolchains/
+.agents/skills/
+.claude/skills/
+skills-lock.json

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coop Reviewer"
+  short_description: "Review Coop changes independently and read-only"
+  default_prompt: "Use $coop-reviewer to review this task against its spec and gate evidence."

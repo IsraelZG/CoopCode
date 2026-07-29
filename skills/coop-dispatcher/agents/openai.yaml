@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coop Dispatcher"
+  short_description: "Select and dispatch eligible Coop tasks"
+  default_prompt: "Use $coop-dispatcher to dispatch the next eligible tasks safely."
