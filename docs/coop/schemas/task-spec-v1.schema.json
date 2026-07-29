@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://coopcode.dev/schemas/task-spec-v1.schema.json",
+  "title": "Task Spec v1",
+  "description": "Schema for CoopCode task specification frontmatter (v1.0.0)",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "state",
+    "lane",
+    "priority",
+    "risk",
+    "depends_on",
+    "blocked_on",
+    "capabilities",
+    "scope",
+    "profiles",
+    "budget",
+    "gates"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Z]+-\\d{3}$",
+      "description": "Unique task identifier (e.g., DEVX-002)"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable outcome summary"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["draft", "ready", "working", "review", "done", "blocked"],
+      "description": "Current Coop lifecycle state"
+    },
+    "lane": {
+      "type": "string",
+      "enum": ["quick", "standard", "high-risk"],
+      "description": "Process lane determining required artifacts"
+    },
+    "priority": {
+      "type": "string",
+      "pattern": "^P[0-4]$",
+      "description": "Priority level (P0 highest, P4 lowest)"
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["routine", "high"],
+      "description": "Risk classification"
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Task IDs that must be done before this task can be ready"
+    },
+    "blocked_on": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "External blockers (e.g., waiting for access)"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Capabilities required by the worker"
+    },
+    "scope": {
+      "type": "object",
+      "required": ["allow"],
+      "properties": {
+        "allow": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Paths the worker is allowed to modify"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Write scope for the worker"
+    },
+    "profiles": {
+      "type": "object",
+      "required": ["worker", "reviewer"],
+      "properties": {
+        "worker": { "type": "string", "minLength": 1 },
+        "reviewer": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false,
+      "description": "Agent profile selections"
+    },
+    "budget": {
+      "type": "object",
+      "required": ["wall_minutes", "attempts", "reworks"],
+      "properties": {
+        "wall_minutes": { "type": "integer", "minimum": 1 },
+        "attempts": { "type": "integer", "minimum": 1 },
+        "reworks": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false,
+      "description": "Resource budget for the task"
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["command", "purpose"],
+        "properties": {
+          "command": { "type": "string", "minLength": 1 },
+          "purpose": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      },
+      "description": "Verification gates to run after implementation"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "lane": { "const": "high-risk" } }
+      },
+      "then": {
+        "properties": { "risk": { "const": "high" } }
+      }
+    }
+  ]
+}
