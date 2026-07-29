@@ -1,0 +1,120 @@
+name: Windows x64 Native Spike
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [plat-011-windows-x64]
+    paths:
+      - '.github/workflows/windows-x64-spike.yml'
+      - 'tools/windows-x64-spike/**'
+      - 'config/**'
+      - 'src/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-x64-native-spike-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OPENCODE_COMMIT: 017a5977d2107092007623e507fc5c6eb337d3b2
+
+jobs:
+  opencode:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with: { persist-credentials: false }
+      - uses: actions/checkout@v6
+        with:
+          repository: anomalyco/opencode
+          ref: ${{ env.OPENCODE_COMMIT }}
+          path: external/opencode
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with: { node-version: '24', architecture: x64 }
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with: { bun-version-file: external/opencode/package.json }
+      - name: Assert native x64 toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+          "RUNNER_ARCH=$env:RUNNER_ARCH`nOS_ARCH=$osArch`nPROCESS_ARCH=$processArch`nNODE=$(node -p 'process.arch')`nBUN=$(bun -e 'console.log(process.arch)')" |
+            Tee-Object -FilePath artifacts/runner.log
+          if ($env:RUNNER_ARCH -ne 'X64' -or $osArch -ne 'X64' -or $processArch -ne 'X64') {
+            throw 'The workflow is not running natively on Windows x64.'
+          }
+      - name: Build OpenCode x64
+        working-directory: external/opencode
+        shell: pwsh
+        run: |
+          bun install --linker hoisted --frozen-lockfile
+          bun add --no-save --ignore-scripts node-gyp@13.0.1
+          bun ./packages/opencode/script/build.ts --single 2>&1 | Tee-Object -FilePath ../../artifacts/opencode-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke compiled OpenCode serve
+        shell: pwsh
+        run: |
+          ./tools/windows-x64-spike/verify-opencode-serve.ps1 -BinaryPath external/opencode/packages/opencode/dist/opencode-windows-x64/bin/opencode.exe -LogDirectory artifacts 2>&1 | Tee-Object -FilePath artifacts/opencode-serve.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: opencode-windows-x64-${{ github.sha }}
+          path: |
+            artifacts/**
+            external/opencode/packages/opencode/dist/opencode-windows-x64/bin/opencode.exe
+          retention-days: 7
+
+  orca:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@v6
+        with: { run_install: false }
+      - uses: actions/setup-node@v6
+        with: { node-version-file: package.json, architecture: x64, cache: pnpm }
+      - name: Assert native x64 toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $osArch = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+          $processArch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture
+          "RUNNER_ARCH=$env:RUNNER_ARCH`nOS_ARCH=$osArch`nPROCESS_ARCH=$processArch`nNODE=$(node -p 'process.arch')" |
+            Tee-Object -FilePath artifacts/runner.log
+          if ($env:RUNNER_ARCH -ne 'X64' -or $osArch -ne 'X64' -or $processArch -ne 'X64') {
+            throw 'The workflow is not running natively on Windows x64.'
+          }
+      - name: Build and package Orca x64
+        shell: pwsh
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build:desktop 2>&1 | Tee-Object -FilePath artifacts/orca-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm run build:native 2>&1 | Tee-Object -FilePath artifacts/orca-native-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pnpm exec electron-builder --win --x64 --publish never --config config/electron-builder.config.cjs 2>&1 | Tee-Object -FilePath artifacts/orca-package.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native package assets
+        shell: pwsh
+        run: |
+          ./tools/windows-x64-spike/verify-orca-package.ps1 2>&1 | Tee-Object -FilePath artifacts/orca-verification.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: orca-windows-x64-${{ github.sha }}
+          path: |
+            artifacts/**
+            dist/orca-windows-setup.exe
+            dist/win-unpacked/**
+            dist/builder-debug.yml
+          retention-days: 7
