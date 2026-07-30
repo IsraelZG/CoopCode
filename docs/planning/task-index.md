@@ -42,6 +42,7 @@ Os detalhes executáveis ficam em `platform-spike.md`.
 | DEVX-008 | Reproduzir o gate de empacotamento no layout real | — |
 | DEVX-009 | Detectar sessão travada e em loop | DEVX-006 |
 | DEVX-011 | Pagar a dívida Python do AgentDir até 2026-08-27 | — |
+| DEVX-012 | Rotacionar crush.db após incorporação completa | DEVX-006 |
 
 `DEVX-006`, `DEVX-007` e `DEVX-008` têm ownership separado e podem rodar em
 paralelo. `DEVX-009` permanece `draft` até `DEVX-006` ser aceita, porque seus
