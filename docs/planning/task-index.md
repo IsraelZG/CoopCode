@@ -30,6 +30,7 @@ Os detalhes executáveis ficam em `platform-spike.md`.
 | DEVX-002 | Consolidar Task Spec v1 e estados necessários | DEVX-001 |
 | DEVX-003 | Definir Gate Artifact ligado ao SHA | DEVX-001 |
 | DEVX-004 | Fixar budgets e política overnight | DEVX-002 |
+| DEVX-005 | Auditar ingestão de spec e catálogo de perfis de agente | DEVX-001 |
 | DEVX-010 | Selecionar próxima task elegível deterministicamente | DEVX-002 |
 
 Os contratos executáveis estão em [`docs/coop/tasks`](../coop/tasks). Tasks
