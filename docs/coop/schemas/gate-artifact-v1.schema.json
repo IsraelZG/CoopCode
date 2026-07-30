@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://coopcode.dev/schemas/gate-artifact-v1.schema.json",
+  "title": "Gate Artifact v1",
+  "description": "Immutable gate execution evidence tied to a task attempt and result SHA.",
+  "type": "object",
+  "required": [
+    "task",
+    "attempt",
+    "baseSha",
+    "resultSha",
+    "platform",
+    "arch",
+    "startedAt",
+    "finishedAt",
+    "gates"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "task": {
+      "type": "string",
+      "description": "Task identifier (e.g. DEVX-003).",
+      "minLength": 1
+    },
+    "attempt": {
+      "type": "integer",
+      "description": "Attempt number for this task (1-based).",
+      "minimum": 1
+    },
+    "baseSha": {
+      "type": "string",
+      "description": "Immutable base commit SHA (40 lowercase hex).",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "resultSha": {
+      "type": "string",
+      "description": "Result commit SHA (40 lowercase hex).",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Operating system identifier (e.g. win32, linux).",
+      "minLength": 1
+    },
+    "arch": {
+      "type": "string",
+      "description": "CPU architecture (e.g. arm64, x64).",
+      "minLength": 1
+    },
+    "startedAt": {
+      "type": "string",
+      "description": "ISO 8601 timestamp when gate execution started.",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "description": "ISO 8601 timestamp when gate execution finished.",
+      "format": "date-time"
+    },
+    "nodeVersion": {
+      "type": "string",
+      "description": "Node.js version used during execution."
+    },
+    "gates": {
+      "type": "array",
+      "description": "Gate execution results, one entry per declared gate.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/gateResult"
+      }
+    },
+    "logs": {
+      "type": "array",
+      "description": "Log file references with path and hash.",
+      "items": {
+        "$ref": "#/definitions/fileRef"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Build or output artifact references with path and hash.",
+      "items": {
+        "$ref": "#/definitions/fileRef"
+      }
+    },
+    "baseline": {
+      "type": "string",
+      "description": "Known baseline description (free text)."
+    },
+    "regressions": {
+      "type": "string",
+      "description": "Regressions introduced by this attempt (free text)."
+    },
+    "outOfScopeDiff": {
+      "type": "string",
+      "description": "Description of changes that fell outside scope."
+    }
+  },
+  "definitions": {
+    "gateResult": {
+      "type": "object",
+      "required": ["command", "purpose", "exitCode", "startedAt", "finishedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "The command that was executed.",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Why this gate was executed.",
+          "minLength": 1
+        },
+        "exitCode": {
+          "type": "integer",
+          "description": "Process exit code."
+        },
+        "startedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this gate started.",
+          "format": "date-time"
+        },
+        "finishedAt": {
+          "type": "string",
+          "description": "ISO 8601 timestamp when this gate finished.",
+          "format": "date-time"
+        },
+        "stdout": {
+          "type": "string",
+          "description": "Captured standard output (truncated if large)."
+        },
+        "stderr": {
+          "type": "string",
+          "description": "Captured standard error (truncated if large)."
+        },
+        "criteria": {
+          "type": "array",
+          "description": "Acceptance criteria verified by this gate.",
+          "items": {
+            "type": "object",
+            "required": ["description", "passed"],
+            "additionalProperties": false,
+            "properties": {
+              "description": {
+                "type": "string",
+                "minLength": 1
+              },
+              "passed": {
+                "type": "boolean"
+              },
+              "detail": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "fileRef": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Repository-relative path to the file.",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "description": "SHA-256 hex digest of the file contents.",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "task": "DEVX-003",
+  "attempt": 1,
+  "baseSha": "21dce43b028c4f79c51867be67f0845f22ac0c3f",
+  "resultSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-07-29T12:00:00.000Z",
+  "finishedAt": "2026-07-29T12:01:30.000Z",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/test-gate-artifact.mjs",
+      "purpose": "Gate with incomplete criterion",
+      "exitCode": 0,
+      "startedAt": "2026-07-29T12:00:00.000Z",
+      "finishedAt": "2026-07-29T12:00:45.000Z",
+      "criteria": [
+        {
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
