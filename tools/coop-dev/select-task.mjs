@@ -100,9 +100,12 @@ eligible.sort((a, b) => {
 const selected = eligible[0]
 
 for (let i = 1; i < eligible.length; i++) {
+  const task = eligible[i]
   excluded.push({
-    id: eligible[i].id,
-    reason: `lower priority (P${eligible[i].priorityNum}) than selected task`
+    id: task.id,
+    reason: task.priorityNum === selected.priorityNum
+      ? `same priority (P${task.priorityNum}) as selected task ${selected.id}, which has the smaller ID`
+      : `lower priority (P${task.priorityNum}) than selected task`
   })
 }
 

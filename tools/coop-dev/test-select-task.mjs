@@ -178,6 +178,16 @@ for (const { file, state } of nonReadyStates) {
     `got selected=${r.output.selected}`)
 }
 
+// Test 16: Equal priority — loser is excluded for the ID tie-break, not "lower priority"
+{
+  const r = runSelector([], ['ready-p1.md', 'ready-p1-b.md'])
+  const loser = r.output.excluded?.find((e) => e.id === 'SEL-P1B')
+  assert('tiebreak: equal-priority exclusion cites ID tie-break, not lower priority',
+    r.exitCode === 0 && r.output.selected === 'SEL-P1' &&
+    loser && loser.reason.includes('same priority (P1)') && !loser.reason.includes('lower priority'),
+    `got selected=${r.output.selected}, excluded=${JSON.stringify(r.output.excluded)}`)
+}
+
 console.log(`\n${passed} passed, ${failed} failed out of ${passed + failed} assertions`)
 
 if (failures.length > 0) {

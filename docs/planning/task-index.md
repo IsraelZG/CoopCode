@@ -33,6 +33,20 @@ Os detalhes executáveis ficam em `platform-spike.md`.
 | DEVX-005 | Auditar ingestão de spec e catálogo de perfis de agente | DEVX-001 |
 | DEVX-010 | Selecionar próxima task elegível deterministicamente | DEVX-002 |
 
+### P0.6 — Visibilidade do agente
+
+| ID | Tarefa | Depende de |
+|---|---|---|
+| DEVX-006 | Ler sessões do Crush no ai-vault | — |
+| DEVX-007 | Descobrir sessões do OpenCode no layout atual de banco | — |
+| DEVX-008 | Reproduzir o gate de empacotamento no layout real | — |
+| DEVX-009 | Detectar sessão travada e em loop | DEVX-006 |
+| DEVX-011 | Pagar a dívida Python do AgentDir até 2026-08-27 | — |
+
+`DEVX-006`, `DEVX-007` e `DEVX-008` têm ownership separado e podem rodar em
+paralelo. `DEVX-009` permanece `draft` até `DEVX-006` ser aceita, porque seus
+limiares só podem ser fixados sobre dados de sessão reais.
+
 Os contratos executáveis estão em [`docs/coop/tasks`](../coop/tasks). Tasks
 posteriores permanecem no roadmap até que as saídas desta fila eliminem
 ambiguidade suficiente para endurecê-las.
