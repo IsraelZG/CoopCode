@@ -2,7 +2,7 @@
 {
   "id": "DEVX-002",
   "title": "Consolidar o contrato Task Spec v1",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -79,3 +79,12 @@ validador atual, sem criar uma segunda fonte de estado ao lado do Orca.
 Retornar base/result SHA, arquivos alterados, comandos com exit code e qualquer
 incompatibilidade encontrada entre o contrato Coop e o estado persistido pelo
 Orca.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `bd1a015dcf69820c3758b5a9afd89b7a51b6e6e0`
+- Merge commit: `391134841811fcf4101a31a7b91c98cc145d7144`
+- Gates: `node tools/coop-dev/test-task-spec.mjs` e
+  `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-002.md`
+  (`exit 0`)

@@ -2,7 +2,7 @@
 {
   "id": "DEVX-001",
   "title": "Map existing Orca orchestration primitives to the CoopCode development loop",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -69,3 +69,11 @@ Orca snapshot or a specific implementation gap.
 
 Worker and reviewer return evidence to the dispatcher/state owner. That owner
 appends it without rewriting earlier attempts.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `c749687330333cc713a43c03a08a216c1c468190`
+- Merge commit: `d39dddcdf216bd1955ee4b0116c006cbdaed57f6`
+- Gate: `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-001.md`
+  (`exit 0`)
