@@ -1,0 +1,22 @@
+{
+  "version": "1.0.0",
+  "defaults": {
+    "routine": { "wall_minutes": 60, "attempts": 1, "reworks": 1 },
+    "high_risk": { "wall_minutes": 120, "attempts": 1, "reworks": 2 }
+  },
+  "overnight": {
+    "max_tasks": 0,
+    "max_concurrent_workers": 0,
+    "end_time_utc": "25:99",
+    "network": "open",
+    "allowed_commands": [],
+    "allowed_write_destinations": [],
+    "preserve_evidence": "yes"
+  },
+  "prohibited_actions": ["push", "merge", "deploy", "payment", "material_removal"],
+  "stop_conditions": [
+    "new_approval_required", "secret_encountered", "scope_escape",
+    "merge_conflict", "unknown_baseline", "destructive_migration",
+    "repeated_failure", "budget_exhausted", "product_architecture_question"
+  ]
+}
