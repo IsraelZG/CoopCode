@@ -2,7 +2,7 @@
 {
   "id": "DEVX-005",
   "title": "Audit spec-ingestion and agent-profile primitives left out of DEVX-001",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -124,3 +124,11 @@ Worker and reviewer return evidence to the dispatcher/state owner. That owner
 appends it without rewriting earlier attempts. `DEVX-022` consumes this
 matrix; do not start it before this task is accepted. `DEVX-002` is already
 `done` (merge commit `391134841`) and does not depend on this task's output.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `8212925236d18deacc305ce833159e9f4511844a`
+- Merge commit: `9525716b32a29c3340a3db899aa5b01f792819dc`
+- Gate: `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-005.md`
+  (`exit 0`)
