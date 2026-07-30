@@ -1,0 +1,46 @@
+{
+  "version": "1.0.0",
+  "defaults": {
+    "routine": {
+      "wall_minutes": 30,
+      "attempts": 2,
+      "reworks": 1
+    },
+    "high_risk": {
+      "wall_minutes": 180,
+      "attempts": 2,
+      "reworks": 3
+    }
+  },
+  "overnight": {
+    "max_tasks": 20,
+    "max_concurrent_workers": 5,
+    "end_time_utc": "23:59",
+    "network": "allowlisted",
+    "allowed_commands": ["node", "npm", "git", "cargo"],
+    "allowed_write_destinations": ["docs/", "tools/", "src/"],
+    "preserve_evidence": true
+  },
+  "prohibited_actions": [
+    "push",
+    "merge",
+    "deploy",
+    "payment",
+    "material_removal",
+    "remote_execution",
+    "credential_rotation"
+  ],
+  "stop_conditions": [
+    "new_approval_required",
+    "secret_encountered",
+    "scope_escape",
+    "merge_conflict",
+    "unknown_baseline",
+    "destructive_migration",
+    "repeated_failure",
+    "budget_exhausted",
+    "product_architecture_question",
+    "network_timeout",
+    "disk_full"
+  ]
+}
