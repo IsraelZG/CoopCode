@@ -38,6 +38,31 @@ if (!allowedRisks.has(task.risk)) errors.push(`risk must be one of: ${[...allowe
 for (const field of ['depends_on', 'blocked_on', 'capabilities', 'gates']) {
   if (!Array.isArray(task[field])) errors.push(`${field} must be an array`)
 }
+if (Array.isArray(task.gates)) {
+  for (let i = 0; i < task.gates.length; i++) {
+    const gate = task.gates[i]
+    if (!gate || typeof gate !== 'object') {
+      errors.push(`gates[${i}] must be an object with command and purpose`)
+      continue
+    }
+    if (typeof gate.command !== 'string' || gate.command.trim() === '') {
+      errors.push(`gates[${i}].command is required`)
+    }
+    if (typeof gate.purpose !== 'string' || gate.purpose.trim() === '') {
+      errors.push(`gates[${i}].purpose is required`)
+    }
+  }
+}
+const profiles = task.profiles
+if (!profiles || typeof profiles !== 'object') {
+  errors.push('profiles must be an object with worker and reviewer')
+} else {
+  for (const field of ['worker', 'reviewer']) {
+    if (typeof profiles[field] !== 'string' || profiles[field].trim() === '') {
+      errors.push(`profiles.${field} is required`)
+    }
+  }
+}
 if (!Array.isArray(task?.scope?.allow) || task.scope.allow.length === 0) {
   errors.push('scope.allow must contain at least one path')
 }
@@ -47,7 +72,7 @@ for (const field of ['wall_minutes', 'attempts', 'reworks']) {
   }
 }
 if (task.lane === 'high-risk' && task.risk !== 'high') errors.push('high-risk lane requires risk: high')
-if (task.state === 'ready' && task.gates.length === 0) errors.push('ready task requires at least one gate')
+if (task.state === 'ready' && (!Array.isArray(task.gates) || task.gates.length === 0)) errors.push('ready task requires at least one gate')
 
 const acceptance = text.match(/## Acceptance\r?\n([\s\S]*?)(?=\r?\n## |\s*$)/)?.[1] ?? ''
 const criteria = [...acceptance.matchAll(/^- \[[ xX]\] .+/gm)]

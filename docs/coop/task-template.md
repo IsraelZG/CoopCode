@@ -21,6 +21,10 @@
 }
 ---
 
+> Contrato: Task Spec v1 (`docs/coop/task-spec-v1.md`)
+> Schema: `docs/coop/schemas/task-spec-v1.schema.json`
+> Validador: `node tools/coop-dev/validate-task.mjs <task.md>`
+
 # EXAMPLE-001 · Replace with an observable outcome
 
 ## Outcome
