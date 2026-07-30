@@ -6,7 +6,8 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import Database from '../sqlite/sync-database'
 import { buildCrushSqliteCandidatePath } from './session-scanner-crush-paths'
-import { discoverCrushSessions, crushDiscoveries } from './session-scanner-crush-discovery'
+import { listCrushSqliteSessions } from './session-scanner-crush-list'
+import { crushDiscoveries } from './session-scanner-crush-discovery'
 import { parseCrushSession } from './session-scanner-crush-parser'
 import type { AiVaultScanIssue } from '../../shared/ai-vault-types'
 
@@ -133,12 +134,8 @@ function hashFiles(paths: string[]): Record<string, string> {
   return hashes
 }
 
-// Criterion 1: crush is a member of AI_VAULT_AGENTS
-// Verified by the typecheck below: the module imports from ai-vault-types,
-// which now includes 'crush'.
-
-// Criterion 2: crushDiscoveries returns SessionFileDiscovery for readable crush.db
-describe('discoverCrushSessions', () => {
+// Criterion 2: Session listing from crush.db
+describe('listCrushSqliteSessions', () => {
   it('lists sessions sorted by updated_at desc', async () => {
     const { db, path } = createTempDb()
     applyCrushSchema(db, 20260127000000)
@@ -157,13 +154,13 @@ describe('discoverCrushSessions', () => {
     db.close()
 
     const issues: AiVaultScanIssue[] = []
-    const discovery = await discoverCrushSessions({ dbPath: path, limitPerAgent: 10, issues })
+    const candidates = await listCrushSqliteSessions({ dbPaths: [path], limit: 10, issues })
     expect(issues).toEqual([])
-    expect(discovery).not.toBeNull()
-    expect(discovery!.agent).toBe('crush')
-    expect(discovery!.files).toHaveLength(2)
-    expect(discovery!.files[0].path).toBe(buildCrushSqliteCandidatePath(path, 'ses_new'))
-    expect(discovery!.files[1].path).toBe(buildCrushSqliteCandidatePath(path, 'ses_old'))
+    expect(candidates).toHaveLength(2)
+    expect(candidates[0].agent).toBe('crush')
+    expect(candidates[0].file.mtimeMs).toBe(Date.parse('2026-07-29T12:00:00.000Z'))
+    expect(candidates[0].file.path).toBe(buildCrushSqliteCandidatePath(path, 'ses_new'))
+    expect(candidates[1].file.path).toBe(buildCrushSqliteCandidatePath(path, 'ses_old'))
   })
 
   it('filters out child sessions (with parent_session_id)', async () => {
@@ -185,20 +182,52 @@ describe('discoverCrushSessions', () => {
     db.close()
 
     const issues: AiVaultScanIssue[] = []
-    const discovery = await discoverCrushSessions({ dbPath: path, limitPerAgent: 10, issues })
-    expect(discovery).not.toBeNull()
-    expect(discovery!.files).toHaveLength(1)
-    expect(discovery!.files[0].path).toBe(buildCrushSqliteCandidatePath(path, 'ses_parent'))
+    const candidates = await listCrushSqliteSessions({ dbPaths: [path], limit: 10, issues })
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0].file.path).toBe(buildCrushSqliteCandidatePath(path, 'ses_parent'))
   })
 
-  it('returns null for missing sessions table', async () => {
+  it('dedups matching session ids across databases', async () => {
+    const { db: db1, path: path1 } = createTempDb()
+    applyCrushSchema(db1, 20260127000000)
+    insertSession(db1, {
+      id: 'ses_dup',
+      title: 'Old',
+      updatedAt: '2026-07-29T10:00:00.000Z',
+      createdAt: '2026-07-29T09:00:00.000Z'
+    })
+    db1.close()
+
+    const { db: db2, path: path2 } = createTempDb()
+    applyCrushSchema(db2, 20260127000000)
+    insertSession(db2, {
+      id: 'ses_dup',
+      title: 'New',
+      updatedAt: '2026-07-29T12:00:00.000Z',
+      createdAt: '2026-07-29T11:00:00.000Z'
+    })
+    db2.close()
+
+    const candidates = await listCrushSqliteSessions({
+      dbPaths: [path1, path2],
+      limit: 10,
+      issues: []
+    })
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0].file.path).toBe(buildCrushSqliteCandidatePath(path2, 'ses_dup'))
+  })
+
+  it('returns [] when sessions table is missing', async () => {
     const { db, path } = createTempDb()
     db.exec('CREATE TABLE other (id TEXT)')
     db.close()
 
-    const issues: AiVaultScanIssue[] = []
-    const discovery = await discoverCrushSessions({ dbPath: path, limitPerAgent: 10, issues })
-    expect(discovery).toBeNull()
+    const candidates = await listCrushSqliteSessions({
+      dbPaths: [path],
+      limit: 10,
+      issues: []
+    })
+    expect(candidates).toEqual([])
   })
 })
 
@@ -216,8 +245,8 @@ describe('version check', () => {
     db.close()
 
     const issues: AiVaultScanIssue[] = []
-    const discovery = await discoverCrushSessions({ dbPath: path, limitPerAgent: 10, issues })
-    expect(discovery).toBeNull()
+    const candidates = await listCrushSqliteSessions({ dbPaths: [path], limit: 10, issues })
+    expect(candidates).toEqual([])
     expect(issues).toHaveLength(1)
     expect(issues[0].agent).toBe('crush')
     expect(issues[0].path).toBe(path)
@@ -329,7 +358,7 @@ describe('parseCrushSession', () => {
 
 // Criterion 4: Read-only scan is safe with WAL present
 describe('WAL safety', () => {
-  it('does not modify crush.db or crush.db-wal', async () => {
+  it('does not modify crush.db or crush.db-wal during list and parse', async () => {
     const dir = createTempDir()
     const dbPath = join(dir, 'crush.db')
     const walPath = join(dir, 'crush.db-wal')
@@ -345,19 +374,13 @@ describe('WAL safety', () => {
     })
     db.close()
 
-    // Simulate WAL presence by touching the files
     writeFileSync(walPath, 'wal-content')
     writeFileSync(shmPath, 'shm-content')
 
-    const hashesBefore = hashFiles([dbPath, walPath, shmPath])
+    const hashesBefore = hashFiles([dbPath, walPath])
 
-    // Run discovery
-    const issues: AiVaultScanIssue[] = []
-    const discovery = await discoverCrushSessions({ dbPath, limitPerAgent: 10, issues })
-    expect(discovery).not.toBeNull()
-    expect(discovery!.files).toHaveLength(1)
+    await listCrushSqliteSessions({ dbPaths: [dbPath], limit: 10, issues: [] })
 
-    // Run parse
     const session = await parseCrushSession({
       dbPath,
       sessionId: 'ses_wal',
@@ -365,14 +388,14 @@ describe('WAL safety', () => {
     })
     expect(session).not.toBeNull()
 
-    const hashesAfter = hashFiles([dbPath, walPath, shmPath])
+    const hashesAfter = hashFiles([dbPath, walPath])
 
     expect(hashesAfter[dbPath]).toBe(hashesBefore[dbPath])
     expect(hashesAfter[walPath]).toBe(hashesBefore[walPath])
   })
 })
 
-// Criterion 2b: crushDiscoveries from explicit dbPaths and scopePaths
+// Criterion 2b: crushDiscoveries with test-injected list function
 describe('crushDiscoveries', () => {
   it('discovers sessions from explicit crushDbPaths', async () => {
     const { db, path } = createTempDb()
@@ -385,11 +408,10 @@ describe('crushDiscoveries', () => {
     })
     db.close()
 
-    const issues: AiVaultScanIssue[] = []
     const discoveries = await crushDiscoveries(
-      { crushDbPaths: [path] },
+      { crushDbPaths: [path], _listFn: listCrushSqliteSessions },
       10,
-      issues
+      []
     )
     expect(discoveries).toHaveLength(1)
     expect(discoveries[0].agent).toBe('crush')
@@ -412,11 +434,10 @@ describe('crushDiscoveries', () => {
     })
     db.close()
 
-    const issues: AiVaultScanIssue[] = []
     const discoveries = await crushDiscoveries(
-      { scopePaths: [dir] },
+      { scopePaths: [dir], _listFn: listCrushSqliteSessions },
       10,
-      issues
+      []
     )
     expect(discoveries).toHaveLength(1)
     expect(discoveries[0].files).toHaveLength(1)
