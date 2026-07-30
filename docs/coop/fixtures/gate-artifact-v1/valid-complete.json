@@ -1,0 +1,59 @@
+{
+  "task": "DEVX-003",
+  "attempt": 1,
+  "baseSha": "21dce43b028c4f79c51867be67f0845f22ac0c3f",
+  "resultSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-07-29T12:00:00.000Z",
+  "finishedAt": "2026-07-29T12:01:30.000Z",
+  "nodeVersion": "v22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/test-gate-artifact.mjs",
+      "purpose": "Provar fixtures e vínculo do artefato ao result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-29T12:00:00.000Z",
+      "finishedAt": "2026-07-29T12:00:45.000Z",
+      "stdout": "All fixtures passed.\n",
+      "stderr": "",
+      "criteria": [
+        {
+          "description": "Validador aceita exemplo completo",
+          "passed": true,
+          "detail": "valid-complete.json accepted with exit 0"
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-003.md",
+      "purpose": "Validar a própria task",
+      "exitCode": 0,
+      "startedAt": "2026-07-29T12:00:46.000Z",
+      "finishedAt": "2026-07-29T12:01:30.000Z",
+      "stdout": "Task DEVX-003 is valid.\n",
+      "stderr": "",
+      "criteria": [
+        {
+          "description": "Task spec é válida",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/coop/fixtures/gate-artifact-v1/valid-complete.json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tools/coop-dev/validate-gate-artifact.mjs",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "baseline": "Nenhum gate artifact existia antes desta task.",
+  "regressions": "Nenhuma.",
+  "outOfScopeDiff": "Nenhum."
+}
