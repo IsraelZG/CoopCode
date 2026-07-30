@@ -1,21 +1,21 @@
 {
   "task": "DEVX-006",
   "attempt": 1,
-  "baseSha": "8df4ad722d70cc606cb4c87a001c6e1e3bceb4e4",
-  "resultSha": "dc089e11165a87ce69a9a89888f34e09a224ad30",
+  "baseSha": "bccb83b080ca789e30312882315863d8fc6e7ce1",
+  "resultSha": "2e0977f034e998948d7ab0e178fb7edada97ce66",
   "platform": "win32",
   "arch": "arm64",
   "nodeVersion": "v22.20.0",
-  "startedAt": "2026-07-30T20:16:03.000Z",
-  "finishedAt": "2026-07-30T20:31:00.000Z",
+  "startedAt": "2026-07-30T23:15:00.000Z",
+  "finishedAt": "2026-07-30T23:18:00.000Z",
   "baseline": "Commit bccb83b080ca789e30312882315863d8fc6e7ce1, 144 failing tests (pre-existing, not regression)",
   "gates": [
     {
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-006.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-07-30T20:16:36.000Z",
-      "finishedAt": "2026-07-30T20:16:36.500Z",
+      "startedAt": "2026-07-30T23:15:00.000Z",
+      "finishedAt": "2026-07-30T23:15:01.000Z",
       "stdout": "OK: DEVX-006 (ready, standard, 5 criteria)\n",
       "criteria": [
         {
@@ -25,11 +25,11 @@
       ]
     },
     {
-      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-006-gate.json --result-sha=dc089e11165a87ce69a9a89888f34e09a224ad30",
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-006-gate.json --result-sha=2e0977f034e998948d7ab0e178fb7edada97ce66",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-07-30T20:30:40.000Z",
-      "finishedAt": "2026-07-30T20:30:41.000Z",
+      "startedAt": "2026-07-30T23:16:00.000Z",
+      "finishedAt": "2026-07-30T23:16:01.000Z",
       "stdout": "VALID\n",
       "criteria": [
         {
@@ -42,8 +42,8 @@
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ai-vault/session-scanner-crush.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
-      "startedAt": "2026-07-30T20:30:41.500Z",
-      "finishedAt": "2026-07-30T20:31:00.000Z",
+      "startedAt": "2026-07-30T23:17:00.000Z",
+      "finishedAt": "2026-07-30T23:17:20.000Z",
       "stdout": "Test Files  1 passed (1)\nTests  11 passed (11)\n",
       "criteria": [
         {

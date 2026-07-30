@@ -20,8 +20,8 @@ type CrushSessionRow = {
   prompt_tokens: number
   completion_tokens: number
   cost: number
-  updated_at: string
-  created_at: string
+  updated_at: string | number
+  created_at: string | number
 }
 
 type CrushMessageRow = {
@@ -176,8 +176,8 @@ export async function parseCrushSession(args: {
       return null
     }
 
-    const createdAtMs = Date.parse(row.created_at)
-    const updatedAtMs = Date.parse(row.updated_at)
+    const createdAtMs = timestampMs(row.created_at)
+    const updatedAtMs = timestampMs(row.updated_at)
     const effectiveMtimeMs = Number.isFinite(updatedAtMs) ? updatedAtMs : Date.now()
 
     const accumulator = createAccumulator({

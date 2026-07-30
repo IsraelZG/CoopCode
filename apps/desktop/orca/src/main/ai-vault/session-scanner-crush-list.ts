@@ -4,7 +4,7 @@ import {
   splitCrushSqliteCandidate
 } from './session-scanner-crush-paths'
 import type { SessionFileCandidate } from './session-scanner-types'
-import { errorMessage } from './session-scanner-values'
+import { errorMessage, timestampMs } from './session-scanner-values'
 import SyncDatabase from '../sqlite/sync-database'
 import { columnExists, tableExists } from '../opencode-usage/schema-helpers'
 
@@ -12,8 +12,8 @@ const EXPECTED_GOOSE_DB_VERSION = '20260127000000'
 
 type SessionRow = {
   id: string
-  created_at: string
-  updated_at: string
+  created_at: string | number
+  updated_at: string | number
 }
 
 function openReadonlyDatabase(dbPath: string): SyncDatabase {
@@ -62,7 +62,7 @@ function rowToCandidate(
   row: SessionRow,
   dbPath: string
 ): SessionFileCandidate {
-  const mtimeMs = Date.parse(row.updated_at)
+  const mtimeMs = timestampMs(row.updated_at)
   const effectiveMtimeMs = Number.isFinite(mtimeMs) ? mtimeMs : Date.now()
   return {
     agent: 'crush',
