@@ -2,7 +2,7 @@
 {
   "id": "DEVX-010",
   "title": "Selecionar a próxima task elegível deterministicamente",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -78,3 +78,12 @@ criar scheduler, banco, dispatch ou worktree.
 
 Retornar base/result SHA, arquivos alterados, comandos com exit code e quaisquer
 casos que exijam estado persistido e devam ficar para tasks posteriores.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `0053c7bee548881adec041be56d4a7cfb5b27625`
+- Merge commit: `a96a289481a45b82ef3b3e87ca34bfa0123bea41`
+- Gates: `node tools/coop-dev/test-select-task.mjs` e
+  `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-010.md`
+  (`exit 0`)

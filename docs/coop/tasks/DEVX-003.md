@@ -2,7 +2,7 @@
 {
   "id": "DEVX-003",
   "title": "Definir o contrato Gate Artifact v1",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -76,3 +76,12 @@ critérios e evidências a uma tentativa e a um result SHA imutável.
 
 Retornar base/result SHA, arquivos alterados, comandos com exit code e decisões
 adiadas explicitamente para execução de gates ou Review Decision.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `f1e347a10ba015d9641de742463bfbb1955e4c87`
+- Merge commit: `4a96372f5fad8e1fa5fe8e17238305248656465d`
+- Gates: `node tools/coop-dev/test-gate-artifact.mjs` e
+  `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-003.md`
+  (`exit 0`)

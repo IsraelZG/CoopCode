@@ -2,7 +2,7 @@
 {
   "id": "DEVX-004",
   "title": "Versionar budgets e política overnight",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -78,3 +78,12 @@ ações unattended antes que exista um executor overnight.
 
 Retornar base/result SHA, arquivos alterados, comandos com exit code e qualquer
 limite que precise de decisão humana antes da futura `DEVX-023`.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `55921de8eb1d318f85fc7dc6999330b638c96b7b`
+- Merge commit: `f3ae4761868db5b8fbd06533c114858456a58ff4`
+- Gates: `node tools/coop-dev/test-budget-policy.mjs` e
+  `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-004.md`
+  (`exit 0`)
