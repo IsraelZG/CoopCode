@@ -39,6 +39,10 @@ import type {
   SessionParseResult
 } from './session-scanner-types'
 import { clampPositiveInteger, errorMessage } from './session-scanner-values'
+import {
+  computeCrushRotationCandidates,
+  rotateCrushDatabase
+} from './session-scanner-crush-rotation'
 
 const DEFAULT_LIMIT = 1000
 const DEFAULT_SCAN_LIMIT_PER_AGENT = 1000
@@ -137,6 +141,15 @@ export async function scanAiVaultSessions(
     span.setAttribute('issues', issues.length)
 
     scheduleSessionParseCachePersist(parseStats)
+
+    if (options.rotateCrushAfterScan) {
+      const allSessions = mergeSessions(cappedSessions, scopeSessions)
+      const rotationCandidates = computeCrushRotationCandidates(allSessions, discoveries)
+      for (const dbPath of rotationCandidates) {
+        const result = await rotateCrushDatabase(dbPath)
+        issues.push(...result.issues)
+      }
+    }
 
     return {
       sessions: mergeSessions(cappedSessions, scopeSessions),

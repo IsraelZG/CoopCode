@@ -41,6 +41,7 @@ export type AiVaultScanOptions = {
   scopePaths?: readonly string[]
   platform?: NodeJS.Platform
   executionHostId?: ExecutionHostId
+  rotateCrushAfterScan?: boolean
 }
 
 export type FileWithMtime = {
