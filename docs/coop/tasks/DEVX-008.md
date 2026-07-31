@@ -2,7 +2,7 @@
 {
   "id": "DEVX-008",
   "title": "Reproduce the ARM64 packaging gate at the current repository layout and version the on-demand build script",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -103,3 +103,10 @@ appends it without rewriting earlier attempts. This task writes only under
 `tools/` and `docs/`, so it is the one task in this wave that the overnight
 policy in `docs/coop/policies/development-budget-v1.json` already permits
 unattended.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `4c2c5a9cc529dc00fa73a4ddc405c7e1e2c0a00e`
+- Merge commit: `b50242e9e`
+- Gate: task and Gate Artifact validators (`exit 0`).

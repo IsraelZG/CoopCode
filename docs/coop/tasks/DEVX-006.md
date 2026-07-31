@@ -2,7 +2,7 @@
 {
   "id": "DEVX-006",
   "title": "Read Crush sessions in the Orca ai-vault from the per-worktree SQLite database",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "routine",
@@ -142,3 +142,11 @@ appends it without rewriting earlier attempts. The Gate Artifact is required,
 not optional: this is the first task in the queue to produce one, and its
 absence is a rework. `DEVX-009` consumes this scanner and must not start before
 this task is accepted.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `c968b4bd4642330839d2edc972d7d0bf92e553fc`
+- Merge commit: `1d3cb465f`
+- Composition gate: task and Gate Artifact validators, 11 focused Vitest tests
+  and the node/CLI/web TypeScript checks (`exit 0`).
