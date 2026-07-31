@@ -49,8 +49,13 @@ const frontmatter = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
 const task = JSON.parse(frontmatter[1])
 if (task.state !== 'ready') throw new Error(`Task ${task.id} is not ready`)
 
-const status = run('git', ['status', '--porcelain']).stdout.trim()
-if (status) throw new Error('Main checkout is dirty; commit or move those changes before dispatch')
+// Why: untracked files (scratch notes, wayfinder maps, in-progress specs)
+// have no bearing on `git worktree add`, which always starts from a clean
+// `origin/main` ref regardless of what sits untracked in this checkout.
+// Blocking on them only pressures dispatch into destructive cleanup — that
+// is exactly how the wayfinder map was lost to `git clean -fd` on 2026-07-30.
+const status = run('git', ['status', '--porcelain', '--untracked-files=no']).stdout.trim()
+if (status) throw new Error('Main checkout has uncommitted tracked changes; commit or move those changes before dispatch')
 
 const branch = `task/${task.id.toLowerCase()}`
 const worktreeRoot =
@@ -64,6 +69,16 @@ if (await exists(worktree)) throw new Error(`Worktree path already exists: ${wor
 
 if (!dryRun) {
   run('git', ['fetch', 'origin'])
+  // Why: the worktree is created from origin/main, not from local HEAD. A
+  // local commit that hasn't been pushed is invisible to the worker — it
+  // would be dispatched to implement a task file that doesn't exist yet on
+  // the base it's given.
+  const ahead = run('git', ['rev-list', '--count', 'origin/main..HEAD']).stdout.trim()
+  if (ahead !== '0') {
+    throw new Error(
+      `Local main is ${ahead} commit(s) ahead of origin/main; push before dispatch — the worktree is created from origin/main and would not see local-only commits.`,
+    )
+  }
   await mkdir(worktreeRoot, { recursive: true })
   run('git', ['worktree', 'add', worktree, '-b', branch, 'origin/main'])
   run(process.execPath, ['tools/coop-dev/install-skills.mjs'], worktree)
