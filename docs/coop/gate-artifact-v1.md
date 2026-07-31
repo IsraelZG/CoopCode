@@ -100,18 +100,36 @@ já aconteceu de verdade em `DEVX-012`: cinco commits em sequência, cada um
 2. Escrever o Gate Artifact com esse valor.
 3. Commitar o artefato. Isso cria um novo HEAD — **não** é o `resultSha`, e
    está tudo bem: o commit do artefato só descreve o commit anterior.
-4. Qualquer commit adicional que só toque `docs/planning/evidence/` (uma
-   correção do próprio artefato, um rework de evidência) também não muda
-   `resultSha`. Só uma mudança de código real — fora de
-   `docs/planning/evidence/` — justifica um novo `resultSha`, e isso é sempre
-   uma nova tentativa (`attempt`), não uma edição do mesmo artefato.
+4. Qualquer commit adicional que só toque o **próprio arquivo do Gate
+   Artifact** (`<TASK-ID>-gate.json`) também não muda `resultSha`. Qualquer
+   outra mudança justifica um novo `resultSha`, e isso é sempre uma nova
+   tentativa (`attempt`), não uma edição do mesmo artefato.
 
 **Quem verifica** (`prepare-review.mjs`, ou um reviewer manual) resolve isso
 andando para trás a partir do HEAD, pulando commits que só tocam
-`docs/planning/evidence/`, até achar o commit real de código — nunca comparando
+`<TASK-ID>-gate.json`, até achar o commit de entregável — nunca comparando
 contra o HEAD bruto. Se uma verificação reportar "resultSha não bate com HEAD"
 sem fazer essa caminhada, **o bug é da verificação**, não do artefato: não
 "corrija" o `resultSha` para o HEAD atual. Escale.
+
+### Task cujo entregável *é* evidência
+
+Uma task de pesquisa, triagem ou documentação não produz código: seu
+entregável (um relatório, uma baseline reescrita) já vive em
+`docs/planning/evidence/`. A sequência acima continua valendo, mas o passo 1
+tem uma armadilha — se o worker rodar os gates **antes** de commitar o
+entregável, `git rev-parse HEAD` ainda é o base, e o artefato acaba com
+`resultSha == baseSha`, apontando para um commit que não contém nada do
+trabalho.
+
+Nesse caso: **commite o entregável primeiro**, depois rode os gates, e só
+então escreva e commite o artefato. Dois commits, como no caso de código —
+entregável, depois evidência.
+
+Isso ficou visível em `DEVX-013`, onde o entregável e o artefato foram para um
+commit só e o `resultSha` ficou igual ao `baseSha`. A regra de skip também era
+grosseira demais na época (pulava tudo sob `docs/planning/evidence/`, incluindo
+o entregável); hoje ela é ancorada no nome do arquivo do artefato.
 
 ## Validação
 

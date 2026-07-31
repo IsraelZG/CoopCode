@@ -40,8 +40,13 @@ run(process.execPath, ['tools/coop-dev/validate-task.mjs', relativeTask])
 const taskText = await readFile(taskPath, 'utf8')
 const task = JSON.parse(taskText.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)[1])
 
-if (run('git', gitArgs('status', '--porcelain'))) {
-  throw new Error(`Worktree is dirty: ${worktree}`)
+// Untracked files are excluded on purpose: review reads the base..result commit
+// range, which untracked files cannot affect. Local setup artifacts a worker
+// legitimately needs (a .toolchains symlink, editor scratch) must not block
+// review. Tracked modifications still block — those are uncommitted work that
+// belongs in the range being reviewed.
+if (run('git', gitArgs('status', '--porcelain', '--untracked-files=no'))) {
+  throw new Error(`Worktree has uncommitted tracked changes: ${worktree}`)
 }
 
 const rawHead = run('git', gitArgs('rev-parse', 'HEAD'))
@@ -50,23 +55,28 @@ if (base === rawHead) throw new Error(`No result commit found after ${baseRef}`)
 
 // Why: a Gate Artifact's resultSha names the commit its evidence was computed
 // against. Committing that artifact necessarily creates a new commit on top —
-// a commit cannot embed its own not-yet-computed hash. Walk back past any
-// trailing commits that touch only docs/planning/evidence/ (gate artifacts,
-// baselines) to find the actual result commit, instead of chasing raw HEAD
-// through an unresolvable fix-the-SHA loop.
-function isEvidenceOnlyCommit(sha) {
+// a commit cannot embed its own not-yet-computed hash. Walk back past trailing
+// commits that touch only THIS task's gate artifact to find the real result
+// commit, instead of chasing raw HEAD through an unresolvable fix-the-SHA loop.
+//
+// Scoped to the gate artifact filename, not to docs/planning/evidence/ as a
+// whole: a research/triage task's deliverable (a report, a rewritten baseline)
+// also lives under that directory, and skipping it would walk past the very
+// work under review and report "no result commit" on a correctly-done task.
+const gateArtifactSuffix = `${task.id}-gate.json`
+function isGateArtifactOnlyCommit(sha) {
   const files = run('git', gitArgs('diff-tree', '--no-commit-id', '--name-only', '-r', sha))
     .split('\n')
     .filter(Boolean)
-  return files.length > 0 && files.every((file) => file.startsWith('docs/planning/evidence/'))
+  return files.length > 0 && files.every((file) => file.endsWith(gateArtifactSuffix))
 }
 
 let result = rawHead
-while (result !== base && isEvidenceOnlyCommit(result)) {
+while (result !== base && isGateArtifactOnlyCommit(result)) {
   result = run('git', gitArgs('rev-parse', `${result}^`))
 }
 if (result === base) {
-  throw new Error('Every commit after the base only touches docs/planning/evidence/; no result commit with real changes found')
+  throw new Error(`Every commit after the base touches only ${gateArtifactSuffix}; no result commit found`)
 }
 
 const prompt = [
