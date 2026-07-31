@@ -1,70 +1,65 @@
 {
   "task": "DEVX-012",
-  "attempt": 2,
+  "attempt": 3,
   "baseSha": "8f9b617f4b322952ad008256b919934cf5336e71",
-  "resultSha": "b3995e415029bc59000ccc6cc44d33add11fa5a9",
+  "resultSha": "4ac76b0f2a547765b4c883a86e1b2bf8da4bd1da",
   "platform": "win32",
   "arch": "arm64",
   "nodeVersion": "v24.18.0",
-  "startedAt": "2026-07-31T14:11:00.000Z",
-  "finishedAt": "2026-07-31T14:12:30.000Z",
-  "baseline": "docs/planning/evidence/BASELINE.md — Orca suite already red before any change in this project; not this task's regression.",
-  "regressions": "None. Rework fixes: (1) rotateCrushDatabase now takes an explicit projectRoot instead of deriving it one directory level short of correct; (2) computeCrushRotationCandidates now excludes any db written during or after the scan started; (3) WAL-delete-failure path is exercised via an injectable _unlinkFn, not just asserted-around.",
-  "outOfScopeDiff": "Ran full project typecheck as due diligence beyond the declared gates; found 3 pre-existing TS errors in session-scanner-crush-cleanup.test.ts's untouched 'falls back to ps' test (lines unchanged from base commit 9ce5d97d9, confirmed by diff). Not fixed: unrelated to this rework's scope and reviewer findings; recorded as a follow-up, not blocking.",
+  "startedAt": "2026-07-31T16:22:00.000Z",
+  "finishedAt": "2026-07-31T16:23:30.000Z",
+  "baseline": "docs/planning/evidence/BASELINE.md — Orca suite already red before any change in this project; not this task's regression. Independently reconfirmed during this attempt: session-scanner-scope.test.ts, session-scanner-values.test.ts and session-scanner.test.ts's 'indexes every supported agent' assertion all fail identically at this attempt's parent commit (fc0af2b40, before any attempt-3 change), via git stash/pop bisection — pre-existing, not introduced here.",
+  "regressions": "None. Full ai-vault directory suite run: 3 failed / 246 passed (249) across 35 files, all 3 failures confirmed pre-existing (see baseline note) and unrelated to Crush rotation.",
+  "outOfScopeDiff": "Full project typecheck shows the same 3 pre-existing TS errors in session-scanner-crush-cleanup.test.ts's untouched 'falls back to ps' test as attempt 2 (byte-identical to base commit 9ce5d97d9); not fixed, unrelated to this rework.",
   "gates": [
     {
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-012.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-07-31T14:11:05.000Z",
-      "finishedAt": "2026-07-31T14:11:06.000Z",
+      "startedAt": "2026-07-31T16:22:10.000Z",
+      "finishedAt": "2026-07-31T16:22:11.000Z",
       "stdout": "OK: DEVX-012 (ready, standard, 5 criteria)\n",
-      "criteria": [
-        {
-          "description": "Task contract is valid",
-          "passed": true
-        }
-      ]
+      "criteria": [{ "description": "Task contract is valid", "passed": true }]
     },
     {
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ai-vault/session-scanner-crush-cleanup.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
-      "startedAt": "2026-07-31T14:11:56.000Z",
-      "finishedAt": "2026-07-31T14:12:11.000Z",
-      "stdout": "Test Files  1 passed (1)\nTests  19 passed (19)\nDuration  3.44s\n",
+      "startedAt": "2026-07-31T16:22:49.000Z",
+      "finishedAt": "2026-07-31T16:22:56.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  27 passed (27)\nDuration  5.10s\n",
       "criteria": [
         {
-          "description": "All 19 tests pass: original 17 minus concurrency-masking fixtures fixed to the real .crush/crush.db layout, plus 2 new tests for MAJOR 2 (db written during scan is excluded) and the corrected WAL-failure test now genuinely exercising the failure path (MAJOR 3)",
+          "description": "BLOCKER fixed: isCrushProcessRunning detects a real Orca-launched Crush (bare `crush`, no --project flag) via the PTY registry, confirmed by 'detects a running crush process via a matching worktreeId, ignoring command line' and the rotateCrushDatabase-level 'skips rotation when the PTY registry shows Crush running, even with a bare command line' test",
           "passed": true
         },
         {
-          "description": "MAJOR 1 (projectRoot mismatch) fixed: rotation tests now place crush.db under <projectRoot>/.crush/, matching production, and pass with the explicit projectRoot parameter",
+          "description": "PTY registry correlation is precise: does not match a different worktree, does not match a dead pid, ignores null pid/worktreeId entries, and strips the folder-workspace UUID suffix before comparing paths",
           "passed": true
         },
         {
-          "description": "MAJOR 2 (DB-recency check) fixed: 'excludes a db written to during or after the scan' and 'excludes a db whose mtime cannot be read' tests pass",
+          "description": "MAJOR fixed: 'scanAiVaultSessions rotateCrushAfterScan wiring' proves the real end-to-end wiring — rotates crush.db at the end of a real scan through discovery+parse+rotation when the flag is set and every session was captured, and does not rotate when the flag is absent",
           "passed": true
         },
         {
-          "description": "MAJOR 3 (WAL-failure test) fixed: 'leaves diagnostic issue on partial failure' now forces the failure via injectable _unlinkFn and asserts result.issues is populated with the WAL path",
+          "description": "All 3 prior-attempt fixes (projectRoot, DB-recency, WAL-failure test) still pass unchanged",
           "passed": true
+        },
+        {
+          "description": "MINOR M1 closed: rotated a COPY of the real project crush.db (not the live file) via a temporary throwaway vitest case calling rotateCrushDatabase directly, deleted immediately after; verified on disk",
+          "passed": true,
+          "detail": "Copied C:\\Dev2026\\agentic-ide\\.crush\\crush.db (16191488 bytes) plus its live WAL to a scratch dir. Before: crush.db (16191488 bytes) and crush.db-wal present. After: crush.db.2026-07-31T16-21-33-473Z.bak (16191488 bytes) present; crush.db and crush.db-wal absent. Live file at C:\\Dev2026\\agentic-ide\\.crush\\crush.db was never touched."
         }
       ]
     },
     {
-      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-012-gate.json --result-sha=b3995e415029bc59000ccc6cc44d33add11fa5a9",
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-012-gate.json --result-sha=4ac76b0f2a547765b4c883a86e1b2bf8da4bd1da",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-07-31T14:12:20.000Z",
-      "finishedAt": "2026-07-31T14:12:21.000Z",
+      "startedAt": "2026-07-31T16:23:20.000Z",
+      "finishedAt": "2026-07-31T16:23:21.000Z",
       "stdout": "VALID\n",
-      "criteria": [
-        {
-          "description": "Gate artifact validates against schema and result SHA",
-          "passed": true
-        }
-      ]
+      "criteria": [{ "description": "Gate artifact validates against schema and result SHA", "passed": true }]
     }
   ]
 }
