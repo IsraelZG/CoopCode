@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -358,24 +358,29 @@ describe('parseCrushSession', () => {
 
 // Criterion 4: Read-only scan is safe with WAL present
 describe('WAL safety', () => {
-  it('does not modify crush.db or crush.db-wal during list and parse', async () => {
+  it('does not modify persisted crush.db/crush.db-wal data with a live WAL writer', async () => {
     const dir = createTempDir()
     const dbPath = join(dir, 'crush.db')
     const walPath = join(dir, 'crush.db-wal')
-    const shmPath = join(dir, 'crush.db-shm')
 
-    const db = new Database(dbPath)
-    applyCrushSchema(db, 20260127000000)
-    insertSession(db, {
+    // Model "Crush is running": a live writer connection keeps the WAL open.
+    const writer = new Database(dbPath)
+    writer.exec('PRAGMA journal_mode = WAL')
+    applyCrushSchema(writer, 20260127000000)
+    insertSession(writer, {
       id: 'ses_wal',
       title: 'WAL test',
       updatedAt: '2026-07-29T12:00:00.000Z',
       createdAt: '2026-07-29T10:00:00.000Z'
     })
-    db.close()
-
-    writeFileSync(walPath, 'wal-content')
-    writeFileSync(shmPath, 'shm-content')
+    insertMessage(writer, {
+      id: 'msg_wal_1',
+      sessionId: 'ses_wal',
+      role: 'user',
+      parts: JSON.stringify([{ type: 'text', data: { text: 'hello wal' } }])
+    })
+    // Uncheckpointed frames keep crush.db-wal present while the writer lives.
+    expect(existsSync(walPath)).toBe(true)
 
     const hashesBefore = hashFiles([dbPath, walPath])
 
@@ -390,8 +395,31 @@ describe('WAL safety', () => {
 
     const hashesAfter = hashFiles([dbPath, walPath])
 
+    // Why: node:sqlite rebuilds the WAL-index crush.db-shm on ANY open (even
+    // read-only) whenever a -wal file is present, so shm is volatile connection
+    // state and its byte-hash can never be stable. The safety property that
+    // matters — the persisted crush.db/crush.db-wal bytes are untouched — is
+    // asserted directly instead.
     expect(hashesAfter[dbPath]).toBe(hashesBefore[dbPath])
     expect(hashesAfter[walPath]).toBe(hashesBefore[walPath])
+
+    // The live writer still functions after the scan.
+    const countBefore = (
+      writer.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number }
+    ).n
+    expect(countBefore).toBe(1)
+    writer
+      .prepare(
+        `INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at)
+         VALUES ('ses_after_scan', 'Written after scan', 0, 0, 0, ?, ?)`
+      )
+      .run('2026-07-29T13:00:00.000Z', '2026-07-29T13:00:00.000Z')
+    const writtenBack = writer
+      .prepare("SELECT id FROM sessions WHERE id = 'ses_after_scan'")
+      .get() as { id: string } | undefined
+    expect(writtenBack).toBeDefined()
+
+    writer.close()
   })
 })
 
@@ -408,10 +436,8 @@ describe('crushDiscoveries', () => {
     })
     db.close()
 
-    const discoveries = await crushDiscoveries(
-      { crushDbPaths: [path], _listFn: listCrushSqliteSessions },
-      10,
-      []
+    const discoveries = await Promise.all(
+      crushDiscoveries({ crushDbPaths: [path], _listFn: listCrushSqliteSessions }, 10, [])
     )
     expect(discoveries).toHaveLength(1)
     expect(discoveries[0].agent).toBe('crush')
@@ -434,10 +460,8 @@ describe('crushDiscoveries', () => {
     })
     db.close()
 
-    const discoveries = await crushDiscoveries(
-      { scopePaths: [dir], _listFn: listCrushSqliteSessions },
-      10,
-      []
+    const discoveries = await Promise.all(
+      crushDiscoveries({ scopePaths: [dir], _listFn: listCrushSqliteSessions }, 10, [])
     )
     expect(discoveries).toHaveLength(1)
     expect(discoveries[0].files).toHaveLength(1)

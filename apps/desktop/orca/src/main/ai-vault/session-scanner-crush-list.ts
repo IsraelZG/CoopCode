@@ -31,7 +31,7 @@ function canReadCrushSessions(db: SyncDatabase): boolean {
   )
 }
 
-function checkCrushDbVersion(db: SyncDatabase, dbPath: string): string | null {
+function checkCrushDbVersion(db: SyncDatabase): string | null {
   if (!tableExists(db, 'goose_db_version')) {
     return null
   }
@@ -114,7 +114,7 @@ export async function listCrushSqliteSessions(args: {
       if (!canReadCrushSessions(db)) {
         continue
       }
-      const version = checkCrushDbVersion(db, dbPath)
+      const version = checkCrushDbVersion(db)
       if (version !== null && version !== EXPECTED_GOOSE_DB_VERSION) {
         args.issues.push({
           agent: 'crush',

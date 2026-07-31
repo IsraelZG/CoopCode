@@ -1,10 +1,13 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import type { AiVaultScanIssue } from '../../shared/ai-vault-types'
-import type { SessionFileCandidate } from './session-scanner-types'
 import { listCrushSessionsViaWorker } from './session-scanner-crush-worker-spawn'
 import { splitCrushSqliteCandidate } from './session-scanner-crush-paths'
-import type { SessionFileDiscovery } from './session-scanner-types'
+import type {
+  FileWithMtime,
+  SessionFileCandidate,
+  SessionFileDiscovery
+} from './session-scanner-types'
 
 type ListFn = (args: {
   dbPaths: readonly string[]
@@ -23,7 +26,7 @@ type ListFn = (args: {
  * @param issues - Collected scan issues to append errors to.
  * @returns Array of session discoveries for the 'crush' agent.
  */
-export async function crushDiscoveries(
+export function crushDiscoveries(
   options: {
     scopePaths?: readonly string[]
     crushDbPaths?: readonly string[]
@@ -31,7 +34,7 @@ export async function crushDiscoveries(
   },
   limitPerAgent: number,
   issues: AiVaultScanIssue[]
-): Promise<SessionFileDiscovery[]> {
+): Promise<SessionFileDiscovery>[] {
   const dbPaths = new Set<string>()
 
   if (options.crushDbPaths) {
@@ -54,29 +57,21 @@ export async function crushDiscoveries(
   }
 
   const listFn = options._listFn ?? listCrushSessionsViaWorker
-  const candidates = await listFn({
+  const candidatesPromise = listFn({
     dbPaths: [...dbPaths],
     limit: limitPerAgent,
     issues
   })
 
-  const byDbPath = new Map<string, { path: string; mtimeMs: number; modifiedAt: string }[]>()
-  for (const candidate of candidates) {
-    const parsed = splitCrushSqliteCandidate(candidate.file.path)
-    if (!parsed) {
-      continue
-    }
-    let files = byDbPath.get(parsed.dbPath)
-    if (!files) {
-      files = []
-      byDbPath.set(parsed.dbPath, files)
-    }
-    files.push(candidate.file)
-  }
-
-  return [...byDbPath.entries()].map(([dbPath, files]) => ({
-    agent: 'crush' as const,
-    rootDir: dbPath,
-    files
-  }))
+  return [...dbPaths].map((dbPath): Promise<SessionFileDiscovery> =>
+    candidatesPromise.then((candidates) => {
+      const files = candidates
+        .map((candidate) => {
+          const parsed = splitCrushSqliteCandidate(candidate.file.path)
+          return parsed?.dbPath === dbPath ? candidate.file : null
+        })
+        .filter((file): file is FileWithMtime => file !== null)
+      return { agent: 'crush' as const, rootDir: dbPath, files }
+    })
+  )
 }

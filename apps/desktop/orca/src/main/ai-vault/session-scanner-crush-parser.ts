@@ -5,11 +5,10 @@ import {
   finalizeSession,
   updateTimeline
 } from './session-scanner-accumulator'
-import { extractString, normalizePreviewText, timestampMs } from './session-scanner-values'
+import { normalizePreviewText, timestampMs } from './session-scanner-values'
 import SyncDatabase from '../sqlite/sync-database'
 import { columnExists, tableExists } from '../opencode-usage/schema-helpers'
 
-const EXPECTED_GOOSE_DB_VERSION = '20260127000000'
 const CRUSH_PREVIEW_LIMIT = 5
 
 type CrushSessionRow = {
@@ -34,22 +33,6 @@ function openReadonlyDatabase(dbPath: string): SyncDatabase {
   const db = new SyncDatabase(dbPath, { readonly: true, fileMustExist: true })
   db.pragma('query_only = ON')
   return db
-}
-
-function checkCrushDbVersionForParse(db: SyncDatabase, dbPath: string): string | null {
-  if (!tableExists(db, 'goose_db_version')) {
-    return null
-  }
-  if (!columnExists(db, 'goose_db_version', 'version_id')) {
-    return null
-  }
-  const row = db
-    .prepare('SELECT version_id FROM goose_db_version ORDER BY id DESC LIMIT 1')
-    .get() as { version_id?: number } | undefined
-  if (!row || row.version_id === undefined) {
-    return null
-  }
-  return String(row.version_id)
 }
 
 function canReadCrushSessionsForParse(db: SyncDatabase): boolean {
