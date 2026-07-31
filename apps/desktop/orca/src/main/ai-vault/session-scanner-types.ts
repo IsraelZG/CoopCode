@@ -31,6 +31,24 @@ export type AiVaultScanOptions = {
   piSessionsDir?: string
   ompSessionsDir?: string
   crushDbPaths?: readonly string[]
+  // Why: the real Crush SQLite reader runs on a worker thread whose built
+  // entry file does not exist when running raw .ts sources under vitest
+  // (only produced by a full build) — tests inject the synchronous list
+  // function directly instead, same seam session-scanner-crush.test.ts
+  // already uses against crushDiscoveries.
+  crushListFn?: (args: {
+    dbPaths: readonly string[]
+    limit: number
+    issues: AiVaultScanIssue[]
+  }) => Promise<SessionFileCandidate[]>
+  // Why: the real per-session Crush parser also runs on that same worker
+  // thread (parseCrushSessionViaWorker) and has no other override; tests
+  // inject a synchronous stand-in alongside crushListFn above.
+  crushParseFn?: (args: {
+    dbPath: string
+    sessionId: string
+    platform: NodeJS.Platform
+  }) => Promise<AiVaultSession | null>
   droidSessionsDir?: string
   droidProjectsDir?: string
   kimiSessionsDir?: string
@@ -41,6 +59,7 @@ export type AiVaultScanOptions = {
   scopePaths?: readonly string[]
   platform?: NodeJS.Platform
   executionHostId?: ExecutionHostId
+  rotateCrushAfterScan?: boolean
 }
 
 export type FileWithMtime = {

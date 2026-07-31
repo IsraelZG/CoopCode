@@ -39,6 +39,10 @@ import type {
   SessionParseResult
 } from './session-scanner-types'
 import { clampPositiveInteger, errorMessage } from './session-scanner-values'
+import {
+  computeCrushRotationCandidates,
+  rotateCrushDatabase
+} from './session-scanner-crush-rotation'
 
 const DEFAULT_LIMIT = 1000
 const DEFAULT_SCAN_LIMIT_PER_AGENT = 1000
@@ -63,6 +67,9 @@ export async function scanAiVaultSessions(
   // "one core pegged" reports need to show whether transcript scanning is the
   // subsystem burning CPU, and how much of each scan the cache absorbed.
   return withSpan('aiVault.scan', async (span) => {
+    // Why: a Crush db candidate is only safe to rotate if it wasn't written
+    // to during this scan — see computeCrushRotationCandidates.
+    const scanStartedAtMs = Date.now()
     const limit = clampPositiveInteger(options.limit, DEFAULT_LIMIT)
     const limitPerAgent = clampPositiveInteger(options.limitPerAgent, DEFAULT_SCAN_LIMIT_PER_AGENT)
     const platform = options.platform ?? process.platform
@@ -112,7 +119,8 @@ export async function scanAiVaultSessions(
       executionHostId,
       issues,
       parseStats,
-      antigravityWorkspaceResolver
+      antigravityWorkspaceResolver,
+      crushParseFn: options.crushParseFn
     })
 
     const cappedSessions = dedupeCodexSessionsBySessionId(parsedSessions)
@@ -137,6 +145,17 @@ export async function scanAiVaultSessions(
     span.setAttribute('issues', issues.length)
 
     scheduleSessionParseCachePersist(parseStats)
+
+    if (options.rotateCrushAfterScan) {
+      const allSessions = mergeSessions(cappedSessions, scopeSessions)
+      const rotationCandidates = computeCrushRotationCandidates(allSessions, discoveries, {
+        asOfMs: scanStartedAtMs
+      })
+      for (const candidate of rotationCandidates) {
+        const result = await rotateCrushDatabase(candidate.dbPath, candidate.projectRoot)
+        issues.push(...result.issues)
+      }
+    }
 
     return {
       sessions: mergeSessions(cappedSessions, scopeSessions),
@@ -213,6 +232,7 @@ async function parseSessionCandidates(args: {
   issues: AiVaultScanIssue[]
   parseStats: SessionParseStats
   antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  crushParseFn?: AiVaultScanOptions['crushParseFn']
 }): Promise<AiVaultSession[]> {
   const sessions: AiVaultSession[] = []
   let index = 0
@@ -233,7 +253,8 @@ async function parseSessionCandidates(args: {
           args.platform,
           args.executionHostId,
           args.parseStats,
-          args.antigravityWorkspaceResolver
+          args.antigravityWorkspaceResolver,
+          args.crushParseFn
         )
       )
     )
@@ -263,10 +284,11 @@ async function parseSessionCandidate(
   platform: NodeJS.Platform,
   executionHostId: ExecutionHostId,
   parseStats: SessionParseStats,
-  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver,
+  crushParseFn?: AiVaultScanOptions['crushParseFn']
 ): Promise<SessionParseResult> {
   try {
-    let session = await parseAgentSessionFileCached(candidate, platform, parseStats)
+    let session = await parseAgentSessionFileCached(candidate, platform, parseStats, crushParseFn)
     if (session && candidate.antigravityHistoryPath && antigravityWorkspaceResolver) {
       session = await antigravityWorkspaceResolver.enrich(session, candidate.antigravityHistoryPath)
     }
