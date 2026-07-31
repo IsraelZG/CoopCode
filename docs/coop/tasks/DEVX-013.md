@@ -49,6 +49,14 @@ information a human needs to decide which failures are worth a task.
       captured `bccb83b080ca789e30312882315863d8fc6e7ce1` numbers, rewrite
       `BASELINE.md` with the new commit, date and counts — the file already
       says stale baseline is worse than no baseline.
+      **Amended 2026-07-31, after the run proved the premise wrong:** the
+      suite runs all 3695 files and then hangs at teardown, before printing
+      its summary and before the JSON reporter writes. There is no summary
+      line to read. Counts derived from the per-file reporter output are
+      therefore accepted for this criterion, provided both the triage report
+      and `BASELINE.md` state plainly that they are derived rather than read
+      from a clean summary. A worker must NOT burn the budget re-running the
+      suite hoping for a different outcome.
 - [ ] Every failing file gets one line in `docs/planning/evidence/DEVX-013-triage.md`:
       file path, signal/noise, one-sentence reason. Grouping identical
       root causes across files is fine; each file must still appear.
