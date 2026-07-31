@@ -1,0 +1,71 @@
+{
+  "task": "DEVX-007",
+  "attempt": 1,
+  "baseSha": "8f9b617f4b322952ad008256b919934cf5336e71",
+  "resultSha": "dc71ba50211f0e260cf0b98e9caab004a4e7779b",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-07-31T10:42:42.000Z",
+  "finishedAt": "2026-07-31T10:58:00.000Z",
+  "nodeVersion": "v22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-007.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T07:43:00.000Z",
+      "finishedAt": "2026-07-31T07:43:01.000Z",
+      "stdout": "OK: DEVX-007 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task contract is valid per schema",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-007-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T10:44:30.000Z",
+      "finishedAt": "2026-07-31T10:44:45.000Z",
+      "criteria": [
+        {
+          "description": "Gate artifact schema is valid",
+          "passed": true
+        },
+        {
+          "description": "resultSha matches implementation commit dc71ba50211f0e260cf0b98e9caab004a4e7779b",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ai-vault/session-scanner-opencode-sources.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T07:43:27.000Z",
+      "finishedAt": "2026-07-31T07:43:28.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  3 passed (3)",
+      "criteria": [
+        {
+          "description": "Test proves discovery when data dir has opencode*.db files but no storage/ subdirectory",
+          "passed": true,
+          "detail": "3 tests passed: no-storage discovery, legacy regression, dedup by sessionId"
+        },
+        {
+          "description": "Legacy layout with storage/ present continues to work",
+          "passed": true
+        },
+        {
+          "description": "Sessions discovered via SQLite are attributed to agent 'opencode' and not duplicated",
+          "passed": true,
+          "detail": "Dedup test confirms single session when id appears in both legs, SQLite wins"
+        }
+      ]
+    }
+  ],
+  "baseline": "docs/planning/evidence/BASELINE.md commit bccb83b080ca789e30312882315863d8fc6e7ce1 — 144 failures, 38246 passing (38900 tests). All pre-existing; no regression from this task.",
+  "regressions": "None. The Orca test suite was not re-run; the targeted gate passed 3/3. No production code was changed — only a test file added.",
+  "outOfScopeDiff": "No production code changes. Only apps/desktop/orca/src/main/ai-vault/session-scanner-opencode-sources.test.ts was created."
+}
