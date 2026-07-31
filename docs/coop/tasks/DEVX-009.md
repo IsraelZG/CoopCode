@@ -2,7 +2,7 @@
 {
   "id": "DEVX-009",
   "title": "Detect stalled and looping agent sessions from scanned session data",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -142,4 +142,11 @@ on evidence instead of on a wall-clock guess.
 
 Worker and reviewer return evidence to the dispatcher/state owner. That owner
 appends it without rewriting earlier attempts. This check is the input to a
-future watchdog profile; do not build the watchdog agent inside this task.
+ future watchdog profile; do not build the watchdog agent inside this task.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `b071dbb43755ad807b5ecbf1af3901b69a437058`
+- Merge commit: `fe1635d21`
+- Gate: task and Gate Artifact validators plus 6 fixture-based health tests (`exit 0`).

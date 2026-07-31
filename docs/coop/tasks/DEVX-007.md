@@ -2,7 +2,7 @@
 {
   "id": "DEVX-007",
   "title": "Make the ai-vault discover OpenCode sessions in the current on-disk database layout",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -111,3 +111,10 @@ Worker and reviewer return evidence to the dispatcher/state owner. That owner
 appends it without rewriting earlier attempts. A negative result — the code was
 already correct — is a valid completion, provided the test that proves it is
 committed.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `d268226b3628348e3b846704a8b27e8ad41ae76b`
+- Merge commit: `a7b059099`
+- Gate: task and Gate Artifact validators plus focused OpenCode discovery tests (`exit 0`).

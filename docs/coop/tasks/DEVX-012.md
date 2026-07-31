@@ -2,7 +2,7 @@
 {
   "id": "DEVX-012",
   "title": "Rotate crush.db after Orca incorporates all sessions, keeping a timestamped backup",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -123,5 +123,12 @@ re-reading a growing multi-hundred-MB database on every scan.
 Worker and reviewer return evidence to the dispatcher/state owner. The Gate
 Artifact is required. This task writes to the filesystem (rename/delete of
 crush.db*), which is a capability the ai-vault module doesn't currently
-exercise — the reviewer must verify that no session data is lost and that the
-backup file is readable by `node:sqlite` after rotation.
+ exercise — the reviewer must verify that no session data is lost and that the
+ backup file is readable by `node:sqlite` after rotation.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `1fa95236debd033f96637f5d4f76c7fe7ddc4f34`
+- Merge commit: `f4738e8c3`
+- Gate: task and Gate Artifact validators plus 27 focused cleanup tests (`exit 0`).
