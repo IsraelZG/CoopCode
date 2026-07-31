@@ -3,6 +3,8 @@ import { existsSync, statSync } from 'node:fs'
 import { rename, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type { AiVaultScanIssue } from '../../shared/ai-vault-types'
+import { splitWorktreeIdForFilesystem } from '../../shared/worktree-id'
+import { listRegisteredPtys, type PtyRegistration } from '../memory/pty-registry'
 import { splitCrushSqliteCandidate } from './session-scanner-crush-paths'
 import type { SessionFileDiscovery } from './session-scanner-types'
 import type { AiVaultSession } from '../../shared/ai-vault-types'
@@ -20,24 +22,89 @@ export type CrushRotationCandidate = {
 }
 
 /**
- * Detect whether a Crush process holds crush.db open by checking the process
- * list for a `crush` binary whose command line or working directory references
- * the given project root. Uses platform-specific commands (tasklist on Windows,
- * pgrep on Linux/macOS) and node:child_process only.
+ * Detect whether a Crush process holds crush.db open.
+ *
+ * Primary path: ask Orca's own PTY registry which local process IDs it
+ * spawned for this exact worktree, then confirm that PID is alive and is a
+ * crush process. This is the only reliable path in real usage: Orca's own
+ * `launchCmd` for crush is the bare `crush` command with no `--project`
+ * flag (`shared/tui-agent-config.ts`), so a command-line scan can never
+ * match a real, Orca-launched Crush process — that was found to make the
+ * "skip rotation while running" guarantee dead code in production during
+ * DEVX-012 review.
+ *
+ * Fallback path: the previous command-line scan (tasklist/wmic-successor on
+ * Windows, /proc or ps on Unix), kept for a Crush process launched manually
+ * with an explicit `--project` flag outside Orca, or for a worktree Orca's
+ * local PTY registry doesn't cover (SSH-backed worktrees; see
+ * `memory/pty-registry.ts`).
  */
 export function isCrushProcessRunning(
   projectRoot: string,
-  options?: { platform?: NodeJS.Platform; _execFn?: typeof execFileSync }
+  options?: {
+    platform?: NodeJS.Platform
+    _execFn?: typeof execFileSync
+    _listRegisteredPtysFn?: () => readonly PtyRegistration[]
+  }
 ): boolean {
   const platform = options?.platform ?? process.platform
   const execFn = options?._execFn ?? execFileSync
-  const normalizedRoot = resolve(projectRoot).toLowerCase().replace(/\\/g, '/')
 
+  if (isCrushRunningViaPtyRegistry(projectRoot, platform, execFn, options?._listRegisteredPtysFn)) {
+    return true
+  }
+
+  const normalizedRoot = resolve(projectRoot).toLowerCase().replace(/\\/g, '/')
   try {
     if (platform === 'win32') {
       return isCrushRunningWindows(normalizedRoot, execFn)
     }
     return isCrushRunningUnix(normalizedRoot, execFn)
+  } catch {
+    return false
+  }
+}
+
+function isCrushRunningViaPtyRegistry(
+  projectRoot: string,
+  platform: NodeJS.Platform,
+  execFn: typeof execFileSync,
+  listRegisteredPtysFn: (() => readonly PtyRegistration[]) | undefined
+): boolean {
+  const listFn = listRegisteredPtysFn ?? listRegisteredPtys
+  const normalizedRoot = resolve(projectRoot).toLowerCase().replace(/\\/g, '/')
+
+  for (const entry of listFn()) {
+    if (entry.pid === null || entry.worktreeId === null) {
+      continue
+    }
+    const parsed = splitWorktreeIdForFilesystem(entry.worktreeId)
+    if (!parsed) {
+      continue
+    }
+    const normalizedEntryPath = resolve(parsed.worktreePath).toLowerCase().replace(/\\/g, '/')
+    if (normalizedEntryPath !== normalizedRoot) {
+      continue
+    }
+    if (isCrushPidAlive(entry.pid, platform, execFn)) {
+      return true
+    }
+  }
+  return false
+}
+
+function isCrushPidAlive(pid: number, platform: NodeJS.Platform, execFn: typeof execFileSync): boolean {
+  try {
+    if (platform === 'win32') {
+      const output = execFn(
+        'tasklist',
+        ['/FI', `PID eq ${pid}`, '/FI', 'IMAGENAME eq crush.exe', '/FO', 'CSV', '/NH'],
+        { encoding: 'utf-8', windowsHide: true }
+      )
+      return output.trim().length > 0
+    }
+    const output = execFn('ps', ['-p', String(pid), '-o', 'comm='], { encoding: 'utf-8' })
+    return output.trim().toLowerCase().includes('crush')
   } catch {
     return false
   }
@@ -132,6 +199,7 @@ export async function rotateCrushDatabase(
     _execFn?: typeof execFileSync
     _now?: () => Date
     _unlinkFn?: typeof unlink
+    _listRegisteredPtysFn?: () => readonly PtyRegistration[]
   }
 ): Promise<CrushRotationResult> {
   const issues: AiVaultScanIssue[] = []

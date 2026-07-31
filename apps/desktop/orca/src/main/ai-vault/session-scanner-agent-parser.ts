@@ -31,7 +31,8 @@ import type { SessionFileCandidate } from './session-scanner-types'
  */
 export async function parseAgentSessionFile(
   candidate: SessionFileCandidate,
-  platform: NodeJS.Platform
+  platform: NodeJS.Platform,
+  crushParseFn: typeof parseCrushSessionViaWorker = parseCrushSessionViaWorker
 ): Promise<AiVaultSession | null> {
   switch (candidate.agent) {
     case 'claude':
@@ -81,7 +82,7 @@ export async function parseAgentSessionFile(
     case 'crush': {
       const crushCandidate = splitCrushSqliteCandidate(candidate.file.path)
       if (crushCandidate) {
-        return parseCrushSessionViaWorker({
+        return crushParseFn({
           dbPath: crushCandidate.dbPath,
           sessionId: crushCandidate.sessionId,
           platform

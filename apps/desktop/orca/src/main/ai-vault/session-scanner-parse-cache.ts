@@ -167,7 +167,8 @@ function storeEntry(path: string, entry: SessionParseCacheEntry): void {
 export async function parseAgentSessionFileCached(
   candidate: SessionFileCandidate,
   platform: NodeJS.Platform,
-  stats?: SessionParseStats
+  stats?: SessionParseStats,
+  crushParseFn?: Parameters<typeof parseAgentSessionFile>[2]
 ): Promise<AiVaultSession | null> {
   const { file } = candidate
   const entry = cache.get(file.path)
@@ -212,7 +213,7 @@ export async function parseAgentSessionFileCached(
     stats.fullParses++
     stats.bytesRead += file.sizeBytes ?? 0
   }
-  const session = await parseAgentSessionFile(candidate, platform)
+  const session = await parseAgentSessionFile(candidate, platform, crushParseFn)
   storeEntry(file.path, {
     mtimeMs: file.mtimeMs,
     sizeBytes: file.sizeBytes ?? null,

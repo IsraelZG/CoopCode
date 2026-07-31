@@ -80,7 +80,11 @@ export async function discoverAiVaultSessionSources(args: {
     openClawDiscovery(options, wslHomeDirs, limitPerAgent, issues),
     ...droidDiscoveries(options, wslHomeDirs, limitPerAgent, issues),
     ...kimiDiscoveries(options, wslHomeDirs, limitPerAgent, issues),
-    ...crushDiscoveries(options, limitPerAgent, issues)
+    ...crushDiscoveries(
+      { ...options, _listFn: options.crushListFn },
+      limitPerAgent,
+      issues
+    )
   ])
 }
 

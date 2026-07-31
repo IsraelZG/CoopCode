@@ -1,10 +1,16 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdtempSync } from 'node:fs'
 import { unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { AiVaultSession } from '../../shared/ai-vault-types'
+import type { PtyRegistration } from '../memory/pty-registry'
+import Database from '../sqlite/sync-database'
+import { scanAiVaultSessions } from './session-scanner'
+import { listCrushSqliteSessions } from './session-scanner-crush-list'
+import { parseCrushSession } from './session-scanner-crush-parser'
+import { isolatedScanRoots } from './session-scanner-test-fixtures'
 import type { SessionFileDiscovery } from './session-scanner-types'
 import { buildCrushSqliteCandidatePath } from './session-scanner-crush-paths'
 import {
@@ -12,6 +18,62 @@ import {
   isCrushProcessRunning,
   rotateCrushDatabase
 } from './session-scanner-crush-rotation'
+
+// Matches the schema session-scanner-crush-parser.ts reads; kept local to
+// this file rather than shared, since session-scanner-crush.test.ts's own
+// copy is not exported and this is the only other file that needs it.
+function seedFixtureCrushDb(dbPath: string, sessionId: string): void {
+  const db = new Database(dbPath)
+  db.exec(`
+    CREATE TABLE goose_db_version (
+      id INTEGER PRIMARY KEY,
+      version_id INTEGER NOT NULL,
+      is_applied INTEGER NOT NULL DEFAULT 1,
+      tstamp DATETIME DEFAULT NULL
+    );
+    CREATE TABLE sessions (
+      id TEXT PRIMARY KEY,
+      parent_session_id TEXT,
+      title TEXT,
+      message_count INTEGER DEFAULT 0,
+      prompt_tokens INTEGER DEFAULT 0,
+      completion_tokens INTEGER DEFAULT 0,
+      cost REAL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      summary_message_id TEXT,
+      todos TEXT
+    );
+    CREATE TABLE messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role TEXT NOT NULL,
+      parts TEXT NOT NULL DEFAULT '[]',
+      model TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      finished_at TEXT,
+      provider TEXT,
+      is_summary_message INTEGER DEFAULT 0
+    );
+  `)
+  const now = new Date().toISOString()
+  db.prepare(
+    `INSERT INTO sessions (id, title, message_count, updated_at, created_at) VALUES (?, ?, 1, ?, ?)`
+  ).run(sessionId, 'Fixture session', now, now)
+  db.prepare(
+    `INSERT INTO messages (id, session_id, role, parts, created_at, updated_at, finished_at)
+     VALUES (?, ?, 'assistant', ?, ?, ?, ?)`
+  ).run(
+    `${sessionId}-msg-1`,
+    sessionId,
+    JSON.stringify([{ type: 'text', data: { text: 'hello' } }]),
+    now,
+    now,
+    now
+  )
+  db.close()
+}
 
 let tempDirs: string[] = []
 
@@ -155,6 +217,106 @@ describe('isCrushProcessRunning', () => {
   })
 })
 
+describe('isCrushProcessRunning via PTY registry', () => {
+  function makePtyRegistration(overrides: Partial<PtyRegistration>): PtyRegistration {
+    return {
+      ptyId: 'pty-1',
+      worktreeId: null,
+      sessionId: null,
+      paneKey: null,
+      pid: null,
+      ...overrides
+    }
+  }
+
+  // Real Orca launches crush bare (`launchCmd: 'crush'`, no --project — see
+  // shared/tui-agent-config.ts), so this is the path that actually detects a
+  // running instance in production; the command-line scan above only catches
+  // a manually-launched `crush --project <root>`.
+  it('detects a running crush process via a matching worktreeId, ignoring command line', () => {
+    const projectRoot = 'C:\\Dev2026\\worktrees\\CoopCode\\DEVX-999'
+    const mockExec = makeMockExecFn({
+      // No --project flag anywhere — matches Orca's real bare `crush` launch.
+      tasklistOutput: '"crush.exe","4242","Console","1","PID eq 4242"'
+    })
+    const registrations = [
+      makePtyRegistration({ worktreeId: `some-repo::${projectRoot}`, pid: 4242 })
+    ]
+
+    const result = isCrushProcessRunning(projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => registrations
+    })
+    expect(result).toBe(true)
+  })
+
+  it('does not match a PTY registered for a different worktree', () => {
+    const projectRoot = 'C:\\Dev2026\\worktrees\\CoopCode\\DEVX-999'
+    const mockExec = makeMockExecFn({ tasklistOutput: '' })
+    const registrations = [
+      makePtyRegistration({ worktreeId: 'some-repo::C:\\Other\\Project', pid: 4242 })
+    ]
+
+    const result = isCrushProcessRunning(projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => registrations
+    })
+    expect(result).toBe(false)
+  })
+
+  it('does not match when the registered pid is no longer alive', () => {
+    const projectRoot = 'C:\\Dev2026\\worktrees\\CoopCode\\DEVX-999'
+    // tasklist finds nothing for PID 4242 — process has exited.
+    const mockExec = makeMockExecFn({ tasklistOutput: '' })
+    const registrations = [
+      makePtyRegistration({ worktreeId: `some-repo::${projectRoot}`, pid: 4242 })
+    ]
+
+    const result = isCrushProcessRunning(projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => registrations
+    })
+    expect(result).toBe(false)
+  })
+
+  it('ignores registrations with a null pid or null worktreeId', () => {
+    const projectRoot = 'C:\\Dev2026\\worktrees\\CoopCode\\DEVX-999'
+    const mockExec = makeMockExecFn({ tasklistOutput: '' })
+    const registrations = [
+      makePtyRegistration({ worktreeId: `some-repo::${projectRoot}`, pid: null }),
+      makePtyRegistration({ worktreeId: null, pid: 4242 })
+    ]
+
+    const result = isCrushProcessRunning(projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => registrations
+    })
+    expect(result).toBe(false)
+  })
+
+  it('strips the folder-workspace instance suffix before comparing paths', () => {
+    const projectRoot = 'C:\\Dev2026\\worktrees\\CoopCode\\DEVX-999'
+    const mockExec = makeMockExecFn({ tasklistOutput: '"crush.exe","4242","Console","1","x"' })
+    const registrations = [
+      makePtyRegistration({
+        worktreeId: `some-repo::${projectRoot}::workspace:11111111-1111-1111-1111-111111111111`,
+        pid: 4242
+      })
+    ]
+
+    const result = isCrushProcessRunning(projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => registrations
+    })
+    expect(result).toBe(true)
+  })
+})
+
 describe('rotateCrushDatabase', () => {
   it('returns null when crush.db does not exist', async () => {
     const projectRoot = createTempDir()
@@ -249,6 +411,27 @@ describe('rotateCrushDatabase', () => {
     expect(result.issues).toHaveLength(1)
     expect(result.issues[0].path).toBe(walPath)
     expect(result.issues[0].message).toContain('Failed to delete WAL file')
+  })
+
+  it('skips rotation when the PTY registry shows Crush running, even with a bare command line', async () => {
+    const projectRoot = createTempDir()
+    const dbPath = createCrushDbWithSiblings(projectRoot)
+    // Command line has no --project flag — matches Orca's real launch, and
+    // would not be caught by the command-line scan alone.
+    const mockExec = makeMockExecFn({ tasklistOutput: '"crush.exe","4242","Console","1","x"' })
+
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
+      platform: 'win32',
+      _execFn: mockExec,
+      _listRegisteredPtysFn: () => [
+        { ptyId: 'pty-1', worktreeId: `some-repo::${projectRoot}`, sessionId: null, paneKey: null, pid: 4242 }
+      ]
+    })
+
+    expect(result.backupPath).toBeNull()
+    expect(existsSync(dbPath)).toBe(true)
+    expect(result.issues).toHaveLength(1)
+    expect(result.issues[0].message).toContain('still running')
   })
 })
 
@@ -412,5 +595,54 @@ describe('rotation concurrency', () => {
     expect(result.issues).toHaveLength(1)
     expect(result.issues[0].agent).toBe('crush')
     expect(result.issues[0].path).toBe(dbPath)
+  })
+})
+
+describe('scanAiVaultSessions rotateCrushAfterScan wiring', () => {
+  it('rotates crush.db at the end of a successful scan when the flag is set', async () => {
+    const projectRoot = createTempDir()
+    const crushDir = join(projectRoot, '.crush')
+    mkdirSync(crushDir, { recursive: true })
+    const dbPath = join(crushDir, 'crush.db')
+    seedFixtureCrushDb(dbPath, 'fixture-session-1')
+
+    const result = await scanAiVaultSessions({
+      ...isolatedScanRoots(createTempDir()),
+      crushDbPaths: [dbPath],
+      crushListFn: listCrushSqliteSessions,
+      crushParseFn: parseCrushSession,
+      rotateCrushAfterScan: true,
+      limit: 50
+    })
+
+    expect(
+      result.sessions.some(
+        (session) => session.agent === 'crush' && session.sessionId === 'fixture-session-1'
+      )
+    ).toBe(true)
+    expect(existsSync(dbPath)).toBe(false)
+    const backups = readdirSync(crushDir).filter(
+      (name) => name.startsWith('crush.db.') && name.endsWith('.bak')
+    )
+    expect(backups).toHaveLength(1)
+  })
+
+  it('does not rotate crush.db when the flag is not set', async () => {
+    const projectRoot = createTempDir()
+    const crushDir = join(projectRoot, '.crush')
+    mkdirSync(crushDir, { recursive: true })
+    const dbPath = join(crushDir, 'crush.db')
+    seedFixtureCrushDb(dbPath, 'fixture-session-2')
+
+    const result = await scanAiVaultSessions({
+      ...isolatedScanRoots(createTempDir()),
+      crushDbPaths: [dbPath],
+      crushListFn: listCrushSqliteSessions,
+      crushParseFn: parseCrushSession,
+      limit: 50
+    })
+
+    expect(result.sessions.some((session) => session.agent === 'crush')).toBe(true)
+    expect(existsSync(dbPath)).toBe(true)
   })
 })

@@ -119,7 +119,8 @@ export async function scanAiVaultSessions(
       executionHostId,
       issues,
       parseStats,
-      antigravityWorkspaceResolver
+      antigravityWorkspaceResolver,
+      crushParseFn: options.crushParseFn
     })
 
     const cappedSessions = dedupeCodexSessionsBySessionId(parsedSessions)
@@ -231,6 +232,7 @@ async function parseSessionCandidates(args: {
   issues: AiVaultScanIssue[]
   parseStats: SessionParseStats
   antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  crushParseFn?: AiVaultScanOptions['crushParseFn']
 }): Promise<AiVaultSession[]> {
   const sessions: AiVaultSession[] = []
   let index = 0
@@ -251,7 +253,8 @@ async function parseSessionCandidates(args: {
           args.platform,
           args.executionHostId,
           args.parseStats,
-          args.antigravityWorkspaceResolver
+          args.antigravityWorkspaceResolver,
+          args.crushParseFn
         )
       )
     )
@@ -281,10 +284,11 @@ async function parseSessionCandidate(
   platform: NodeJS.Platform,
   executionHostId: ExecutionHostId,
   parseStats: SessionParseStats,
-  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver
+  antigravityWorkspaceResolver?: AntigravityWorkspaceResolver,
+  crushParseFn?: AiVaultScanOptions['crushParseFn']
 ): Promise<SessionParseResult> {
   try {
-    let session = await parseAgentSessionFileCached(candidate, platform, parseStats)
+    let session = await parseAgentSessionFileCached(candidate, platform, parseStats, crushParseFn)
     if (session && candidate.antigravityHistoryPath && antigravityWorkspaceResolver) {
       session = await antigravityWorkspaceResolver.enrich(session, candidate.antigravityHistoryPath)
     }
