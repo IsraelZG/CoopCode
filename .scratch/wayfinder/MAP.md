@@ -53,6 +53,7 @@ terminal manual.
 - [A 4-step Orca+OpenCode UI-fusion ladder was defined, with a recommendation to stop at step 2](issues/08-ui-fusion-four-step-ladder-defined.md) — which step to actually commit to is still open (ticket 10).
 - [Verification baseline registered: the Orca suite is red before any change](issues/09-baseline-registered-suite-red-before-changes.md) — 144 tests / 49 files failing at commit `bccb83b080ca789e30312882315863d8fc6e7ce1`; not yet triaged (ticket 12).
 - [AgentDir was adopted and it is a Python tool](issues/15-agentdir-adopted-is-python.md) — it works and its claims audit is honest, but it collides with `AGENTS.md:26` and is not pinned in `.toolchains/`; what to do about it is ticket 16, and the dated debt is `DEVX-011`.
+- [Port AgentDir's core into `apps/desktop/orca`, not keep Python or a standalone tool](issues/16-agentdir-port-to-ts-or-keep-python.md) — resolved 2026-07-31: TS/JS module under `src/main/evidence/`, unified with `gate-artifact-v1` rather than a fourth evidence format; `DEVX-011` carries the locked-in plan.
 
 ## Not yet specified
 

@@ -1,8 +1,22 @@
 Type: grilling
-Status: open
+Status: resolved 2026-07-31
 Blocked by: (none — frontier)
 
 # Keep the Python AgentDir, or build an evidence recorder in TS/JS?
+
+## Decision (2026-07-31)
+
+**Position 2+3 combined**: port the core to TS/JS, as a module inside
+`apps/desktop/orca` (not a standalone tool under `tools/`), so evidence
+capture and the `gate-artifact-v1` contract are one system instead of two
+that must agree. Target: `apps/desktop/orca/src/main/evidence/` (session,
+run capture with exit code, claim recording, claims-vs-evidence audit) —
+emitting `gate-artifact-v1` shapes directly, not a fifth parallel format.
+
+This promotes `docs/coop/tasks/DEVX-011.md` to `ready`; see that file for the
+locked-in plan. The Python install (`uv tool install agentdir-cli`, 5 managed
+git hooks, `.gitignore`'s `.agentdir/` line) is decommissioned once the module
+exists and is proven equivalent — not before, per `DEVX-011`'s own gates.
 
 ## Question
 
