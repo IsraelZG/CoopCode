@@ -30,6 +30,11 @@ the dispatcher to repeat this skill or the task contents.
 5. Do not fix unrelated debt. Record it as a follow-up finding.
 6. Run every declared gate exactly as specified.
 7. Record commands, exit codes, result SHA and artifacts in the handoff.
+   `resultSha` is `git rev-parse HEAD` at the moment gates finish — fixed
+   before the Gate Artifact is written, never re-stamped afterward, even if a
+   reviewer reports it doesn't match a later HEAD. See "Vinculação do
+   `resultSha`" in `docs/coop/gate-artifact-v1.md`; a real fix touches code
+   outside `docs/planning/evidence/` and is a new attempt, not a rewritten SHA.
 
 TDD is not mandatory for prose, rename, generated formatting or purely visual
 CSS. Use the observable check declared by the task instead.

@@ -26,7 +26,13 @@ evidence.
 6. Portability/platform regression.
 7. Unnecessary complexity.
 
-Validate that gate evidence belongs to the result SHA. Do not repeat a valid
+Validate that gate evidence belongs to the result SHA by walking back from
+HEAD past any trailing commit that only touches `docs/planning/evidence/` —
+see "Vinculação do `resultSha`" in `docs/coop/gate-artifact-v1.md`. A mismatch
+against raw HEAD is not itself a rework finding; escalate instead of asking the
+worker to re-stamp `resultSha` to a new HEAD, which cannot converge.
+
+Do not repeat a valid
 green gate unless it is stale/missing, the environment is material, the task is
 high-risk, or a concrete suspicion requires a focused probe.
 
