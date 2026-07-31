@@ -1,0 +1,57 @@
+{
+  "task": "DEVX-012",
+  "attempt": 1,
+  "baseSha": "8f9b617f4b322952ad008256b919934cf5336e71",
+  "resultSha": "9ce5d97d9ee23aa030d11a372db38bf472832184",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v24.18.0",
+  "startedAt": "2026-07-31T08:10:00.000Z",
+  "finishedAt": "2026-07-31T08:20:00.000Z",
+  "baseline": "Commit 8f9b617f4b322952ad008256b919934cf5336e71, clean working tree",
+  "regressions": "None. Implementation adds opt-in crush.db rotation after successful scans with platform-specific process detection and atomic per-file rotation.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-012.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T08:17:30.000Z",
+      "finishedAt": "2026-07-31T08:17:31.000Z",
+      "stdout": "OK: DEVX-012 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-012-gate.json --result-sha=9ce5d97d9ee23aa030d11a372db38bf472832184",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T08:19:50.000Z",
+      "finishedAt": "2026-07-31T08:19:51.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ai-vault/session-scanner-crush-cleanup.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T08:17:00.000Z",
+      "finishedAt": "2026-07-31T08:17:21.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  17 passed (17)\n",
+      "criteria": [
+        {
+          "description": "All 17 tests pass, covering rotateCrushDatabase, isCrushProcessRunning, computeCrushRotationCandidates, and concurrency scenarios",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
