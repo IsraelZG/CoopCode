@@ -214,6 +214,7 @@ import type {
 } from '../shared/automations-types'
 import type { KeybindingActionId, KeybindingFileSnapshot } from '../shared/keybindings'
 import type { AiVaultListArgs, AiVaultSubagentListArgs } from '../shared/ai-vault-types'
+import type { OpenCodeSdkListSessionsResult } from '../shared/opencode-sdk-types'
 import type { AiVaultPrepareSessionResumeArgs } from '../shared/ai-vault-resume-preparation'
 import type { AgentType } from '../shared/native-chat-types'
 import {
@@ -4084,6 +4085,10 @@ const api = {
       ipcRenderer.on('aiVault:windowFocused', listener)
       return () => ipcRenderer.removeListener('aiVault:windowFocused', listener)
     }
+  },
+
+  openCodeSdk: {
+    listSessions: (): Promise<unknown> => ipcRenderer.invoke('opencodeSdk:listSessions')
   },
 
   nativeChat: {

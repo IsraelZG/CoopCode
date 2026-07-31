@@ -41,6 +41,9 @@ importers:
       '@linear/sdk':
         specifier: ^82.1.0
         version: 82.1.0(graphql@16.14.2)
+      '@opencode-ai/sdk':
+        specifier: ^0.1.0-alpha.21
+        version: 0.1.0-alpha.21
       '@parcel/watcher':
         specifier: ^2.5.6
         version: 2.5.6
@@ -1081,6 +1084,9 @@ packages:
 
   '@open-draft/until@2.1.0':
     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+
+  '@opencode-ai/sdk@0.1.0-alpha.21':
+    resolution: {integrity: sha512-e/F/Re2lISHrZ9CrRKPwiqRabUjv4eo0iqFzXWWLzwMNEqV0A8+0sLQC9Iq4ug1Zm/1Qcqc9oLpxedb4PMF6aA==}
 
   '@opentelemetry/api@1.9.1':
     resolution: {integrity: sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q==}
@@ -7308,6 +7314,8 @@ snapshots:
 
   '@open-draft/until@2.1.0':
     optional: true
+
+  '@opencode-ai/sdk@0.1.0-alpha.21': {}
 
   '@opentelemetry/api@1.9.1':
     optional: true

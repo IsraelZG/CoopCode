@@ -59,6 +59,7 @@ import {
 import RightSidebar from './components/right-sidebar'
 import { StarNagCard } from './components/StarNagCard'
 import { StarNagAgentValueMomentObserver } from './components/star-nag/StarNagAgentValueMomentObserver'
+import OpenCodeSessionsScreen from './components/opencode-sessions/OpenCodeSessionsScreen'
 import { StarNagToastHost } from './components/star-nag/StarNagToastHost'
 import { SkillFreshnessNudge } from './components/skills/SkillFreshnessNudge'
 import { SkillFreshnessUpdateDialog } from './components/skills/SkillFreshnessUpdateDialog'
@@ -2605,6 +2606,14 @@ function App(): React.JSX.Element {
               compact
             >
               <StarNagCard />
+            </RecoverableRenderErrorBoundary>
+            <RecoverableRenderErrorBoundary
+              boundaryId="overlay.opencode-sessions"
+              surface="overlay"
+              resetKey={activeView}
+              compact
+            >
+              <OpenCodeSessionsScreen />
             </RecoverableRenderErrorBoundary>
             <RecoverableRenderErrorBoundary
               boundaryId="overlay.star-nag-toast"

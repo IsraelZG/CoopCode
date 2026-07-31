@@ -470,6 +470,9 @@ import type {
   AiVaultPrepareSessionResumeResult
 } from '../shared/ai-vault-resume-preparation'
 import type {
+  OpenCodeSdkListSessionsResult
+} from '../shared/opencode-sdk-types'
+import type {
   AgentType,
   NativeChatMessage,
   NativeChatTurnLifecycle
@@ -854,6 +857,10 @@ export type OpenCodeUsageApi = {
     range: OpenCodeUsageRange
     limit?: number
   }) => Promise<OpenCodeUsageSessionRow[]>
+}
+
+export type OpenCodeSdkApi = {
+  listSessions: () => Promise<OpenCodeSdkListSessionsResult>
 }
 
 export type AiVaultApi = {
@@ -2635,6 +2642,7 @@ export type PreloadApi = {
   codexUsage: CodexUsageApi
   openCodeUsage: OpenCodeUsageApi
   aiVault: AiVaultApi
+  openCodeSdk: OpenCodeSdkApi
   nativeChat: NativeChatApi
   fs: {
     readDir: (args: { dirPath: string; connectionId?: string }) => Promise<DirEntry[]>
