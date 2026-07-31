@@ -11,7 +11,20 @@ $ErrorActionPreference = 'Stop'
 $repo       = Split-Path -Parent $PSScriptRoot
 $orca       = Join-Path $repo 'apps\desktop\orca'
 $unpacked   = Join-Path $orca 'dist\win-arm64-unpacked'
-$opencode   = Join-Path (Split-Path -Parent $repo) 'external_repos\opencode\packages\opencode\dist\opencode-windows-arm64\bin\opencode.exe'
+
+# Resolve o diretorio parent que contem external_repos, mesmo quando
+# executado de uma worktree: o .git file aponta para o repo principal
+# e external_repos fica como irmao dele.
+$gitFile    = Join-Path $repo '.git'
+$parentDir  = Split-Path -Parent $repo
+if (Test-Path $gitFile -PathType Leaf) {
+  $gitDir = Get-Content $gitFile | ForEach-Object { if ($_ -match '^gitdir:\s*(.+)$') { $matches[1] } }
+  if ($gitDir) {
+    $mainRepo = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $gitDir)))
+    if (Test-Path (Join-Path $mainRepo 'external_repos')) { $parentDir = $mainRepo }
+  }
+}
+$opencode   = Join-Path $parentDir 'external_repos\opencode\packages\opencode\dist\opencode-windows-arm64\bin\opencode.exe'
 $install    = 'C:\Dev2026\builds\coopcode'
 $current    = Join-Path $install 'current'
 $previous   = Join-Path $install 'previous'
@@ -41,9 +54,56 @@ if (-not (Test-Path (Join-Path $unpacked 'Orca.exe'))) { throw "Orca.exe nao enc
 
 # ponytail: exatamente uma build anterior e mantida. Se um dia precisares comparar
 # tres versoes, troca a rotacao por um sufixo de data e um corte por contagem.
+# Retry para file locks (scanner, indexador do Windows).
+# Remove-Item falha com DLLs assinadas; rmdir /s/q do cmd ignora alguns locks.
+function Invoke-RetryRemove {
+  param([string]$Path, [int]$MaxRetries = 5, [int]$DelaySeconds = 2)
+  if (-not (Test-Path $Path)) { return }
+  $attempt = 0
+  while ($true) {
+    try {
+      cmd /c "rmdir /s /q `"$Path`""
+      if (-not (Test-Path $Path)) { return }
+      Remove-Item $Path -Recurse -Force -ErrorAction Stop
+      return
+    } catch {
+      $attempt++
+      if ($attempt -ge $MaxRetries) {
+        Write-Host "AVISO: nao foi possivel remover $Path apos $MaxRetries tentativas; renomeando."
+        $stale = "$Path.stale.$(Get-Date -Format 'yyyyMMddHHmmss')"
+        Rename-Item $Path $stale -ErrorAction SilentlyContinue
+        return
+      }
+      Write-Host ("Retry {0}/{1}: {2}" -f $attempt, $MaxRetries, $_)
+      Start-Sleep -Seconds $DelaySeconds
+    }
+  }
+}
+function Invoke-RetryMove {
+  param([string]$Source, [string]$Dest, [int]$MaxRetries = 5, [int]$DelaySeconds = 2)
+  if (-not (Test-Path $Source)) { return }
+  $attempt = 0
+  while ($true) {
+    try {
+      Move-Item $Source $Dest -ErrorAction Stop
+      return
+    } catch {
+      $attempt++
+      if ($attempt -ge $MaxRetries) {
+        Write-Host "AVISO: nao foi possivel mover $Source apos $MaxRetries tentativas; copiando."
+        Copy-Item $Source $Dest -Recurse -ErrorAction Stop
+        Invoke-RetryRemove $Source
+        return
+      }
+      Write-Host ("Retry {0}/{1}: {2}" -f $attempt, $MaxRetries, $_)
+      Start-Sleep -Seconds $DelaySeconds
+    }
+  }
+}
+
 New-Item -ItemType Directory -Force -Path $install | Out-Null
-if (Test-Path $previous) { Remove-Item $previous -Recurse -Force }
-if (Test-Path $current)  { Move-Item $current $previous }
+Invoke-RetryRemove $previous
+Invoke-RetryMove $current $previous
 
 Copy-Item $unpacked $current -Recurse
 New-Item -ItemType Directory -Force -Path (Join-Path $current 'opencode') | Out-Null
