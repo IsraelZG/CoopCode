@@ -1,8 +1,17 @@
 Type: grilling
-Status: open
+Status: resolved 2026-07-31
 Blocked by: (none — frontier)
 
 # Which UI-fusion step to commit to, and when to start
+
+## Decision (2026-07-31)
+
+**Step 2** (purpose-built React screens over `@opencode-ai/sdk`), matching
+the recommendation and matching the "own UI consuming the SDK, not embedding
+Solid" preference already stated. **Starts now, in parallel** with `DEVX-011`
+(AgentDir port) and `DEVX-013` (144-failure triage) — nothing in either
+blocks UI work, and none of the three touch overlapping files. First slice
+specified as `DEVX-014`: one real screen, session list only, no chat/write.
 
 ## Question
 

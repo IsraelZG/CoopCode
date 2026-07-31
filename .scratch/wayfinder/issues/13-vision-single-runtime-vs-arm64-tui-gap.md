@@ -1,8 +1,17 @@
 Type: grilling
-Status: open
+Status: resolved 2026-07-31
 Blocked by: (none — frontier)
 
 # vision.md diz "OpenCode é o runtime único" e a TUI não roda em ARM64
+
+## Decisão (2026-07-31)
+
+OpenCode entra só por `serve`/SDK, nunca por TUI. "Runtime único" continua
+verdadeiro no sentido que importa — o substrato agêntico do produto, não o
+processo específico que o alcança. Nem ADR-0001 (prioridade de plataforma) é
+revertido, nem `vision.md` é rebaixado para "preferido"; a frase é reescrita
+para dizer explicitamente como o runtime é alcançado. `DEVX-014` é a primeira
+prova concreta desse caminho.
 
 > Reconstruído em 2026-07-30; corpo original perdido por `git clean -fd`.
 

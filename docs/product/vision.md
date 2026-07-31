@@ -9,10 +9,12 @@ navegador, revisa os diffs e preserva evidências para melhorar execuções futu
 
 ## Experiência integrada
 
-O produto possui um único runtime agêntico baseado no OpenCode. Architect,
-Planner, Executor, Verifier, Reviewer, Integrator e Learner são perfis do mesmo
-runtime, selecionados automaticamente pelo estágio do workflow. O usuário não
-escolhe CLIs ou agentes para cada tarefa.
+O produto possui um único runtime agêntico baseado no OpenCode, alcançado via
+`serve`/SDK — nunca lançando a TUI do OpenCode, que não roda na plataforma de
+referência do projeto (ADR-0001). Architect, Planner, Executor, Verifier,
+Reviewer, Integrator e Learner são perfis do mesmo runtime, selecionados
+automaticamente pelo estágio do workflow. O usuário não escolhe CLIs ou
+agentes para cada tarefa.
 
 ## Plataformas
 
