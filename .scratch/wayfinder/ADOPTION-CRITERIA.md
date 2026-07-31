@@ -123,15 +123,38 @@ Medido em:        <data>  Aconteceu? <sim|não>
 
 | Ordem | Candidato | Estado |
 |---|---|---|
-| 1 | AgentDir | adotado sob condição; efeito esperado **não** foi declarado antes — falha retroativa do Critério 3, registrada em vez de apagada |
-| 2 | — | vaga livre; nada mais entra até a fila 1 ser medida |
+| 1 | AgentDir | medido retroativamente em 2026-07-31, efeito confirmado — ver abaixo |
+| 2 | — | vaga aberta; próximo candidato pode entrar |
 
-O AgentDir entrou antes deste critério existir. Ele fica, mas o efeito
-esperado precisa ser escrito e medido retroativamente antes de o próximo
-candidato entrar: *"um relatório de agente que alega ter rodado um gate sem
-tê-lo rodado é detectado."* Isso foi observado uma vez, adversarialmente, na
-própria adoção — falta medir em uso real. `DEVX-006` e `DEVX-008` são a
-primeira chance, porque ambas exigem Gate Artifact.
+O AgentDir entrou antes deste critério existir, com a falha retroativa
+registrada acima (efeito esperado não declarado antes de instalar). O efeito
+foi então escrito e medido:
+
+```
+Candidato:        AgentDir
+Efeito esperado:  um relatório de agente que alega ter rodado um gate sem
+                  tê-lo rodado é detectado
+Teste (Crit. 1):  sandbox isolado em .scratch (nunca o .agentdir real do
+                  repo) — uma sessão com `agentdir run` real seguido de
+                  `agentdir claim test --passed` (controle) e uma segunda
+                  sessão com só o claim, sem run (adversarial); depois
+                  `agentdir audit claims --session <id>` nas duas. ~3 min,
+                  Windows 11 ARM64, CLI já instalada.
+Restrição ferida: AGENTS.md:26 (Python), dívida datada em DEVX-011,
+                  prazo 2026-08-27, decisão de pagamento em aberto (ticket 16)
+Medido em:        2026-07-31   Aconteceu? Sim
+```
+
+Resultado literal: a sessão controle (`vitest run (fixture)` real, exit 0)
+auditou como `"status": "supported", "ok": true`. A sessão adversarial (claim
+`--passed` sem nenhum `agentdir run` correspondente) auditou como
+`"status": "unsupported", "message": "claimed test passed but no test
+evidence was recorded", "ok": false`. O efeito declarado aconteceu.
+
+Isso fecha a medição retroativa do Critério 3 para o AgentDir; não decide o
+Critério 2 (a dívida Python de `DEVX-011` segue aberta, decisão no ticket
+16). A fila está destravada — o próximo candidato de
+`external_repos/` pode entrar, um de cada vez.
 
 ## Critérios seguintes
 
