@@ -44,9 +44,30 @@ if (run('git', gitArgs('status', '--porcelain'))) {
   throw new Error(`Worktree is dirty: ${worktree}`)
 }
 
-const result = run('git', gitArgs('rev-parse', 'HEAD'))
-const base = run('git', gitArgs('merge-base', baseRef, result))
-if (base === result) throw new Error(`No result commit found after ${baseRef}`)
+const rawHead = run('git', gitArgs('rev-parse', 'HEAD'))
+const base = run('git', gitArgs('merge-base', baseRef, rawHead))
+if (base === rawHead) throw new Error(`No result commit found after ${baseRef}`)
+
+// Why: a Gate Artifact's resultSha names the commit its evidence was computed
+// against. Committing that artifact necessarily creates a new commit on top —
+// a commit cannot embed its own not-yet-computed hash. Walk back past any
+// trailing commits that touch only docs/planning/evidence/ (gate artifacts,
+// baselines) to find the actual result commit, instead of chasing raw HEAD
+// through an unresolvable fix-the-SHA loop.
+function isEvidenceOnlyCommit(sha) {
+  const files = run('git', gitArgs('diff-tree', '--no-commit-id', '--name-only', '-r', sha))
+    .split('\n')
+    .filter(Boolean)
+  return files.length > 0 && files.every((file) => file.startsWith('docs/planning/evidence/'))
+}
+
+let result = rawHead
+while (result !== base && isEvidenceOnlyCommit(result)) {
+  result = run('git', gitArgs('rev-parse', `${result}^`))
+}
+if (result === base) {
+  throw new Error('Every commit after the base only touches docs/planning/evidence/; no result commit with real changes found')
+}
 
 const prompt = [
   `Use $coop-reviewer para revisar ${task.id} em modo somente leitura.`,
