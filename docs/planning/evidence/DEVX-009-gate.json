@@ -2,7 +2,7 @@
   "task": "DEVX-009",
   "attempt": 1,
   "baseSha": "8f9b617f4b322952ad008256b919934cf5336e71",
-  "resultSha": "174e5263b0d103fa172ace9950f59ec86f1b7e5c",
+  "resultSha": "4d76e7970848f0b46f93321448e791a54b3ca692",
   "platform": "win32",
   "arch": "arm64",
   "nodeVersion": "v22.20.0",
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-009-gate.json --result-sha=174e5263b0d103fa172ace9950f59ec86f1b7e5c",
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-009-gate.json --result-sha=4d76e7970848f0b46f93321448e791a54b3ca692",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
       "startedAt": "2026-07-31T12:04:00.000Z",
