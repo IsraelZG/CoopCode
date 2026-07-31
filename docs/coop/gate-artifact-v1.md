@@ -80,6 +80,39 @@ Cada critério:
 - **Critérios presentes**: Se houver `criteria`, cada entrada deve ter
   `description` e `passed`.
 
+## Vinculação do `resultSha` — leia antes de escrever este campo
+
+`resultSha` é **fixado no momento em que os gates terminam de rodar**, antes de
+o artefato ser escrito ou commitado. Depois de fixado, **nunca é atualizado**,
+nem em rework, nem em resposta a um reviewer reportando "não bate com HEAD".
+
+O motivo é estrutural, não estilístico: o commit que adiciona o arquivo do
+Gate Artifact vem necessariamente *depois* do commit que ele descreve — um
+commit não pode conter o próprio hash antes de existir. Se `resultSha` for
+tratado como "deve ser igual ao HEAD atual", cada commit que corrige esse
+campo cria um HEAD novo, tornando o campo obsoleto de novo, para sempre. Isso
+já aconteceu de verdade em `DEVX-012`: cinco commits em sequência, cada um
+"corrigindo" `resultSha` para o HEAD anterior, sem nunca alcançá-lo.
+
+**Sequência correta:**
+
+1. Terminar de rodar os gates. `git rev-parse HEAD` **agora** é o `resultSha`.
+2. Escrever o Gate Artifact com esse valor.
+3. Commitar o artefato. Isso cria um novo HEAD — **não** é o `resultSha`, e
+   está tudo bem: o commit do artefato só descreve o commit anterior.
+4. Qualquer commit adicional que só toque `docs/planning/evidence/` (uma
+   correção do próprio artefato, um rework de evidência) também não muda
+   `resultSha`. Só uma mudança de código real — fora de
+   `docs/planning/evidence/` — justifica um novo `resultSha`, e isso é sempre
+   uma nova tentativa (`attempt`), não uma edição do mesmo artefato.
+
+**Quem verifica** (`prepare-review.mjs`, ou um reviewer manual) resolve isso
+andando para trás a partir do HEAD, pulando commits que só tocam
+`docs/planning/evidence/`, até achar o commit real de código — nunca comparando
+contra o HEAD bruto. Se uma verificação reportar "resultSha não bate com HEAD"
+sem fazer essa caminhada, **o bug é da verificação**, não do artefato: não
+"corrija" o `resultSha` para o HEAD atual. Escale.
+
 ## Validação
 
 ```bash
