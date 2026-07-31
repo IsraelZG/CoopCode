@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { rename, unlink } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import type { AiVaultScanIssue } from '../../shared/ai-vault-types'
@@ -10,6 +10,13 @@ import type { AiVaultSession } from '../../shared/ai-vault-types'
 export type CrushRotationResult = {
   backupPath: string | null
   issues: AiVaultScanIssue[]
+}
+
+export type CrushRotationCandidate = {
+  dbPath: string
+  // The directory Crush is invoked with via `crush --project <projectRoot>`,
+  // i.e. the parent of `.crush/`, not the parent of `crush.db` itself.
+  projectRoot: string
 }
 
 /**
@@ -56,12 +63,19 @@ function isCrushRunningWindows(
     }
     const pid = pidMatch[1]
     try {
-      const wmicOutput = execFn(
-        'wmic',
-        ['process', 'where', 'ProcessId=' + pid, 'get', 'CommandLine', '/FORMAT:LIST'],
+      // ponytail: wmic is deprecated since Windows 11 24H2 but still present
+      // on the ARM64 target; Get-CimInstance is the forward-compatible path.
+      const psOutput = execFn(
+        'powershell',
+        [
+          '-NoProfile',
+          '-NonInteractive',
+          '-Command',
+          `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`
+        ],
         { encoding: 'utf-8', windowsHide: true }
       )
-      if (wmicOutput.toLowerCase().replace(/\\/g, '/').includes(normalizedRoot)) {
+      if (psOutput.toLowerCase().replace(/\\/g, '/').includes(normalizedRoot)) {
         return true
       }
     } catch {
@@ -104,13 +118,20 @@ function isCrushRunningUnix(
  * Rename crush.db to a timestamped backup and remove WAL/SHM siblings.
  * Returns the backup path on success, or null when crush.db is absent or
  * a Crush process still holds it open.
+ * @param dbPath - Path to crush.db.
+ * @param projectRoot - The directory Crush was launched against
+ *   (`crush --project <projectRoot>`), i.e. the parent of `.crush/`. Must be
+ *   passed explicitly rather than derived from `dbPath` here, since callers
+ *   (and tests) may not follow the `<projectRoot>/.crush/crush.db` layout.
  */
 export async function rotateCrushDatabase(
   dbPath: string,
+  projectRoot: string,
   options?: {
     platform?: NodeJS.Platform
     _execFn?: typeof execFileSync
     _now?: () => Date
+    _unlinkFn?: typeof unlink
   }
 ): Promise<CrushRotationResult> {
   const issues: AiVaultScanIssue[] = []
@@ -120,7 +141,6 @@ export async function rotateCrushDatabase(
     return { backupPath: null, issues }
   }
 
-  const projectRoot = dirname(resolvedPath)
   if (isCrushProcessRunning(projectRoot, options)) {
     issues.push({
       agent: 'crush',
@@ -147,10 +167,11 @@ export async function rotateCrushDatabase(
 
   const walPath = `${resolvedPath}-wal`
   const shmPath = `${resolvedPath}-shm`
+  const unlinkFn = options?._unlinkFn ?? unlink
 
   if (existsSync(walPath)) {
     try {
-      await unlink(walPath)
+      await unlinkFn(walPath)
     } catch (err) {
       issues.push({
         agent: 'crush',
@@ -162,7 +183,7 @@ export async function rotateCrushDatabase(
 
   if (existsSync(shmPath)) {
     try {
-      await unlink(shmPath)
+      await unlinkFn(shmPath)
     } catch (err) {
       issues.push({
         agent: 'crush',
@@ -177,15 +198,23 @@ export async function rotateCrushDatabase(
 
 /**
  * Determine which crush.db files are safe to rotate: every session discovered
- * from that DB must appear in the scanned sessions (matched by sessionId).
- * The caller is responsible for ensuring at least one full scan has completed.
+ * from that DB must appear in the scanned sessions (matched by sessionId),
+ * and the DB's own last-write time must be no later than `asOfMs` — proving
+ * a full scan completed after the DB was last written, so nothing written
+ * mid-scan is silently discarded by rotation.
  */
 export function computeCrushRotationCandidates(
   scannedSessions: readonly AiVaultSession[],
-  discoveries: readonly SessionFileDiscovery[]
-): string[] {
+  discoveries: readonly SessionFileDiscovery[],
+  options?: {
+    asOfMs?: number
+    _statFn?: (path: string) => { mtimeMs: number }
+  }
+): CrushRotationCandidate[] {
+  const asOfMs = options?.asOfMs ?? Date.now()
+  const statFn = options?._statFn ?? statSync
   const scannedSessionIds = new Set(scannedSessions.map((session) => session.sessionId))
-  const candidates: string[] = []
+  const candidates: CrushRotationCandidate[] = []
 
   for (const discovery of discoveries) {
     if (discovery.agent !== 'crush') {
@@ -207,9 +236,21 @@ export function computeCrushRotationCandidates(
       }
     }
 
-    if (hasSessions && allSessionsFound) {
-      candidates.push(dbPath)
+    if (!hasSessions || !allSessionsFound) {
+      continue
     }
+
+    let dbMtimeMs: number
+    try {
+      dbMtimeMs = statFn(dbPath).mtimeMs
+    } catch {
+      continue
+    }
+    if (dbMtimeMs > asOfMs) {
+      continue
+    }
+
+    candidates.push({ dbPath, projectRoot: dirname(dirname(dbPath)) })
   }
 
   return candidates

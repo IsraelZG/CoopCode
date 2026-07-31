@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdtempSync } from 'node:fs'
+import { unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -27,8 +28,12 @@ function createTempDir(): string {
   return dir
 }
 
-function createCrushDbWithSiblings(dir: string): string {
-  const dbPath = join(dir, 'crush.db')
+// Real layout is <projectRoot>/.crush/crush.db — fixtures must follow it, or
+// they mask exactly the projectRoot bug this suite exists to catch.
+function createCrushDbWithSiblings(projectRoot: string): string {
+  const crushDir = join(projectRoot, '.crush')
+  mkdirSync(crushDir, { recursive: true })
+  const dbPath = join(crushDir, 'crush.db')
   writeFileSync(dbPath, 'fake-db-content')
   writeFileSync(`${dbPath}-wal`, 'fake-wal-content')
   writeFileSync(`${dbPath}-shm`, 'fake-shm-content')
@@ -37,7 +42,7 @@ function createCrushDbWithSiblings(dir: string): string {
 
 function makeMockExecFn(args: {
   tasklistOutput?: string
-  wmicOutput?: string
+  powershellOutput?: string
   pgrepOutput?: string
   cmdlineOutput?: string
   psOutput?: string
@@ -46,8 +51,8 @@ function makeMockExecFn(args: {
     if (command === 'tasklist') {
       return args.tasklistOutput ?? ''
     }
-    if (command === 'wmic') {
-      return args.wmicOutput ?? ''
+    if (command === 'powershell') {
+      return args.powershellOutput ?? ''
     }
     if (command === 'pgrep') {
       return args.pgrepOutput ?? ''
@@ -76,7 +81,7 @@ describe('isCrushProcessRunning', () => {
     const projectRoot = 'C:\\Dev2026\\agentic-ide'
     const mockExec = makeMockExecFn({
       tasklistOutput: '"crush.exe","1234","Console","1","100,000 K"',
-      wmicOutput: `CommandLine=crush --project ${projectRoot}`
+      powershellOutput: `crush --project ${projectRoot}`
     })
     const result = isCrushProcessRunning(projectRoot, {
       platform: 'win32',
@@ -88,7 +93,7 @@ describe('isCrushProcessRunning', () => {
   it('returns false when crush process does not reference the project root (Windows)', () => {
     const mockExec = makeMockExecFn({
       tasklistOutput: '"crush.exe","1234","Console","1","100,000 K"',
-      wmicOutput: 'CommandLine=crush --project C:\\Other\\Project'
+      powershellOutput: 'crush --project C:\\Other\\Project'
     })
     const result = isCrushProcessRunning('C:\\Dev2026\\agentic-ide', {
       platform: 'win32',
@@ -152,20 +157,20 @@ describe('isCrushProcessRunning', () => {
 
 describe('rotateCrushDatabase', () => {
   it('returns null when crush.db does not exist', async () => {
-    const dir = createTempDir()
-    const dbPath = join(dir, 'crush.db')
-    const result = await rotateCrushDatabase(dbPath)
+    const projectRoot = createTempDir()
+    const dbPath = join(projectRoot, '.crush', 'crush.db')
+    const result = await rotateCrushDatabase(dbPath, projectRoot)
     expect(result.backupPath).toBeNull()
     expect(result.issues).toEqual([])
   })
 
   it('renames crush.db to timestamped backup and removes WAL/SHM', async () => {
-    const dir = createTempDir()
-    const dbPath = createCrushDbWithSiblings(dir)
+    const projectRoot = createTempDir()
+    const dbPath = createCrushDbWithSiblings(projectRoot)
     const fixedDate = new Date('2026-07-31T10:00:00.000Z')
     const mockExec = makeMockExecFn({ tasklistOutput: '' })
 
-    const result = await rotateCrushDatabase(dbPath, {
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
       platform: 'win32',
       _execFn: mockExec,
       _now: () => fixedDate
@@ -180,12 +185,14 @@ describe('rotateCrushDatabase', () => {
   })
 
   it('rotates even when WAL/SHM do not exist', async () => {
-    const dir = createTempDir()
-    const dbPath = join(dir, 'crush.db')
+    const projectRoot = createTempDir()
+    const crushDir = join(projectRoot, '.crush')
+    mkdirSync(crushDir, { recursive: true })
+    const dbPath = join(crushDir, 'crush.db')
     writeFileSync(dbPath, 'fake-db-content')
     const mockExec = makeMockExecFn({ tasklistOutput: '' })
 
-    const result = await rotateCrushDatabase(dbPath, {
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
       platform: 'win32',
       _execFn: mockExec
     })
@@ -197,14 +204,16 @@ describe('rotateCrushDatabase', () => {
   })
 
   it('skips rotation and returns issue when Crush is running', async () => {
-    const dir = createTempDir()
-    const dbPath = createCrushDbWithSiblings(dir)
+    const projectRoot = createTempDir()
+    const dbPath = createCrushDbWithSiblings(projectRoot)
+    // The process command line references projectRoot (the --project value),
+    // not the .crush/ subdirectory crush.db actually lives in.
     const mockExec = makeMockExecFn({
       tasklistOutput: '"crush.exe","1234","Console","1","100,000 K"',
-      wmicOutput: `CommandLine=crush --project ${dir}`
+      powershellOutput: `crush --project ${projectRoot}`
     })
 
-    const result = await rotateCrushDatabase(dbPath, {
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
       platform: 'win32',
       _execFn: mockExec
     })
@@ -217,23 +226,29 @@ describe('rotateCrushDatabase', () => {
   })
 
   it('leaves diagnostic issue on partial failure (WAL delete fails)', async () => {
-    const dir = createTempDir()
-    const dbPath = join(dir, 'crush.db')
-    writeFileSync(dbPath, 'fake-db-content')
-    writeFileSync(`${dbPath}-wal`, 'fake-wal-content')
-
+    const projectRoot = createTempDir()
+    const dbPath = createCrushDbWithSiblings(projectRoot)
     const mockExec = makeMockExecFn({ tasklistOutput: '' })
+    const walPath = `${dbPath}-wal`
 
-    // Make the WAL file read-only to cause unlink to fail on some systems
-    // Instead, we test that the function handles the error gracefully
-    const result = await rotateCrushDatabase(dbPath, {
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
       platform: 'win32',
-      _execFn: mockExec
+      _execFn: mockExec,
+      _unlinkFn: async (path) => {
+        if (path === walPath) {
+          throw new Error('EBUSY: resource busy or locked')
+        }
+        return unlink(path)
+      }
     })
 
-    // Normal case should succeed
+    // Rename and SHM cleanup still succeed; only the WAL delete failed.
     expect(result.backupPath).not.toBeNull()
     expect(existsSync(dbPath)).toBe(false)
+    expect(existsSync(walPath)).toBe(true)
+    expect(result.issues).toHaveLength(1)
+    expect(result.issues[0].path).toBe(walPath)
+    expect(result.issues[0].message).toContain('Failed to delete WAL file')
   })
 })
 
@@ -275,44 +290,61 @@ describe('computeCrushRotationCandidates', () => {
     }
   }
 
-  it('returns dbPath when all discovered sessions are in scanned sessions', () => {
-    const dbPath = '/fake/crush.db'
+  // Fixed instant every test treats as "now the scan started" and a DB mtime
+  // safely before it, so the recency check passes unless a test overrides one.
+  const scanStartedAtMs = Date.parse('2026-07-31T12:00:00.000Z')
+  const dbWrittenBeforeScan = () => ({ mtimeMs: scanStartedAtMs - 60_000 })
+
+  it('returns dbPath/projectRoot when all discovered sessions are in scanned sessions', () => {
+    const dbPath = '/fake/project/.crush/crush.db'
     const sessions = [makeSession('ses_1'), makeSession('ses_2')]
     const discoveries = [makeDiscovery(dbPath, ['ses_1', 'ses_2'])]
 
-    const candidates = computeCrushRotationCandidates(sessions, discoveries)
-    expect(candidates).toEqual([dbPath])
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: dbWrittenBeforeScan
+    })
+    expect(candidates).toEqual([{ dbPath, projectRoot: '/fake/project' }])
   })
 
   it('returns empty when a discovered session is missing from scanned sessions', () => {
-    const dbPath = '/fake/crush.db'
+    const dbPath = '/fake/project/.crush/crush.db'
     const sessions = [makeSession('ses_1')]
     const discoveries = [makeDiscovery(dbPath, ['ses_1', 'ses_2'])]
 
-    const candidates = computeCrushRotationCandidates(sessions, discoveries)
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: dbWrittenBeforeScan
+    })
     expect(candidates).toEqual([])
   })
 
   it('ignores non-crush discoveries', () => {
-    const dbPath = '/fake/crush.db'
+    const dbPath = '/fake/project/.crush/crush.db'
     const sessions = [makeSession('ses_1')]
     const discoveries: SessionFileDiscovery[] = [
       { agent: 'claude', rootDir: '/fake/claude', files: [] },
       makeDiscovery(dbPath, ['ses_1'])
     ]
 
-    const candidates = computeCrushRotationCandidates(sessions, discoveries)
-    expect(candidates).toEqual([dbPath])
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: dbWrittenBeforeScan
+    })
+    expect(candidates).toEqual([{ dbPath, projectRoot: '/fake/project' }])
   })
 
   it('returns empty when discovery has no files', () => {
-    const dbPath = '/fake/crush.db'
+    const dbPath = '/fake/project/.crush/crush.db'
     const sessions = [makeSession('ses_1')]
     const discoveries: SessionFileDiscovery[] = [
       { agent: 'crush', rootDir: dbPath, files: [] }
     ]
 
-    const candidates = computeCrushRotationCandidates(sessions, discoveries)
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: dbWrittenBeforeScan
+    })
     expect(candidates).toEqual([])
   })
 
@@ -325,21 +357,50 @@ describe('computeCrushRotationCandidates', () => {
       makeDiscovery(dbPath2, ['ses_2', 'ses_3'])
     ]
 
-    const candidates = computeCrushRotationCandidates(sessions, discoveries)
-    expect(candidates).toEqual([dbPath1])
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: dbWrittenBeforeScan
+    })
+    expect(candidates).toEqual([{ dbPath: dbPath1, projectRoot: '/fake/project1' }])
+  })
+
+  it('excludes a db written to during or after the scan, even with matching sessionIds', () => {
+    const dbPath = '/fake/project/.crush/crush.db'
+    const sessions = [makeSession('ses_1')]
+    const discoveries = [makeDiscovery(dbPath, ['ses_1'])]
+
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: () => ({ mtimeMs: scanStartedAtMs + 1 })
+    })
+    expect(candidates).toEqual([])
+  })
+
+  it('excludes a db whose mtime cannot be read', () => {
+    const dbPath = '/fake/project/.crush/crush.db'
+    const sessions = [makeSession('ses_1')]
+    const discoveries = [makeDiscovery(dbPath, ['ses_1'])]
+
+    const candidates = computeCrushRotationCandidates(sessions, discoveries, {
+      asOfMs: scanStartedAtMs,
+      _statFn: () => {
+        throw new Error('ENOENT')
+      }
+    })
+    expect(candidates).toEqual([])
   })
 })
 
 describe('rotation concurrency', () => {
   it('skips rotation with issue when Crush holds the database open', async () => {
-    const dir = createTempDir()
-    const dbPath = createCrushDbWithSiblings(dir)
+    const projectRoot = createTempDir()
+    const dbPath = createCrushDbWithSiblings(projectRoot)
     const mockExec = makeMockExecFn({
       tasklistOutput: '"crush.exe","1234","Console","1","100,000 K"',
-      wmicOutput: `CommandLine=crush --project ${dir}`
+      powershellOutput: `crush --project ${projectRoot}`
     })
 
-    const result = await rotateCrushDatabase(dbPath, {
+    const result = await rotateCrushDatabase(dbPath, projectRoot, {
       platform: 'win32',
       _execFn: mockExec
     })

@@ -67,6 +67,9 @@ export async function scanAiVaultSessions(
   // "one core pegged" reports need to show whether transcript scanning is the
   // subsystem burning CPU, and how much of each scan the cache absorbed.
   return withSpan('aiVault.scan', async (span) => {
+    // Why: a Crush db candidate is only safe to rotate if it wasn't written
+    // to during this scan — see computeCrushRotationCandidates.
+    const scanStartedAtMs = Date.now()
     const limit = clampPositiveInteger(options.limit, DEFAULT_LIMIT)
     const limitPerAgent = clampPositiveInteger(options.limitPerAgent, DEFAULT_SCAN_LIMIT_PER_AGENT)
     const platform = options.platform ?? process.platform
@@ -144,9 +147,11 @@ export async function scanAiVaultSessions(
 
     if (options.rotateCrushAfterScan) {
       const allSessions = mergeSessions(cappedSessions, scopeSessions)
-      const rotationCandidates = computeCrushRotationCandidates(allSessions, discoveries)
-      for (const dbPath of rotationCandidates) {
-        const result = await rotateCrushDatabase(dbPath)
+      const rotationCandidates = computeCrushRotationCandidates(allSessions, discoveries, {
+        asOfMs: scanStartedAtMs
+      })
+      for (const candidate of rotationCandidates) {
+        const result = await rotateCrushDatabase(candidate.dbPath, candidate.projectRoot)
         issues.push(...result.issues)
       }
     }
