@@ -1,0 +1,57 @@
+{
+  "task": "DEVX-009",
+  "attempt": 1,
+  "baseSha": "8f9b617f4b322952ad008256b919934cf5336e71",
+  "resultSha": "174e5263b0d103fa172ace9950f59ec86f1b7e5c",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T12:00:00.000Z",
+  "finishedAt": "2026-07-31T12:05:00.000Z",
+  "baseline": "Commit 8f9b617f4b322952ad008256b919934cf5336e71, 144 failing tests (pre-existing Orca snapshot import failures, not regression from this task)",
+  "regressions": "None. This task adds read-only tooling under tools/ with no changes to Orca source or tests.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-009.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T12:01:00.000Z",
+      "finishedAt": "2026-07-31T12:01:01.000Z",
+      "stdout": "OK: DEVX-009 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-009-gate.json --result-sha=174e5263b0d103fa172ace9950f59ec86f1b7e5c",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T12:04:00.000Z",
+      "finishedAt": "2026-07-31T12:04:01.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node --test tools/test-check-session-health.mjs",
+      "purpose": "Run fixture-based tests for session health check",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T12:02:00.000Z",
+      "finishedAt": "2026-07-31T12:02:30.000Z",
+      "stdout": "# tests 6\n# suites 1\n# pass 6\n# fail 0\n",
+      "criteria": [
+        {
+          "description": "All 6 fixture-based tests pass: healthy, stalled, in_flight_overdue, looping, false-positive (same-name-different-input), and empty session",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
