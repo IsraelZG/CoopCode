@@ -76,6 +76,7 @@ function resumableStateFactoryFor(
     case 'kimi':
     case 'opencode':
     case 'rovo':
+    case 'crush':
       return null
   }
 }

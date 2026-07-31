@@ -23,7 +23,8 @@ export const AI_VAULT_AGENTS = [
   'openclaw',
   'devin',
   'droid',
-  'kimi'
+  'kimi',
+  'crush'
 ] as const satisfies readonly TuiAgent[]
 
 // Why: the aiVault.listSessions RPC schema CLAMPS scopePaths to this bound
@@ -52,7 +53,8 @@ export const AI_VAULT_AGENT_LABELS = {
   openclaw: 'OpenClaw',
   devin: 'Devin',
   droid: 'Droid',
-  kimi: 'Kimi'
+  kimi: 'Kimi',
+  crush: 'Crush'
 } as const satisfies Record<AiVaultAgent, string>
 
 export type AiVaultSessionPreviewMessage = {
@@ -336,6 +338,7 @@ function buildAgentResumeInvocation(
     case 'devin':
     case 'openclaw':
     case 'droid':
+    case 'crush':
     // Why: OMP resumes by absolute transcript path (see buildAiVaultResumeCommand),
     // but the `--resume <arg>` invocation form is identical to the others here.
     // falls through

@@ -1,0 +1,71 @@
+{
+  "task": "DEVX-006",
+  "attempt": 3,
+  "baseSha": "8df4ad722d70cc606cb4c87a001c6e1e3bceb4e4",
+  "resultSha": "8923dfd4509aab6ec62f71fefa739bfe5bb265b2",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T01:53:30.000Z",
+  "finishedAt": "2026-07-31T03:10:00.000Z",
+  "baseline": "Commit bccb83b080ca789e30312882315863d8fc6e7ce1, 144 failing tests (pre-existing, not regression)",
+  "regressions": "None. Rework attempt 3 adds ADR-0002 documenting the empirical finding that node:sqlite rebuilds the WAL-index shm on any open, and updates criterion 4 to exclude crush.db-shm from byte-hash comparison. The test asserts byte-equality of persisted data (crush.db + crush.db-wal) and functional continuity under a live writer.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-006.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T03:09:30.000Z",
+      "finishedAt": "2026-07-31T03:09:31.000Z",
+      "stdout": "OK: DEVX-006 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-006-gate.json --result-sha=8923dfd4509aab6ec62f71fefa739bfe5bb265b2",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T03:09:50.000Z",
+      "finishedAt": "2026-07-31T03:09:51.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ai-vault/session-scanner-crush.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T03:09:35.000Z",
+      "finishedAt": "2026-07-31T03:09:40.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  11 passed (11)\n",
+      "criteria": [
+        {
+          "description": "All 11 tests pass, including WAL safety under a live writer (crush.db and crush.db-wal byte-hashes unchanged, writer still functional) and discovery integration with injected list function",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd run typecheck:node && tools/pnpm-arm64.cmd run typecheck:cli && tools/pnpm-arm64.cmd run typecheck:web",
+      "purpose": "Criterion 1: the project typechecks",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T03:09:40.000Z",
+      "finishedAt": "2026-07-31T03:09:50.000Z",
+      "stdout": "> tsc --noEmit -p config/tsconfig.node.json\n> tsc --noEmit -p config/tsconfig.tc.cli.json\n> tsc --noEmit -p config/tsconfig.tc.web.json\n",
+      "criteria": [
+        {
+          "description": "Project typechecks in node, cli and web TypeScript configs (no TS6133/TS2488/TS2366 errors)",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

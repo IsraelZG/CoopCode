@@ -6,7 +6,9 @@ import { parseGrokSessionFile } from './session-scanner-grok-parser'
 import { parseMessageGraphSessionFile, parseRovoSessionFile } from './session-scanner-graph-parsers'
 import { parseKimiSessionFile } from './session-scanner-kimi-parser'
 import { splitOpenCodeSqliteCandidate } from './session-scanner-opencode-sqlite-paths'
+import { splitCrushSqliteCandidate } from './session-scanner-crush-paths'
 import { parseOpenCodeSqliteSessionViaWorker } from './session-scanner-opencode-sqlite-worker-spawn'
+import { parseCrushSessionViaWorker } from './session-scanner-crush-worker-spawn'
 import { parseClaudeSessionFile } from './session-scanner-primary-parsers'
 import { parseGeminiSessionFile } from './session-scanner-gemini-parsers'
 import { parseCodexSessionFile } from './session-scanner-codex-parser'
@@ -76,5 +78,16 @@ export async function parseAgentSessionFile(
       return parseDevinSessionFile(candidate.file, platform)
     case 'kimi':
       return parseKimiSessionFile(candidate.file, platform)
+    case 'crush': {
+      const crushCandidate = splitCrushSqliteCandidate(candidate.file.path)
+      if (crushCandidate) {
+        return parseCrushSessionViaWorker({
+          dbPath: crushCandidate.dbPath,
+          sessionId: crushCandidate.sessionId,
+          platform
+        })
+      }
+      return null
+    }
   }
 }

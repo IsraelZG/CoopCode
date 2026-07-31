@@ -60,8 +60,9 @@ can be inspected without scraping terminal output.
       by its `type` discriminator, never by matching raw text.
 - [ ] The scan is read-only and safe against a live writer: with
       `crush.db-wal` present and Crush running, a scan completes without error
-      and without modifying `crush.db`, `crush.db-wal` or `crush.db-shm`
-      (compare file hashes before and after).
+      and without modifying `crush.db` or `crush.db-wal`
+      (compare file hashes before and after); `crush.db-shm` is intentionally
+      excluded because it is volatile WAL-index connection state (see ADR-0002).
 - [ ] A `goose_db_version.version_id` other than the one this task was written
       against (`20260127000000`) produces an `AiVaultScanIssue` instead of a
       best-effort parse.
@@ -125,8 +126,9 @@ can be inspected without scraping terminal output.
 3. Write the parser from `sessions` + `messages` into `AiVaultSession`, driven
    by the `parts` `type` discriminator — covered by a unit test over a fixture
    database built in the test, criterion 3.
-4. Add a test that hashes the three database files before and after a scan with
-   a WAL present and asserts they are unchanged — criterion 4.
+4. Add a test that hashes `crush.db` and `crush.db-wal` before and after a scan
+   with a WAL present and a live writer, and asserts they are unchanged;
+   `crush.db-shm` is excluded per ADR-0002 — criterion 4.
 5. Add a test with a mutated `goose_db_version.version_id` asserting an
    `AiVaultScanIssue` and no sessions — criterion 5.
 6. Run the declared gates, write `docs/planning/evidence/DEVX-006-gate.json`
