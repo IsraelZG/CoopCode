@@ -16,4 +16,3 @@ coverage/
 .claude/skills/
 skills-lock.json
 .agentdir/
-.scratch/
