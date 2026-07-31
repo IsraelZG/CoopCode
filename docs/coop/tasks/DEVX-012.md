@@ -2,7 +2,7 @@
 {
   "id": "DEVX-012",
   "title": "Rotate crush.db after Orca incorporates all sessions, keeping a timestamped backup",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
