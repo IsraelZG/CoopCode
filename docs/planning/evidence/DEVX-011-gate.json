@@ -1,0 +1,63 @@
+{
+  "task": "DEVX-011",
+  "attempt": 1,
+  "baseSha": "6967e632bf7ea721f47fa8c3cf05a25e7ed1feb7",
+  "resultSha": "00d7bbc91ae74b5d9528890704e0ab70bf2c0fd4",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T18:14:00.000Z",
+  "finishedAt": "2026-07-31T18:19:00.000Z",
+  "baseline": "docs/planning/evidence/BASELINE.md — no pre-existing tests in apps/desktop/orca/src/main/evidence/ (new module).",
+  "regressions": "None. 20/20 new tests pass. No existing tests touched.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-011.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T18:16:10.000Z",
+      "finishedAt": "2026-07-31T18:16:11.000Z",
+      "stdout": "OK: DEVX-011 (ready, standard, 5 criteria)\n",
+      "criteria": [{ "description": "Task contract is valid", "passed": true }]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/evidence",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T18:17:00.000Z",
+      "finishedAt": "2026-07-31T18:17:02.000Z",
+      "stdout": "Test Files  2 passed (2)\nTests  20 passed (20)\nDuration  907ms\n",
+      "criteria": [
+        {
+          "description": "Session lifecycle: creates session with unique id and timestamps",
+          "passed": true
+        },
+        {
+          "description": "Command capture: run captures exit code, stdout, stderr with truncation",
+          "passed": true
+        },
+        {
+          "description": "Claim registration: claim by family (test/lint/typecheck/build/doctor/release)",
+          "passed": true
+        },
+        {
+          "description": "Audit (control): claim passed with matching run audits as supported",
+          "passed": true
+        },
+        {
+          "description": "Audit (adversarial): claim passed without matching run audits as unsupported",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-011-gate.json --result-sha=00d7bbc91ae74b5d9528890704e0ab70bf2c0fd4",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T18:19:00.000Z",
+      "finishedAt": "2026-07-31T18:19:01.000Z",
+      "stdout": "VALID\n",
+      "criteria": [{ "description": "Gate artifact validates against schema and result SHA", "passed": true }]
+    }
+  ]
+}

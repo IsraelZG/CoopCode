@@ -23,7 +23,7 @@ suporte nativo ARM64.
 - `external_repos` é somente leitura/consulta; nunca implemente uma task lá.
 - OpenCode permanece um processo externo. Não copie seu código sem task e ADR.
 - Antes de criar scheduler, banco ou worktree manager, conclua `DEVX-001`.
-- Não adicione Kanban, RL/DPO, memória semântica, Docker, Python, Postgres ou
+- Não adicione Kanban, RL/DPO, memória semântica, Docker, Postgres ou
   serviços externos sem uma task que demonstre a necessidade.
 
 ## Execução
