@@ -40,19 +40,47 @@ cross-platform (Windows) que valem uma task própria.
 
 ### Como reproduzir
 
+Use os scripts fatiados para o dia a dia — cada slice termina em poucos
+minutos e não dispara timeout de ferramenta:
+
 ```powershell
-cd C:\Dev2026\agentic-ide\apps\desktop\orca
+cd apps\desktop\orca
 $env:npm_config_virtual_store_dir_max_length='30'
-C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd run test
+
+# Quatro slices independentes; rode o que sua task precisa
+pnpm run test:main
+pnpm run test:renderer
+pnpm run test:config-tools
+pnpm run test:e2e-unit
 ```
 
-**A suíte completa trava no teardown neste host antes de imprimir o resumo ou
-escrever `--reporter=json`** (ver acima). Rodar a partir de um `cmd.exe`
-destacado (não do Git Bash — binários MSYS na PATH resolvem `ps`/`cat` errados)
-e capturar stdout/stderr em arquivo é a única forma prática de extrair
-contagens, e mesmo assim só linha a linha, nunca do resumo. Leva ~21 minutos
-até travar (não ~16 min como medido anteriormente). **Nunca use isso como gate
-de task — e não espere um resumo limpo ao fim.**
+O `npm_config_virtual_store_dir_max_length=30` é obrigatório em todos os
+comandos — nunca o omita. Sem essa variável, o rebuild nativo do `node-pty`
+falha com `MSB3491` no Windows.
+
+**A suíte completa (`pnpm run test`) trava no teardown neste host antes de
+imprimir o resumo ou escrever `--reporter=json`** (ver acima). Os slices acima
+evitam esse problema: cada arquivo roda isolado e termina.
+
+#### Refrescando o baseline (uso raro e deliberado)
+
+Para rodar a suíte completa com garantia de que sobrevive a timeouts de
+ferramenta (lançado destacado, escreve marker/log ao terminar):
+
+```powershell
+node tools/coop-dev/run-full-suite-detached.mjs `
+  --cwd apps\desktop\orca `
+  --log logs\full-suite.log `
+  --marker logs\full-suite.marker `
+  -- powershell -NoProfile -Command `
+    '$env:npm_config_virtual_store_dir_max_length=''30''; pnpm run test'
+```
+
+O comando sai imediatamente com JSON (`{"status":"detached",...}`). A suíte
+roda em background; o arquivo `logs\full-suite.marker` ganha `"exitCode"` ao
+terminar, e `logs\full-suite.log` contém toda a saída. Leva ~21 minutos até
+travar no teardown (não ~16 min como medido anteriormente). **Nunca use isso
+como gate de task — e não espere um resumo limpo ao fim.**
 
 **2026-08-01 (DEVX-015):** O arquivo `config/scripts/resolve-7za-path.test.mjs`
 agora roda isoladamente até o fim (15 testes, ~812ms) sem travar. A causa raiz
@@ -68,14 +96,18 @@ finding — não perseguir aqui.
 
 ### Rodar apenas os testes da sua task
 
-Verificado em 2026-07-31, exit 0:
+Prefira os scripts fatiados (`pnpm run test:main`, etc.) — cada um cobre um
+diretório e termina rápido.
+
+Para um arquivo ou padrão específico, use vitest diretamente (verificado em
+2026-07-31, exit 0):
 
 ```powershell
 C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts <caminho-do-teste>
 ```
 
-`pnpm run test -- <caminho>` **não filtra** — roda os 3695 arquivos. Este
-comando com um caminho explícito é seguro mesmo com a suíte completa travando
+`pnpm run test -- <caminho>` **não filtra** — roda os 3695 arquivos. O comando
+acima com um caminho explícito é seguro mesmo com a suíte completa travando
 no teardown: cada arquivo roda isolado e termina, e foi o método usado para
 confirmar cada uma das 51 falhas em `DEVX-013-triage.md`.
 
