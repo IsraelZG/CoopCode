@@ -2,7 +2,7 @@
 {
   "id": "DEVX-016",
   "title": "Fix the node:path.join separator bug that silently breaks Codex resume and worktree file-watch on Windows",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -141,3 +141,10 @@ Worker and reviewer return evidence to the dispatcher/state owner. The
 remaining `node:path` instances stay open as follow-ups; closing this task
 does not claim the cluster is gone, only that the two production-breaking
 root causes are fixed.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `15ea16d3170ef04bb8366af0104b485e29f2d1c5`
+- Merge commit: `affbb502f`
+- Gate: task/Gate Artifact validators and 61 focused tests (`exit 0`).

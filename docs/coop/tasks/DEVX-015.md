@@ -2,7 +2,7 @@
 {
   "id": "DEVX-015",
   "title": "Stop the Orca suite from hanging at teardown: bound resolve-7za-path's real toolset resolution in tests",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -120,3 +120,10 @@ Worker and reviewer return evidence to the dispatcher/state owner. If the
 suite still hangs after this fix, that is a valid completion provided the
 remaining cause is named with evidence — this task buys back measurability,
 it does not promise a green suite.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `fe4ff0062e9edab4e36efac9e6cee9713b9b52d4`
+- Merge commit: `86d59c4c2`
+- Gate: task/Gate Artifact validators and 15 focused tests (`exit 0`).
