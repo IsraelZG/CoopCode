@@ -1,0 +1,61 @@
+{
+  "task": "DEVX-017",
+  "attempt": 1,
+  "baseSha": "e059176a9d5d775979e4737b72dcbedb4aaa4736",
+  "resultSha": "c3f184c606259820ba99ae9f8135d1554ef643f5",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T17:27:10.000Z",
+  "finishedAt": "2026-07-31T17:27:37.000Z",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-017.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T17:27:25.000Z",
+      "finishedAt": "2026-07-31T17:27:25.000Z",
+      "stdout": "OK: DEVX-017 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task contract passes validation",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-017-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T17:28:00.000Z",
+      "finishedAt": "2026-07-31T17:28:00.000Z",
+      "stdout": "OK: docs/planning/evidence/DEVX-017-gate.json",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/shared/automation-schedules.test.ts src/shared/external-automation-jobs-file.test.ts",
+      "purpose": "Run this task's two affected test files, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T17:27:37.000Z",
+      "finishedAt": "2026-07-31T17:27:37.000Z",
+      "stdout": "Test Files  2 passed (2)\n     Tests  25 passed (25)",
+      "criteria": [
+        {
+          "description": "automation-schedules.test.ts: all 21 tests pass, including formatAutomationSchedule('30 12 * * 7') which returns 'Sundays at 12:30' (not 'domingos at 12:30')",
+          "passed": true
+        },
+        {
+          "description": "external-automation-jobs-file.test.ts: all 4 tests pass, including the excessive-job-count error message which reads 'more than 10,000 jobs' (not 'more than 10.000 jobs')",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "baseline": "docs/planning/evidence/BASELINE.md",
+  "outOfScopeDiff": "No changes outside scope.allow."
+}
