@@ -1,0 +1,88 @@
+{
+  "task": "DEVX-023",
+  "attempt": 1,
+  "baseSha": "ea1ce99e556106b75365e1ab2258b560a0940db7",
+  "resultSha": "707ffbc493c168885190eb9e5737372e482e8f42",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-01T20:00:00.000Z",
+  "finishedAt": "2026-08-01T20:40:00.000Z",
+  "baseline": "Corpus superapp medido 2026-08-01, read-only: C:/Dev2026/Docs/tasks com 594 tasks e C:/Dev2026/Docs/.crush/crush.db.bak com 725 sessions / 115.170 mensagens. O .bak (756.899.840 bytes, mtime 2026-07-27T18:06:47.146Z) foi aberto com node:sqlite { readOnly: true }; tamanho e mtime comprovadamente inalterados após execução completa (corpusFileUnchanged=true). Join sessions<->tasks na chave T-NNN (344 arquivos T-NNN*.md; padrão NNN-NN casava 2/725 títulos e foi rejeitado): 63/725 sessions vinculam; 50/594 tasks têm sessão; 408/3011 candidatos (13.6%) carregam enriquecimento de sessão. Extracter emitiu 3011 candidatos (B=565, M=959, m=760, i=727; 227 tasks) com citação {file, section, grep} verificável em cada um; 0 descartes no corpus real (caso de descarte coberto no fixture FX-005). Auditoria de amostra estratificada de 24 candidatos (semente 20260801): 24/24 fiéis, nenhum texto fabricado.",
+  "regressions": "None — o extractor abre o crush.db.bak somente leitura e nunca escreve, rotaciona ou WAL-recupera nada sob C:/Dev2026/Docs/. Nenhum arquivo de app/desktop/orca foi tocado.",
+  "outOfScopeDiff": "Nenhuma mudança fora do scope declarado. Foram commitados apenas tools/corpus-learning/** (extractor, self-check, fixtures, audit-sample.json) e os 3 docs de evidência nomeados na task. Artefatos de trabalho reproduzíveis (extraction.json 4.7MB e verificação crua da auditoria) foram gerados e deletados; os números e citações deles estão registrados nos docs de evidência.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-023.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T20:38:00.000Z",
+      "finishedAt": "2026-08-01T20:38:01.000Z",
+      "stdout": "OK: DEVX-023 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid (ready, standard, 5 criteria)",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-023-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T20:39:30.000Z",
+      "finishedAt": "2026-08-01T20:39:31.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1 (read-only DB, size+mtime unchanged): crush.db.bak 756.899.840 bytes / mtime 2026-07-27T18:06:47.146Z antes e depois da execução; corpusFileUnchanged=true no JSON de saída de todas as rodadas",
+          "passed": true,
+          "detail": "Comando: rtk node --no-warnings tools/corpus-learning/extract-candidates.mjs. Verificado via stat -c '%s %Y' antes e depois (identicos) e campo meta.corpusFileUnchanged."
+        },
+        {
+          "description": "Criterion 2 (payload shape com citação verificável): 3011 payloads com taskId, objetivo §1, finding.{marker,severity,text}, reworkRound, specFeedback e citation.{file,section,grep}; candidato sem citação é descartado (0 no corpus real, caso coberto no fixture FX-005)",
+          "passed": true,
+          "detail": "Todos os 3011 candidatos têm citation.file absoluto + cadeia '## > ###' + grep; verificação de que grep -F '[<marker>]' aterrissa no texto citado feita na auditoria de 24 amostras."
+        },
+        {
+          "description": "Criterion 3 (join T-NNN com hit rate): 63/725 sessions vinculam a uma task (8.7%); 2603/3011 candidatos (86.4%) vêm de tasks sem sessão (válido por design); 408 candidatos carregam sessions[{title,messageCount}]",
+          "passed": true,
+          "detail": "Chave T-NNN verificada 2026-08-01 (344 arquivos T-NNN*.md; NNN-NN casava 2/725 e foi rejeitado). Hit rate e distribuição registrados em DEVX-023-corpus-inventory.md."
+        },
+        {
+          "description": "Criterion 4 (inventário medido, não assumido): DEVX-023-corpus-inventory.md registra counts por letra de marcador (B=565, M=959, m=760, i=727), tasks com §6 (518), §8 (553), ### Rework (100), candidatos emitidos (3011) e descartes por motivo (0; motivo programado em fixture)",
+          "passed": true,
+          "detail": "Todos os números saem do output do script (stats), não de suposição."
+        },
+        {
+          "description": "Criterion 5 (amostra >=20 auditada contra a fonte): 24 candidatos (7 reviewer-finding, 7 rework-correction, 10 inline-reference) sorteados com semente 20260801; cada um comparado ao texto-fonte citado e ao resultado do grep — 24/24 fiéis, 0 mismatches",
+          "passed": true,
+          "detail": "Amostra completa em tools/corpus-learning/audit-sample.json; excertos citados e vereditos em DEVX-023-sample-audit.md. Defeitos achados durante a auditoria (captura de múltiplos bullets, truncamento no **, âncora $ em CRLF) foram corrigidos no extractor e cobertos pelos fixtures FX-001/FX-002/FX-005."
+        }
+      ]
+    },
+    {
+      "command": "node tools/corpus-learning/test-extract-candidates.mjs",
+      "purpose": "Self-check of the deterministic filter, same pattern as test-select-task.mjs",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T20:39:40.000Z",
+      "finishedAt": "2026-08-01T20:39:42.000Z",
+      "stdout": "19 passed, 0 failed out of 19 assertions\n",
+      "criteria": [
+        {
+          "description": "19/19 assertions pass offline (CORPUS_DIR=fixtures, DB_PATH inexistente)",
+          "passed": true
+        },
+        {
+          "description": "Cobertura: payload shape, citação verificável, severidade, texto fiel, reworkRound, seção §1, descarte de marker sem citação (FX-005), rodada offline sem DB",
+          "passed": true,
+          "detail": "Saída completa: 19 passed, 0 failed out of 19 assertions."
+        }
+      ]
+    }
+  ]
+}
