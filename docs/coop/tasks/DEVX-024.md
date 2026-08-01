@@ -2,15 +2,16 @@
 {
   "id": "DEVX-024",
   "title": "Prove automated loop dispatch on real work: CoopCode processes the corpus-learning chunks unattended, with resumable state",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P2",
   "risk": "high",
   "depends_on": ["DEVX-018", "DEVX-023"],
-  "blocked_on": ["DEVX-018", "DEVX-023"],
+  "blocked_on": [],
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
-    "tools/corpus-learning/**",
+    "tools/corpus-learning/chunk-runner.mjs",
+    "tools/corpus-learning/test-chunk-runner.mjs",
     "docs/planning/evidence/DEVX-024-loop-log.md",
     "docs/planning/evidence/DEVX-024-gate.json"
   ]},
@@ -34,6 +35,19 @@
 ---
 
 # DEVX-024 · Prove the loop on work that actually matters
+
+## Promoted to ready (2026-08-01)
+
+Both dependencies are `done` and merged: `DEVX-018` (result SHA
+`cb99b192f25911fe58b8b18f789c590741d82bb9`, merge commit `5f7157584`) shipped
+`tools/coop-dev/dispatch-task.mjs`; `DEVX-023` (result SHA
+`707ffbc493c168885190eb9e5737372e482e8f42`, merge commit `7fd55340c`) shipped
+`tools/corpus-learning/extract-candidates.mjs`,
+`tools/corpus-learning/test-extract-candidates.mjs`,
+`tools/corpus-learning/audit-sample.json`, and a `fixtures/` directory —
+already in the repo, not hypothetical. `scope.allow` above is scoped to two
+new filenames (`chunk-runner.mjs`, `test-chunk-runner.mjs`) specifically so
+this task cannot touch or overwrite what `DEVX-023` already produced.
 
 ## Outcome
 
@@ -92,16 +106,19 @@ dispatch path works for something other than a single hand-held task.
 - Do not build a job queue, scheduler daemon, or retry framework beyond what
   this one workload needs. Durable chunk state in a file is enough.
 - Do not extend the loop to dispatch across machines. Local only.
+- Do not modify `tools/corpus-learning/extract-candidates.mjs`,
+  `test-extract-candidates.mjs`, `audit-sample.json`, or anything under
+  `tools/corpus-learning/fixtures/` — those are `DEVX-023`'s shipped output.
+  Read/import from them if useful; do not edit them.
 
 ## Sources and decisions
 
 - `docs/coop/tasks/DEVX-023.md` — produces the chunked, citation-carrying
   candidates this loop consumes, and the sample-audit method that makes a
-  chunk's output checkable rather than merely plausible.
-- `docs/coop/tasks/DEVX-018.md` — the dispatch path this task exercises.
-  Hard dependency: until `dispatch-task.mjs` calls Orca's real
-  `task-create`/`worker-start`, there is no loop to prove, which is why this
-  task is `draft` and `blocked_on` both.
+  chunk's output checkable rather than merely plausible. Now `done`; its
+  real output files are listed above under "Promoted to ready".
+- `docs/coop/tasks/DEVX-018.md` — the dispatch path this task exercises. Now
+  `done`; `dispatch-task.mjs` is real and merged, not hypothetical.
 - `apps/desktop/orca/src/shared/dashboard-snapshot.ts` and
   `src/renderer/src/components/dashboard-popout/AgentKanbanBoard.tsx` — the
   existing UI surface where dispatched agents already appear, and therefore
@@ -121,8 +138,10 @@ dispatch path works for something other than a single hand-held task.
 
 ## Plan and test mapping
 
-1. Build the chunk runner with durable state; kill and restart it mid-chunk
-   to prove resumption. Criterion 1.
+1. Read `extract-candidates.mjs`'s real invocation/output contract (it takes
+   an `OUTPUT` env var; confirm what it writes when unset) rather than
+   assuming a shape. Build the chunk runner with durable state on top of it;
+   kill and restart it mid-chunk to prove resumption. Criterion 1.
 2. Wire it to `dispatch-task.mjs`; confirm real dispatch ids come back.
    Criterion 2.
 3. Implement every stop condition and prove each one fires (force a
@@ -137,5 +156,4 @@ dispatch path works for something other than a single hand-held task.
 Worker and reviewer return evidence to the dispatcher/state owner. A run that
 stops early for a legitimate stop condition, logged and explained, is a
 **pass** — the point is a loop that halts safely and visibly, not one that
-runs to completion at any cost. Promote from `draft` to `ready` only once
-`DEVX-018` and `DEVX-023` are both `done`.
+runs to completion at any cost.
