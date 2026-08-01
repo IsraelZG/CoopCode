@@ -1,0 +1,434 @@
+[
+  {
+    "taskId": "EST-48c",
+    "objetivo": "Adicionar à Config uma tela para cadastrar nome, endpoint OpenAI-compatible e API key write-only,\ntestar a conexão, ativar o perfil e removê-lo. Ao concluir, o Chat deixa de depender do DeepSeek\nhardcoded e usa exclusivamente o perfil ativo persistido por EST-48b.",
+    "finding": {
+      "marker": "B2",
+      "severity": "BLOCKER",
+      "text": "(acima do baseline 18)"
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-48c.md",
+      "section": "## 8. Log de Handover e Revisão > ### BLOCKERs",
+      "grep": "\\[B2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-PG-01",
+    "objetivo": "Definir o schema JSON do dialeto de páginas v1 e implementar o validador estático que aplica os invariantes L1–L4 em três pontos de execução: autoria (antes de publicar), ingestão (peer que recebe `SPEC:PAGE` replicado) e render. Página inválida não renderiza — exibe fallback com diagnóstico.\n\n**Justificativa de fontes:**\n- Fonte primária: `docs/caderno-3-sdk/11-linguagem-de-paginas.md` §1–§2 (documento, invariantes L1–L4), §7 (validador estático), §8 (perfis de capacidade)\n- Enriquecimento: [[spec-page]] confirma `kind: PAGE` como nó `SPECIFICATION`; [[catalogo-de-componentes]] provê o índice de nomes válidos para `component` (Button, Input, Card, Message, NavItem, Toast)",
+    "finding": {
+      "marker": "i1",
+      "severity": "INFO",
+      "text": "Branch `task/T-PG-01` está 1 commit à frente de `master` (`489696f`), worktree limpa, push em `origin/task/T-PG-01` já feito. Pronto para `worktree.mjs merge`."
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": "**Links validados:**\n- `docs/caderno-3-sdk/11-linguagem-de-paginas.md` — OK, arquivo existe (103 linhas, §1–§8)\n- `docs/conceitos/catalogo-de-componentes.md` — OK (40 linhas, conjunto piloto: Button, Input, Card, Message, NavItem, Toast)\n- `docs/conceitos/spec-page.md` — OK (18 linhas, confirma `kind: PAGE`)\n- `packages/protocol/src/ports.ts` — existe via T-004 (`ready`)",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-PG-01.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[i1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-1042",
+    "objetivo": "Migrar a implementação atual de armazenamento SQLite (tanto Node quanto WASM/OPFS de browser) para implementar e expor a interface `GraphStorePort` criada em T-1041, confinando o dialeto SQL para dentro dos adapters.",
+    "finding": {
+      "marker": "m2",
+      "severity": "MINOR",
+      "text": "`transaction` discrimina por `fn.length === 0` | Reescrito para `transaction<T>(fn: (tx: GraphStoreTx) => Promise<T>): Promise<T>` (apenas GraphStorePort). `fn.length` discriminador removido. | ✓ **RESOLVIDO** (M2 resolveu m2 como bônus) |"
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": "Parecer do Agente Revisor 2 (minimax-m3, pós-rework, anti-ancoragem)",
+    "specFeedback": "- *[Nenhum problema identificado]*",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-1042.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor 2 (minimax-m3, pós-rework, anti-ancoragem)",
+      "grep": "\\[m2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "C-35",
+    "objetivo": "Eliminar 3 padrões de duplicação no monorepo, centralizando-os em `packages/protocol/src/codec.ts` (que já é a casa de `encode`/`decode`/`CodecError`):\n\n1. **`bytesToHex(bytes: Uint8Array): string`** — hex lowercase, sem prefixo, sem separador. Substitui 4 cópias da mesma lógica (3 inline + 1 função local em `peerId.ts`).\n2. **`utf8Encode(s: string): Uint8Array`** — wrapper canônico para `new TextEncoder().encode()`. Substitui ~16 sites inline + 6 sites com constante hoistada (`const encoder = new TextEncoder()`).\n3. **`utf8Decode(bytes: Uint8Array): string`** — wrapper canônico para `new TextDecoder().decode()`. Substitui ~8 sites inline + 3 sites hoistados.\n\n**Origem:** conversa com o humano após C-24/C-34, que mapeou \"código com função praticamente idêntica espalhada em vários locais\" c",
+    "finding": {
+      "marker": "M1",
+      "severity": "MAJOR",
+      "text": "listados 18+ sites ainda com `new TextEncoder()`/`new TextDecoder()`/encoder/decoder hoistados (ver tabela). A task foi declarada como \"centralizar 3 helpers\" mas só centralizou `bytesToHex`."
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": "- **[DECIDIDO (arquiteto, 2026-07-22) — `plugin-codec-deps` → Opção A]** Adicionar `\"@plataforma/protocol\": \"workspace:*\"` em `dependencies` dos 3 plugins sem dep direta (`plugin-zen-engine`, `plugin-fs-tools`, `plugin-skills`). Trade-off aceito: viola a leitura literal de \"NÃO adicionar dependência nova\" (§5), mas workspace dep não é \"nova\" no sentido real (a relação já existia via transitive via `estaleiro-contracts` → `core` → `protocol`); só estamos tornando explícita. Mais simples que re-ex",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\C-35.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[M1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-409",
+    "objetivo": "Implementar aba \"Topologia\" no app Bancada (T-008): grafo visual de conexÃµes (direta/relay/ws), estado de promoÃ§Ã£o por par, botÃ£o de tentar/cancelar promoÃ§Ã£o e indicador de quem Ã© Ã¢ncora\n*(derivado de `docs/plano-de-implementacao.md` Â§7 T-409)*.",
+    "finding": {
+      "marker": "M1",
+      "severity": "MAJOR",
+      "text": "*E2E Playwright criado mas nunca executado — `test_profile: ui` ausente.*"
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": "**DECIDIDO (2026-07-16) â€” adaptar Ã  API existente.** `SwarmRegistry` e `PeerEntry` vÃªm de\n`@plataforma/transport`; a UI consulta `getState`, usa `cancel` somente durante `PROMOTING` e nÃ£o\ninventa `promote()`/`demote()`. Como `NatType` Ã© hoje insumo de teste e nÃ£o hÃ¡ telemetria canÃ´nica\nno runtime, `TopologiaTab` recebe `tryPromote(peerId)` da composiÃ§Ã£o. Ela Ã© responsÃ¡vel por chamar\n`ConnectionPromotionEngine.tryPromote(peerId, natType)` ou reportar indisponibilidade; a UI nunca\nimp",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-409.md",
+      "section": "## 8c. Parecer do Agente Revisor (Reviewer 2 — independente) > ### Achados",
+      "grep": "\\[M1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "EST-34",
+    "objetivo": "Eliminar a dependência **cíclica real** entre `@plataforma/estaleiro-core` (`apps/estaleiro/core`) e os plugins `@plataforma/plugin-fs-tools` / `@plataforma/plugin-agent-harness`, que quebra `pnpm -r build` com `TS5055` (o turbo paraleliza o ciclo → corrida TS5055/TS2307).\n\nAplicar o **\"fix melhor\"** (ports-and-adapters + composition root):\n- O **core conhece apenas as portas** (interfaces `FsPort`, `BashPort`, `PluginManifest`, etc.), extraídas para um pacote de contratos no fundo do DAG.\n- Os **plugins implementam** as portas, importando os tipos do pacote de contratos — **nunca** de `estaleiro-core`.\n- O **composition root** (`apps/estaleiro`, entry/bootstrap) instancia os plugins concretos e os **injeta** no core.",
+    "finding": {
+      "marker": "m3",
+      "severity": "MINOR",
+      "text": "lista `@plataforma/core` em `\"dependencies\"` (runtime), mas o único uso é `import type { PluginManifest }` (apagado na emissão). A spec (§3/Objetivo) pede \"zero deps de runtime\" para o pacote de contratos. Sugestão: mover para `devDependencies` — tipos são erased no build, e consumidores de `estaleiro-contracts` não herdam `devDependencies` transitivamente."
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": "Nenhuma decisão em aberto. A separação de contratos (tipo) da implementação (factory/classe) é direta.\n- Capacidade Alvo: `sonnet` (envolve injeção de dependência em múltiplos pontos do ciclo de vida e atualização de testes).",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-34.md",
+      "section": "## 8. Parecer e Evidência (Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[m3\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-PG-01",
+    "objetivo": "Definir o schema JSON do dialeto de páginas v1 e implementar o validador estático que aplica os invariantes L1–L4 em três pontos de execução: autoria (antes de publicar), ingestão (peer que recebe `SPEC:PAGE` replicado) e render. Página inválida não renderiza — exibe fallback com diagnóstico.\n\n**Justificativa de fontes:**\n- Fonte primária: `docs/caderno-3-sdk/11-linguagem-de-paginas.md` §1–§2 (documento, invariantes L1–L4), §7 (validador estático), §8 (perfis de capacidade)\n- Enriquecimento: [[spec-page]] confirma `kind: PAGE` como nó `SPECIFICATION`; [[catalogo-de-componentes]] provê o índice de nomes válidos para `component` (Button, Input, Card, Message, NavItem, Toast)",
+    "finding": {
+      "marker": "i2",
+      "severity": "INFO",
+      "text": "Gate de **wiring de primitiva**: o validador é uma primitiva de validação estática. Hoje **não há caller de produção** — T-PG-02 (render) e T-PG-05 vão consumi-lo. Como a Seção 1 da spec fixa o validador em 3 pontos (autoria/ingestão/render) e T-PG-02 já existe como dependente (`blocks: [...]`), a wiring está coberta por design."
+    },
+    "sourceType": "reviewer-finding",
+    "reworkRound": null,
+    "specFeedback": "**Links validados:**\n- `docs/caderno-3-sdk/11-linguagem-de-paginas.md` — OK, arquivo existe (103 linhas, §1–§8)\n- `docs/conceitos/catalogo-de-componentes.md` — OK (40 linhas, conjunto piloto: Button, Input, Card, Message, NavItem, Toast)\n- `docs/conceitos/spec-page.md` — OK (18 linhas, confirma `kind: PAGE`)\n- `packages/protocol/src/ports.ts` — existe via T-004 (`ready`)",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-PG-01.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[i2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-202-followup-2",
+    "objetivo": "Endereçar 2 achados não-bloqueantes do parecer final de T-202:\n\n- **[m3] MINOR** — `receive()` é `AsyncIterable` sem `done` (loop infinito em\n  `makeResult:299` linha `for(;;)`). Sem cancelamento, sem sinal de fim de canal.\n  Risco: iterator abandonado = leak de inbox queue. Decidir o contrato.\n- **[i3] INFO** — `decryptWithAd` mapeia QUALQUER erro AEAD para `invalid_signature`\n  (linha 98 de `noiseHandshake.ts`). Se ciphertext for malformado por outro motivo\n  (não tag mismatch), ainda vira `invalid_signature`. Considerar log interno antes\n  de rethrow.\n\n*(derivado de `tasks/T-202.md` Seção 8, ciclo 3, 2026-06-24)*.",
+    "finding": {
+      "marker": "i2",
+      "severity": "INFO",
+      "text": "`makePair.onMessage` em `noiseHandshake.test.ts:34-37` não é limpo em `close()` — handler \"morto\" ainda recebe mensagens. Helper de test, não parte da API. Sem impacto."
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": "> **✅ DECISÕES RESOLVIDAS (2026-06-25 — arquiteto):**",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-202-followup-2.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[i2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "C-19",
+    "objetivo": "Resolver 9 achados não-bloqueantes de código nos scripts de migração em `packages/plugin-tasks/scripts/migrate/`. Itens de spec/decisão foram roteados ao SPEC-PENDENCIAS.",
+    "finding": {
+      "marker": "i3",
+      "severity": "INFO",
+      "text": "`rest.lastIndexOf(\":\")` quebra se action/message contiver `:`. → `fixed (parser.ts:89)`"
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\C-19.md",
+      "section": "## 4. Lista de Achados > ### EST-04b (scripts/migrate)",
+      "grep": "\\[i3\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "C-19",
+    "objetivo": "Resolver 9 achados não-bloqueantes de código nos scripts de migração em `packages/plugin-tasks/scripts/migrate/`. Itens de spec/decisão foram roteados ao SPEC-PENDENCIAS.",
+    "finding": {
+      "marker": "m1",
+      "severity": "MINOR",
+      "text": "`parseTaskMd` não envolve `matter(raw)` em try/catch — erro derruba pipeline. → `fixed (parser.ts:148)`"
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\C-19.md",
+      "section": "## 4. Lista de Achados > ### EST-04a (scripts/migrate — parser)",
+      "grep": "\\[m1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-804",
+    "objetivo": "Implementar Cloud WebSeed + Edge translation no peer do sistema: upload consolidado pelo agente do sistema; objeto único com tag_region; Edge stateless content-blind traduzindo Range↔peça e injetando token de bucket; fallback swarm→WebSeed\n*(derivado de `docs/plano-de-implementacao.md` §11 T-804)*.",
+    "finding": {
+      "marker": "m4",
+      "severity": "MINOR",
+      "text": "`Content-Range` envia `*` no total → confirmado em `webSeedRoutes.ts:70, 74`. NÃO corrigido."
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-804.md",
+      "section": "## 8. Log de Handover e Revisão Agile > ### Parecer do Reviewer 2 (minimax-m3, independente):",
+      "grep": "\\[m4\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-512",
+    "objetivo": "Implementar aba \"Auth\" no app Bancada (T-008): inspetor de UCANs (cadeia, escopo, TTL), épocas por escopo, lista BLOCKS, simular revogação/rotação, fluxos de recuperação acionáveis\n*(derivado de `docs/plano-de-implementacao.md` §8 T-512)*.",
+    "finding": {
+      "marker": "M2",
+      "severity": "MAJOR",
+      "text": "[M2] Playwright smoke **não cobre o caso 7 do §4** (\"revogar UCAN → observar negativa de chave\"). Os 4 casos atuais (`tests/e2e/auth.smoke.spec.ts:3–35`) só validam empty states e botões visíveis — nenhum exercita a revogação. **É"
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-512.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[M2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-004a",
+    "objetivo": "Implementar o **adapter SQLite concreto do `StoragePort`** (`@plataforma/protocol`, T-004) — hoje só\nexiste a **interface** e um **mock de teste** (`packages/protocol/tests/ports.test.ts`); nenhum\nbackend real persiste a lineage. O adapter deve: abrir o banco em **WAL mode**, implementar\n`exec`/`transaction`/`migrate`, e expor um **wal_checkpoint** (PRAGMA) para o gerenciamento de WAL\nque T-304 (guard concorrente) e T-701 (`device_state.db`) assumem mas não podem fornecer por serem\nstorage-agnósticos.\n\n> **Por que esta task existe (achado de 2026-06-29):** ao endurecer T-304 descobriu-se que todo o\n> `@plataforma/core` roda hoje sobre um `StoragePort` **mockado** — não há SQLite real, WAL não é\n> ativado em lugar nenhum (`grep` por `journal_mode`/`PRAGMA` no monorepo = vazio). É uma lacuna",
+    "finding": {
+      "marker": "M1",
+      "severity": "MAJOR",
+      "text": "`packages/core/src/sqliteStorage.ts:15, 37` — Adicionado `// eslint-disable-next-line @typescript-eslint/require-await` em `exec` e `migrate` com comentário citando §5 (StoragePort Promise-based, node:sqlite sync)"
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": "Rework (deepseek, 2026-07-01) — Correção [M1][M2]",
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-004a.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Rework (deepseek, 2026-07-01) — Correção [M1][M2]",
+      "grep": "\\[M1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "EST-36",
+    "objetivo": "Criar um inicializador (`seed.ts`) que lê todas as tasks em markdown do diretório de controle (`Docs/tasks/*.md`), realiza parse do frontmatter, e as importa para o SQLite. O banco de dados `estaleiro.db` deve ser persistido fora da pasta efêmera de build (`estaleiro-run`), garantindo a preservação do estado entre execuções do script standalone.",
+    "finding": {
+      "marker": "m1",
+      "severity": "MINOR",
+      "text": "`_storage` injection em seed.ts depende de API interna (`SqliteStorageBackend.saveTask`). Se o backend mudar, quebra. Spec-aware (§6 optou por bypass) — registrado para rastreio."
+    },
+    "sourceType": "rework-correction",
+    "reworkRound": null,
+    "specFeedback": "- **Aberto (Decisão):** O seeder vai injetar as tasks importadas chamando a State Machine, ou diretamente no Storage Bypass? *Decidido nesta spec: Bypass ou método force-import, já que tasks fechadas (`done`) não podem ser re-criadas via transição nominal.* (Fonte: `service.ts` validations).",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-36.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[m1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "DMM-13c",
+    "objetivo": "Sub-piece de **pontuação** do Laboratório Genético (DMM-13). Define a **Fitness Function**\nque pontua cada variante do Lab segundo pesos configuráveis. Integra as estatísticas de\ntraces do DMM-11 (Capture & Critique): Custo, Tempo, Sucesso, Punições (loops, falhas\nde evidência). Consome o relatório do DMM-13a e produz um ranking para o humano escolher\no template vencedor.",
+    "finding": {
+      "marker": "i1",
+      "severity": "INFO",
+      "text": "- §6 Decisão arquitetural 1 (pesos configuráveis): fitness() aceita Partial<FitnessWeights> como 3º parâmetro e normaliza via normalizeWeights() (fitness.ts:139-149). O teste \"pesos customizados\" (L122) prova o efeito. Gap parcial (não-bloqueante): a leitura \"de JSON/TipiBase\" foi entregue como responsabilidade do CALLER (passa os pesos lidos), não da função — esta é a leitura mais limpa e o calle"
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": null,
+    "specFeedback": null,
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\DMM-13c.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[i1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-208",
+    "objetivo": "Implementar a máquina de estados do First Peer Protocol *(derivado de\n`docs/conceitos/first-peer-protocol.md`; `docs/conceitos/genesis-state.md`;\n`docs/plano-de-implementacao.md` §5 T-208)* que rege o cold start da topologia\nP2P: `JOINING → WAITING_FOR_SWARM(8s) → CONNECTED | GENESIS | OFFLINE_RETRY`\ncom backoff 10→60s.\n\nO FPP é a lógica de decisão — **não** contém descoberta de rede (mDNS/DHT/WS)\nnem heartbeat (T-206). Ele consome eventos do [[swarm-registry|SwarmRegistry]]\n(T-205) para detectar peers e delega a escrita de gênese ao seam `GenesisWriter`\n(decisão 2) — não escreve SQL nem monta nós assinados.",
+    "finding": {
+      "marker": "B1",
+      "severity": "BLOCKER",
+      "text": "e [M1]; gate verde (53/53); 5/5 sondas adversariais verdes; cobertura completa dos 15 casos + 1 (14b). Encaminho para integração."
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": null,
+    "specFeedback": "> **✅ DECISÕES RESOLVIDAS (2026-06-24 — arquiteto). Zero decisões em aberto.**",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-208.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[B1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-1046",
+    "objetivo": "Completar a **transferência do payload real dos nós** no RBSR — hoje o protocolo só troca fingerprints (esqueleto de reconciliação) e nunca transfere `SignedNode`, deixando `applyNodes` desligado do caminho de exchange.\n\n> **ORIGEM (decisão do arquiteto, 2026-07-02, T-1032).** Achado [m2]: `respondNodes` (`packages/protocol/src/rbsr/exchange.ts:204`) envia `{id, fingerprint}` mas `applyNodes` espera `readonly SignedNode[]`; `reconcile` insere fingerprints na árvore local, não dados. Ou seja, o RBSR compara o que difere mas **não transfere o conteúdo divergente**. T-1032 (enforcement UCAN da exposição de fingerprints) marcou explicitamente esta conclusão como **fora do seu escopo** — é funcionalidade, não privacidade. Esta task a completa.\n\n**Meta:** após o `reconcile` identificar os ids di",
+    "finding": {
+      "marker": "M2",
+      "severity": "MAJOR",
+      "text": "chamar applyNodes uma vez sobre o SignedNode[] recebido, preservando batch/atomicidade. Adicionar testes para ambos."
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Rework 2 (deepseek-v4, 2026-07-15):",
+    "specFeedback": "> **STATUS: todas as decisões RESOLVIDAS** (D1/D3/D4 em 2026-07-09; D2 corrigida pela realidade em 2026-07-14).",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-1046.md",
+      "section": "## 9. Log de Execução (Agent Execution Log) > ### Rework 2 (deepseek-v4, 2026-07-15):",
+      "grep": "\\[M2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-313c",
+    "objetivo": "Adicionar a tabela `blind_archives` ao `device_state.db` (schema de T-106) e\nimplementar o GC por `expires_at`. A tabela é cega: armazena apenas o `archiveId`,\n`ciphertext`, `manifest` e `expiresAt` — **nunca** `pub_key` ou autoria. O GC é\num sweep atômico que remove linhas com `expires_at < now()`, retornando a contagem\nde removidos.\n\n*(derivado de `tasks/T-313.md` §1 + §4 caso 9; `tasks/T-106.md` — schema SQLite;\n`tasks/T-004.md` — `StoragePort`; `docs/caderno-1-foundation/03-storage-engine.md`)*",
+    "finding": {
+      "marker": "M1",
+      "severity": "MAJOR",
+      "text": "|- Verificação do rework [M1] (Reviewer 1):"
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Handover do Rework (deepseek, 2026-07-01):",
+    "specFeedback": "- **Decisão arquitetural (2026-06-29):** T-313 decomposta em 3 sub-tasks. T-313c é a peça storage/GC; depende de T-313a (tipos) e T-106 (migrations).\n- **Aberto (escalado, se aparecer):** se o `StoragePort.exec` de T-004 não aceitar `Uint8Array` como parâmetro, T-313c precisa decidir encoding (hex vs base64 vs patch em T-004). **Se aparecer**, registrar na Seção 6 com opções antes de codar.\n- **Aberto (escalado, se aparecer):** scheduler de GC (rodar periodicamente) é T-313+ — fora desta task.\n-",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-313c.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Reviewer 15 (`agile_reviewer:minimax-m3`, sessão executada via `/qa-review --integrar t-313c`):",
+      "grep": "\\[M1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "EST-05",
+    "objetivo": "Mover o harness de tools (`readFile`/`writeFile`/`bash` com gating) do PoC `tools/orchestrator/tools.poc.mjs` (ORQ-08, provado no selftest do ADR-0008) para `packages/plugin-fs-tools/` no monorepo superapp, **adaptando as chamadas de fs/bash para passar pela mediação do host** (`FsPort` + `BashPort` definidos em `apps/estaleiro/core/src/ports/{fs,bash}.ts` — EST-02b) em vez de acesso direto a `node:fs`/`node:child_process`.\n\nLógica de gating (allowlist, timeout, `windowsHide`, guarda anti-git-no-Docs) **não muda** — só migra para dentro do `BashPort` (já é o que EST-02b implementa, derivado verbatim do ADR-0008 Decisão B).",
+    "finding": {
+      "marker": "m2",
+      "severity": "MINOR",
+      "text": ") 12 ✓ → 12 testes verdes, 2 com assertion gap."
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Handover do Executor (rework 1 — 2026-07-06):",
+    "specFeedback": "- **Refinamento (derivar, não inventar):** a allowlist e a guarda anti-git-no-Docs **não ficam no plugin** — já migraram para o `BashPort` em EST-02b. O plugin é um **adapter** que:\n  - Encoda/decoda `Uint8Array` ↔ `string` (gap entre `FsPort` e o inputSchema do `tool()`).\n  - Mapeia os 4 throws do `BashPort.exec` (allowlist, anti-git, timeout, outros) → 2 shapes de retorno (`{ok:false, error}` vs `{exit, timedOut, output}`). Isso é o **único** código de erro novo.\n- **Trade-off consciente:** o ",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-05.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Agente Revisor (Reviewer):",
+      "grep": "\\[m2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-1033",
+    "objetivo": "Desfazer a **dependência circular `@plataforma/core` ↔ `@plataforma/protocol`**. A direção correta é uma seta só: `protocol ← core ← transport`. Hoje `core` depende de `protocol` (ports — correto) e `protocol` reimporta `core`, fechando o ciclo.\n\n> **ACHADO (auditoria 2026-07-01) — GRAVE / arquitetura.** `packages/protocol/src/rbsr/exchange.ts:4` importa `verifyNode`/`insertNode`/`SignedNode` de `@plataforma/core`. As próprias specs se contradizem: **T-302b** manda importar de `@plataforma/core` dentro do protocol; **T-305b** explicitamente evita (\"importar de @plataforma/core causaria dep circular\") e manda **duplicar** os tipos — por isso `packages/protocol/src/auth/ucanScope.ts:5-19` carrega um subset copiado de `SignedUcan`/`UcanCapability` que já pode divergir de `packages/core/src/au",
+    "finding": {
+      "marker": "B0",
+      "severity": "BLOCKER",
+      "text": "- Evidência: ls packages/core/src/rbsr/ → \"The system cannot find the file specified\". A spec §3 mandava CRIAR packages/core/src/rbsr/applyNodes.ts e packages/core/src/rbsr/index.ts. O rework não criou nenhum dos dois. (Correlato direto de [B0]: o rework foi no-op.)"
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Parecer do Reviewer 2 (minimax-m3, pós-rework, modelo igual a R1, anti-ancoragem, re-execução completa do Gate)",
+    "specFeedback": "> **ATENÇÃO:** Se a spec (RAG) for ambígua, contraditória ou o design pattern imposto for impossível, **PARE**. Mude o status para `blocked` e escreva o motivo abaixo. Não alucine uma abstração não documentada.\n- *[Nenhum problema identificado]*",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-1033.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Reviewer 2 (minimax-m3, pós-rework, modelo igual a R1, anti-ancoragem, re-execução completa do Gate)",
+      "grep": "\\[B0\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "EST-03a",
+    "objetivo": "Implementar o schema de dados do plugin-tasks: tipos/tabelas que representam **todas as 9 seções**\ndo template de task MGTIA (`docs/task-template.md`, `tasks/T-001.md`) sem perda. Sub-status\n(`draft:<sub>`), verbos, Seção 8 (Parecer), Seção 9 (Log), Gate de Evidência — tudo vira dado\nestruturado (DB-first, RFC-018 B1).",
+    "finding": {
+      "marker": "M1",
+      "severity": "MAJOR",
+      "text": "remove unused PluginManifest import; gate build+test+lint verdes)"
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Evidência de Rework (deepseek):",
+    "specFeedback": "- **Nenhuma decisão em aberto.** Todo contrato derivado de:\n  - Sub-status e verbos ← `CLAUDE.md` §MGTIA + `manage-task.mjs`\n  - Template das 9 seções ← `docs/task-template.md`\n  - `PluginManifest` ← EST-02a\n- `capacity_target: haiku` — schema mecânico, sem algoritmo.",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-03a.md",
+      "section": "## 9. Log de Execução (Agent Execution Log) > ### Evidência de Rework (deepseek):",
+      "grep": "\\[M1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "EST-10b",
+    "objetivo": "Implementar fallback em tiers (lista ordenada de providers) + CircuitBreaker por provider (4 estados,\nper-kind thresholds, adaptive backoff, cooldown). Provider que falha N vezes entra em cooldown; próximo\ndo mesmo tier assume (RFC-018 §C1: fallback em tiers + scoring multi-fator). O CircuitBreaker é\nadaptado do OmniRoute (MIT), simplificado para in-memory e exposto como `canRequest/recordSuccess/recordFailure`\nem vez do `execute(fn)` do original (o chamador gerencia o dispatch, o breaker só responde se pode\ntentar).",
+    "finding": {
+      "marker": "m1",
+      "severity": "MINOR",
+      "text": "[m2] → ledger _pendencias.md."
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Parecer do Reviewer 3 (minimax-m3, independente — pós-rework):",
+    "specFeedback": "> **Todas as decisões de desenho DERIVADAS de fonte (CITE OU ESCALE):**\n> - `CircuitState`, `CircuitBreaker`, transições ← OmniRoute `circuitBreaker.ts` STATE (L50-55),\n>   `canExecute` (L277-283), `_onSuccess` (L320-343), `_onFailure` (L346+), `reset` (L307-316)\n> - `FailureKind` ← adaptado de OmniRoute `classify429.ts`: `rate_limit`, `quota_exhausted → timeout`,\n>   `transient → server_error`, + `auth_error` (do domínio HTTP)\n> - `FallbackTier` + `selectProvider` ← RFC-018 §C1 (fallback em tie",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\EST-10b.md",
+      "section": "## 9. Log de Execução (Agent Execution Log) > ### Parecer do Reviewer 3 (minimax-m3, independente — pós-rework):",
+      "grep": "\\[m1\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-1033",
+    "objetivo": "Desfazer a **dependência circular `@plataforma/core` ↔ `@plataforma/protocol`**. A direção correta é uma seta só: `protocol ← core ← transport`. Hoje `core` depende de `protocol` (ports — correto) e `protocol` reimporta `core`, fechando o ciclo.\n\n> **ACHADO (auditoria 2026-07-01) — GRAVE / arquitetura.** `packages/protocol/src/rbsr/exchange.ts:4` importa `verifyNode`/`insertNode`/`SignedNode` de `@plataforma/core`. As próprias specs se contradizem: **T-302b** manda importar de `@plataforma/core` dentro do protocol; **T-305b** explicitamente evita (\"importar de @plataforma/core causaria dep circular\") e manda **duplicar** os tipos — por isso `packages/protocol/src/auth/ucanScope.ts:5-19` carrega um subset copiado de `SignedUcan`/`UcanCapability` que já pode divergir de `packages/core/src/au",
+    "finding": {
+      "marker": "i2",
+      "severity": "INFO",
+      "text": "e devem ser revisitados em rework futuro."
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Parecer do Reviewer 2 (minimax-m3, pós-rework, modelo igual a R1, anti-ancoragem, re-execução completa do Gate)",
+    "specFeedback": "> **ATENÇÃO:** Se a spec (RAG) for ambígua, contraditória ou o design pattern imposto for impossível, **PARE**. Mude o status para `blocked` e escreva o motivo abaixo. Não alucine uma abstração não documentada.\n- *[Nenhum problema identificado]*",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-1033.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Reviewer 2 (minimax-m3, pós-rework, modelo igual a R1, anti-ancoragem, re-execução completa do Gate)",
+      "grep": "\\[i2\\]"
+    },
+    "sessions": []
+  },
+  {
+    "taskId": "T-1035",
+    "objetivo": "Endurecer o manuseio do admin token do `system-peer`.\n\n> **ACHADO (auditoria 2026-07-01) — [M3 · segurança].**\n> - `apps/system-peer/src/adminToken.ts:9` imprime o token no console (`console.log('[system-peer] ADMIN_TOKEN:', token)`) — vaza em qualquer agregador de log.\n> - `apps/system-peer/src/admin.ts:9` compara o token com `===` (`match[1] === adminToken`) — comparação não constante no tempo, sujeita a timing attack. Usar `crypto.timingSafeEqual` (com guarda de comprimento).\n\n**Meta:** não logar o segredo (no máximo um fingerprint/hash curto para diagnóstico); comparar em tempo constante.",
+    "finding": {
+      "marker": "M2",
+      "severity": "MAJOR",
+      "text": "→ ledger. Razões: (i) Gates deste review foram rodados (não env-block); (ii) a"
+    },
+    "sourceType": "inline-reference",
+    "reworkRound": "Rework (deepseek, 2026-07-03):",
+    "specFeedback": "> **ATENÇÃO:** Se a spec (RAG) for ambígua, contraditória ou o design pattern imposto for impossível, **PARE**. Mude o status para `blocked` e escreva o motivo abaixo. Não alucine uma abstração não documentada.\n- *[Nenhum problema identificado]*",
+    "citation": {
+      "file": "C:\\Dev2026\\Docs\\tasks\\T-1035.md",
+      "section": "## 8. Log de Handover e Revisão Agile (Code Review) > ### Parecer do Reviewer 3 — MiniMax-M3 (qa-review 3, 2026-07-03) [INDEPENDIENTE, GATES RODADOS]",
+      "grep": "\\[M2\\]"
+    },
+    "sessions": []
+  }
+]
