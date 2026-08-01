@@ -2,7 +2,7 @@
 {
   "id": "DEVX-019",
   "title": "Shard the Orca suite so no single command a worker runs can exceed a bounded, fast wall time",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -138,5 +138,12 @@ illusion of a hang this project already burned time diagnosing twice.
 ## Handoff
 
 Worker and reviewer return evidence to the dispatcher/state owner. This task
-does not change what's red or green in the suite — only how confidently and
-quickly anyone, human or agent, can ask it a question.
+ does not change what's red or green in the suite — only how confidently and
+ quickly anyone, human or agent, can ask it a question.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `5b611fc554a655ef0bad32056c72db2c0958f3e6`
+- Merge commit: `ec627ed16`
+- Gate: task/Gate Artifact validators and 9 detached-run assertions (`exit 0`).

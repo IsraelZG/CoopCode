@@ -2,7 +2,7 @@
 {
   "id": "DEVX-023",
   "title": "Extract verifiable learnings from the superapp corpus: deterministic filter plus semantic analysis, every rule traceable to its source",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -156,5 +156,12 @@ human decision.
 
 Worker and reviewer return evidence to the dispatcher/state owner. Closing
 this task means the candidates are real and traceable — not that any rule has
-been adopted. `DEVX-024` consumes the chunking; adoption into `PITFALLS.md`
-or the skills is a separate human decision on reviewed candidates.
+ been adopted. `DEVX-024` consumes the chunking; adoption into `PITFALLS.md`
+ or the skills is a separate human decision on reviewed candidates.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `707ffbc493c168885190eb9e5737372e482e8f42`
+- Merge commit: `7fd55340c`
+- Gate: task/Gate Artifact validators and 19 offline extractor assertions (`exit 0`).

@@ -2,7 +2,7 @@
 {
   "id": "DEVX-017",
   "title": "Pin the locale for user-facing schedule labels and number formatting instead of following the host OS",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -116,3 +116,10 @@ English UI text.
 Worker and reviewer return evidence to the dispatcher/state owner. Any other
 unpinned-locale site noticed outside these two files is recorded as a
 follow-up finding, not fixed here.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `c3f184c606259820ba99ae9f8135d1554ef643f5`
+- Merge commit: `8ef82083c`
+- Gate: task/Gate Artifact validators and 25 locale tests (`exit 0`).

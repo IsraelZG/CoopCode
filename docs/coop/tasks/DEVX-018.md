@@ -2,7 +2,7 @@
 {
   "id": "DEVX-018",
   "title": "Dispatch a ready Coop task by calling Orca's own task-create/worker-start, instead of a copy-paste prompt",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -162,4 +162,11 @@ Worker and reviewer return evidence to the dispatcher/state owner. If step 1
 finds the Orca connection isn't practically headless-scriptable in this
 environment, that is a valid, reportable blocker — escalate with the exact
 error rather than working around it with something that isn't real
-`worker-start`.
+ `worker-start`.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `cb99b192f25911fe58b8b18f789c590741d82bb9`
+- Merge commit: `5f7157584`
+- Gate: task/Gate Artifact validators and 56 dispatch assertions (`exit 0`).
