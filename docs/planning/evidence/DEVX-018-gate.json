@@ -1,0 +1,78 @@
+{
+  "task": "DEVX-018",
+  "attempt": 1,
+  "baseSha": "cda557cd933abfc478ac3b05505eb7265ad94fe4",
+  "resultSha": "cb99b192f25911fe58b8b18f789c590741d82bb9",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-01T18:45:00.000Z",
+  "finishedAt": "2026-08-01T18:50:00.000Z",
+  "baseline": "No prior dispatch script existed; prepare-task.mjs printed a prompt for manual copy-paste.",
+  "regressions": "none",
+  "outOfScopeDiff": "None. All changes within scope.allow. No files outside scope modified.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-018.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T18:45:00.000Z",
+      "finishedAt": "2026-08-01T18:45:02.000Z",
+      "stdout": "OK: DEVX-018 (ready, standard, 5 criteria)\n"
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-018-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T18:49:00.000Z",
+      "finishedAt": "2026-08-01T18:49:02.000Z",
+      "stdout": "VALID\n"
+    },
+    {
+      "command": "node tools/coop-dev/test-dispatch-task.mjs",
+      "purpose": "Self-check of the new dispatch script, same pattern as test-select-task.mjs",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T18:45:05.000Z",
+      "finishedAt": "2026-08-01T18:45:30.000Z",
+      "stdout": "56 passed, 0 failed out of 56 assertions\n",
+      "criteria": [
+        {
+          "description": "Argument handling: missing task arg exits with code 2 and shows usage",
+          "passed": true
+        },
+        {
+          "description": "Agent validation: invalid agent exits with code 2 and lists valid options",
+          "passed": true
+        },
+        {
+          "description": "Default agent: dry-run output uses crush as the default agent",
+          "passed": true
+        },
+        {
+          "description": "Explicit agent: --agent=codex overrides default and appears in dry-run output",
+          "passed": true
+        },
+        {
+          "description": "Command construction: dry-run output includes all orca orchestration flags",
+          "passed": true
+        },
+        {
+          "description": "Display name: carries task ID and title in 'ID: Title' format",
+          "passed": true
+        },
+        {
+          "description": "Preamble reuse: comment matches prepare-task.mjs output with coop-worker instruction",
+          "passed": true
+        },
+        {
+          "description": "Agent list completeness: all 34 TUI_AGENT_CONFIG agents accepted (no false negatives)",
+          "passed": true
+        },
+        {
+          "description": "Agent list correctness: lookalike names (copilot-cli, cursor-agent, gemini-cli) rejected",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
