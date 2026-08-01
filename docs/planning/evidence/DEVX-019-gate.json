@@ -1,0 +1,29 @@
+{
+  "task": "DEVX-019",
+  "attempt": 1,
+  "baseSha": "ea1ce99e556106b75365e1ab2258b560a0940db7",
+  "resultSha": "5b611fc554a655ef0bad32056c72db2c0958f3e6",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-08-01T20:52:00.000Z",
+  "finishedAt": "2026-08-01T20:53:00.000Z",
+  "nodeVersion": "v22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-019.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T20:52:00.000Z",
+      "finishedAt": "2026-08-01T20:52:01.000Z",
+      "stdout": "OK: DEVX-019 (ready, standard, 5 criteria)"
+    },
+    {
+      "command": "node tools/coop-dev/test-run-full-suite-detached.mjs",
+      "purpose": "Self-check of the new detached-run helper, same pattern as test-select-task.mjs",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T20:52:01.000Z",
+      "finishedAt": "2026-08-01T20:52:15.000Z",
+      "stdout": "9 passed, 0 failed out of 9 assertions"
+    }
+  ]
+}
