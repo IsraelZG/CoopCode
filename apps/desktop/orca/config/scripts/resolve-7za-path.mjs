@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // Why: electron-builder 26.9+ dropped the bundled `7zip-bin` package in favour of a
 // toolset downloaded at build time, so the hardcoded `node_modules/7zip-bin/...` path
 // the release signing gates used silently stopped resolving (#6487).
@@ -77,6 +75,16 @@ export async function resolve7zaPath(projectDir = process.cwd()) {
     delete process.env.ELECTRON_BUILDER_7ZIP_PATH
   }
   try {
+    // Test seam: when __ORCA_MOCK_7ZA_PATH points to an existing file, use it
+    // in place of the real app-builder-lib toolset resolution. This avoids
+    // hanging the test suite on a toolset download or subprocess exec.
+    // Never set in production; the production path through getPath7za() is
+    // unaltered.
+    const mockPath = process.env.__ORCA_MOCK_7ZA_PATH
+    if (mockPath && isFile(mockPath)) {
+      return mockPath
+    }
+
     // The toolset is cached after the first download, so a release build has
     // already paid this cost by the time the signing gate runs.
     const { getPath7za } = require('app-builder-lib/out/toolsets/7zip.js')

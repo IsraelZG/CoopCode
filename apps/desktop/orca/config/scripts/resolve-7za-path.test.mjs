@@ -1,12 +1,45 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { legacy7zaRelativePath, resolve7zaPath } from './resolve-7za-path.mjs'
 
 const projectRoot = resolve(import.meta.dirname, '../..')
+
+// Discover a cached 7za binary from electron-builder's toolset to serve as a
+// test seam, avoiding a real download or subprocess exec that hangs the suite.
+// The env var is only set for tests; production builds never see it.
+let previousMockPath = undefined
+beforeAll(() => {
+  const cacheRoot = join(process.env.LOCALAPPDATA ?? tmpdir(), 'electron-builder', 'Cache')
+  function find7za(dir) {
+    if (!existsSync(dir)) { return undefined }
+    try {
+      const entries = readdirSync(dir, { recursive: true })
+      for (const entry of entries) {
+        if (entry.endsWith('7za.exe') || entry.endsWith('7za')) {
+          return join(dir, entry)
+        }
+      }
+    } catch { /* directory walk may fail; fall through */ }
+    return undefined
+  }
+  const cached = find7za(cacheRoot)
+  if (cached && statSync(cached).isFile()) {
+    previousMockPath = process.env.__ORCA_MOCK_7ZA_PATH
+    process.env.__ORCA_MOCK_7ZA_PATH = cached
+  }
+})
+
+afterAll(() => {
+  if (previousMockPath === undefined) {
+    delete process.env.__ORCA_MOCK_7ZA_PATH
+  } else {
+    process.env.__ORCA_MOCK_7ZA_PATH = previousMockPath
+  }
+})
 
 describe('7za path resolution for the Windows signing gates (#6487)', () => {
   // Why fixtures: 7zip-bin@5.2.0 ships mac/{arm64,x64}, win/{arm64,ia32,x64}
