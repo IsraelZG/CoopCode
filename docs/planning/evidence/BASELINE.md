@@ -11,16 +11,32 @@ commit e nova data. Não é histórico — o histórico está no Git.
 
 | Campo | Valor |
 |---|---|
-| Commit | `bccb83b080ca789e30312882315863d8fc6e7ce1` |
-| Medido em | 2026-07-30 |
+| Commit | `0d0f8d36f38399462858e05588c56fcbc32c43cf` |
+| Medido em | 2026-07-31 |
 | Host | Windows 11 ARM64 |
-| Arquivos de teste | **49 falhando** · 3619 passando · 25 pulados (3693) |
-| Testes | **144 falhando** · 38246 passando · 471 pulados (38900) |
-| Duração | 952 s |
+| Arquivos de teste | **51 falhando** · 3618 passando (3695, ver nota) |
+| Testes | **147 falhando** (contagem derivada de log, ver nota) |
+| Duração | não determinada — a suíte trava antes de imprimir o resumo (ver DEVX-013-triage.md) |
 
-As 144 falhas são pré-existentes ao snapshot importado do Orca. **Não são
-regressão de nenhuma task da fila atual.** Nenhuma delas foi investigada ainda;
-a lista por arquivo não foi capturada nesta medição.
+**Estes números são derivados linha a linha do log do reporter, não de um
+resumo limpo.** A suíte inteira (`pnpm run test`) rodou todos os 3695 arquivos
+até o fim (linhas por arquivo presentes no log), mas o processo `vitest`
+**travou no teardown antes de imprimir o resumo final e antes de escrever o
+reporter JSON** — confirmado travamento real (não lentidão): delta de CPU zero
+nos 3 processos node sobreviventes ao longo de uma amostra de 45s, log
+congelado por 12+ minutos antes do kill manual. Ver
+`docs/planning/evidence/DEVX-013-triage.md` para a análise completa; o
+candidato mais provável para a causa é `config/scripts/resolve-7za-path.test.mjs`,
+cujos testes chamam `app-builder-lib`'s `getPath7za()` (subprocess real e
+possível download de rede) sem timeout garantido neste host.
+
+As 147 falhas são majoritariamente pré-existentes ao snapshot importado do
+Orca, mas **18 dos 51 arquivos foram classificados como signal** (defeito real,
+não ruído de importação) nesta medição — ver DEVX-013-triage.md para a lista
+completa com uma frase de causa por arquivo e o que mudaria para cada achado
+de signal. **Não são regressão de nenhuma task da fila atual** (mesma
+conclusão da medição anterior), mas alguns indicam bugs reais de
+cross-platform (Windows) que valem uma task própria.
 
 ### Como reproduzir
 
@@ -30,17 +46,26 @@ $env:npm_config_virtual_store_dir_max_length='30'
 C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd run test
 ```
 
-Leva cerca de 16 minutos. **Nunca use isso como gate de task.**
+**A suíte completa trava no teardown neste host antes de imprimir o resumo ou
+escrever `--reporter=json`** (ver acima). Rodar a partir de um `cmd.exe`
+destacado (não do Git Bash — binários MSYS na PATH resolvem `ps`/`cat` errados)
+e capturar stdout/stderr em arquivo é a única forma prática de extrair
+contagens, e mesmo assim só linha a linha, nunca do resumo. Leva ~21 minutos
+até travar (não ~16 min como medido anteriormente). **Nunca use isso como gate
+de task — e não espere um resumo limpo ao fim.**
 
 ### Rodar apenas os testes da sua task
 
-Verificado em 2026-07-30, exit 0:
+Verificado em 2026-07-31, exit 0:
 
 ```powershell
 C:\Dev2026\agentic-ide\tools\pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts <caminho-do-teste>
 ```
 
-`pnpm run test -- <caminho>` **não filtra** — roda os 3693 arquivos.
+`pnpm run test -- <caminho>` **não filtra** — roda os 3695 arquivos. Este
+comando com um caminho explícito é seguro mesmo com a suíte completa travando
+no teardown: cada arquivo roda isolado e termina, e foi o método usado para
+confirmar cada uma das 51 falhas em `DEVX-013-triage.md`.
 
 ## Empacotamento Windows ARM64
 

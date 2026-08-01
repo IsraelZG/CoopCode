@@ -1,0 +1,69 @@
+{
+  "task": "DEVX-013",
+  "attempt": 1,
+  "baseSha": "0d0f8d36f38399462858e05588c56fcbc32c43cf",
+  "resultSha": "dea6c9ca35b9a3c0a2efb6f7ebdee31ed58d4132",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v24.18.0",
+  "startedAt": "2026-07-31T20:09:00.000Z",
+  "finishedAt": "2026-07-31T20:33:10.000Z",
+  "baseline": "docs/planning/evidence/BASELINE.md rewritten with new commit 0d0f8d36f38399462858e05588c56fcbc32c43cf, measured 2026-07-31. Counts moved from 49 files/144 tests (bccb83b080ca789e30312882315863d8fc6e7ce1, 2026-07-30) to 51 files/147 tests, derived line-by-line from the reporter log because the full-suite vitest process hung at teardown before printing a summary or writing --reporter=json (confirmed real hang: zero CPU delta across 3 surviving node processes over 45s, log frozen 12+ minutes). All 51 failing files individually re-confirmed and classified in docs/planning/evidence/DEVX-013-triage.md: 18 signal, 33 noise (33 includes the 3 session-scanner-* files carried verbatim per this task's criterion 3, pre-existing per DEVX-012's fc0af2b40 bisection). This task made zero changes outside docs/planning/evidence/, so resultSha equals baseSha per the Gate Artifact v1 resultSha protocol (no real code change occurred).",
+  "regressions": "None — this task only reads, runs tests read-only, and writes to docs/planning/evidence/. No file under apps/desktop/orca/src/** was touched.",
+  "outOfScopeDiff": "None introduced by this task. The worktree's pre-existing dirty file apps/desktop/orca/src/renderer/src/components/settings/__snapshots__/terminal-preview-content.test.ts.snap (LF->CRLF line-ending artifact only, per the task's own instructions) and the untracked .toolchains symlink were both left untouched and are not part of any commit made by this task.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-013.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T20:32:31.000Z",
+      "finishedAt": "2026-07-31T20:32:32.000Z",
+      "stdout": "OK: DEVX-013 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-013-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T20:33:10.000Z",
+      "finishedAt": "2026-07-31T20:33:10.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1 (re-run suite, record counts): suite cannot self-report on this host (teardown hang); counts derived from reporter log and stated as such in BASELINE.md and this artifact's baseline field",
+          "passed": true,
+          "detail": "51 files failing / 3618 passing (3695 total), 147 tests failing, summed from per-file reporter lines. Full command: pnpm exec vitest run --config config/vitest.config.ts --reporter=default --reporter=json --outputFile.json=<scratch>/devx-013-suite.json — never printed a summary, killed after 12+ minutes frozen."
+        },
+        {
+          "description": "Criterion 2 (every failing file gets one line, signal/noise + reason in DEVX-013-triage.md)",
+          "passed": true,
+          "detail": "All 51 failing files individually re-confirmed with tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts <path> (except resolve-7za-path.test.mjs, deliberately not re-run to avoid re-triggering the hang) and each given one table row with class + one-sentence reason in docs/planning/evidence/DEVX-013-triage.md."
+        },
+        {
+          "description": "Criterion 3 (4 already-diagnosed findings carried through verbatim, not re-investigated)",
+          "passed": true,
+          "detail": "session-scanner-crush-cleanup.test.ts's 'falls back to ps...' (3 pre-existing TS errors, byte-identical to 9ce5d97d9) and session-scanner-scope.test.ts / session-scanner-values.test.ts / session-scanner.test.ts's 'indexes every supported agent' (pre-existing via fc0af2b40 bisection) all carried verbatim into DEVX-013-triage.md with no re-investigation."
+        },
+        {
+          "description": "Criterion 4 (every signal file gets a one-sentence 'what would change' note, plus an existing-task citation or a plain statement none exists)",
+          "passed": true,
+          "detail": "All 18 signal files in DEVX-013-triage.md have a 'what would change' note; grep across docs/coop/tasks/ for each signal theme (codex-session-resume, worktree-base-directory, rotating-log-writer, monaco-content-sync, rate-limits/service, automation-schedules, external-automation-jobs, orca-runtime-files, node-markdown-document-discovery, repo-detection, pr-workflow-parallelism) returned no matches, so all state plainly that no existing task covers them."
+        },
+        {
+          "description": "Criterion 5 (hands-on evidence: literal command + final summary line)",
+          "passed": true,
+          "detail": "Both the full-suite command (with its non-summary teardown-hang outcome) and the single-file re-confirmation command are recorded verbatim in the 'Hands-on evidence' section of DEVX-013-triage.md."
+        }
+      ]
+    }
+  ]
+}
