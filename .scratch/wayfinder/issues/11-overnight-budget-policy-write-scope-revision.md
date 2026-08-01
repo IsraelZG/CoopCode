@@ -1,8 +1,21 @@
 Type: grilling
-Status: open
+Status: resolved 2026-08-01
 Blocked by: (none — frontier)
 
 # Revisar o escopo de escrita da política overnight
+
+## Decisão (2026-08-01)
+
+Nem ampliar `allowed_write_destinations` nem deixar como está — **remover o
+campo** e deixar a política overnight confiar no `scope.allow` que cada task
+já declara e que `validate-task.mjs` já aplica. Uma lista de diretórios
+permitidos que precisa ser mantida em sincronia manual com o backlog real é
+exatamente o que já ficou desatualizada uma vez (o campo dizia `docs/`+`tools/`
+quando `DEVX-006`/`DEVX-007` já escreviam em `apps/desktop/orca/src/`; hoje a
+maioria das tasks faz o mesmo). Confirmado 2026-08-01: nenhum código lê esse
+campo em tempo de execução hoje — a mudança é de documentação/validação, não
+de comportamento operacional, já que execução overnight de verdade não existe
+ainda. `DEVX-022` carrega a implementação.
 
 > Reconstruído em 2026-07-30 a partir do MAP.md e do relatório do subagente;
 > o corpo original foi perdido por `git clean -fd`.

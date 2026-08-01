@@ -57,6 +57,7 @@ terminal manual.
 - [OpenCode enters only via serve/SDK, never TUI — vision.md rewritten, not rebated](issues/13-vision-single-runtime-vs-arm64-tui-gap.md) — resolved 2026-07-31: "runtime único" stays true as the agentic substrate, not the literal TUI process; no ADR-0001 reversal.
 - [UI-fusion step 2, starting now in parallel](issues/10-ui-fusion-step-and-start-decision.md) — resolved 2026-07-31: purpose-built React over `@opencode-ai/sdk`, no wait on `DEVX-011`/`DEVX-013`; first slice specified as `DEVX-014`.
 - [Task board projects from a CoopCode event log, not OrchestrationDb](issues/14-task-board-data-source-decision.md) — resolved 2026-07-31: sourced from the git Task Specs already read by `validate-task.mjs`/`select-task.mjs`; applies to a future `DEVX-040`, no task opened yet.
+- [Overnight write-scope policy defers to each task's own scope.allow, not a second maintained list](issues/11-overnight-budget-policy-write-scope-revision.md) — resolved 2026-08-01: removes `allowed_write_destinations` rather than widening it, since nothing reads it at runtime yet and a second list just goes stale again; `DEVX-022` carries the implementation.
 
 ## Not yet specified
 
