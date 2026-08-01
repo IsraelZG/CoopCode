@@ -1,0 +1,62 @@
+{
+  "task": "DEVX-016",
+  "attempt": 1,
+  "baseSha": "d5f215ca39ead1b5f4538dda523adab321a20f87",
+  "resultSha": "15ea16d3170ef04bb8366af0104b485e29f2d1c5",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.21.1",
+  "startedAt": "2026-08-01T16:25:00.000Z",
+  "finishedAt": "2026-08-01T16:28:00.000Z",
+  "baseline": "31 failures (9+2+5+15) from DEVX-013 triage; 51 files / 147 tests failing in full suite",
+  "regressions": "none",
+  "outOfScopeDiff": "None. All changes within scope.allow. No files outside scope modified.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-016.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T16:27:00.000Z",
+      "finishedAt": "2026-08-01T16:27:02.000Z",
+      "stdout": "OK: DEVX-016 (ready, standard, 5 criteria)\n"
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-016-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T16:28:00.000Z",
+      "finishedAt": "2026-08-01T16:28:02.000Z",
+      "stdout": "OK: DEVX-016-gate.json valid\n"
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/codex/codex-session-resume-home.test.ts src/main/codex/codex-session-resume-preparation.test.ts src/main/ipc/worktree-base-directory-event-filter.test.ts src/main/ipc/worktree-base-directory-watcher.test.ts",
+      "purpose": "Run this task's four affected test files, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T16:27:05.000Z",
+      "finishedAt": "2026-08-01T16:27:06.000Z",
+      "stdout": "Test Files  4 passed (4)\nTests  61 passed (61)\n",
+      "criteria": [
+        {
+          "description": "codex-session-resume-home.test.ts: 0 failures (was 9)",
+          "passed": true
+        },
+        {
+          "description": "codex-session-resume-preparation.test.ts: 0 failures (was 2)",
+          "passed": true
+        },
+        {
+          "description": "worktree-base-directory-event-filter.test.ts: 0 failures (was 5)",
+          "passed": true
+        },
+        {
+          "description": "worktree-base-directory-watcher.test.ts: 0 failures (was 15)",
+          "passed": true
+        },
+        {
+          "description": "No previously-passing tests broke. cross-platform-path.test.ts: 9/9 pass.",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
