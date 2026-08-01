@@ -16,7 +16,8 @@ const VALID_AGENTS = new Set([
   'claude', 'claude-agent-teams', 'openclaude', 'codex', 'autohand', 'ante',
   'opencode', 'mimo-code', 'pi', 'omp', 'gemini', 'antigravity', 'aider',
   'goose', 'amp', 'kilo', 'kiro', 'crush', 'aug', 'cline', 'codebuff',
-  'command-code', 'copilot-cli', 'cursor-agent', 'gemini-cli', 'qwen3'
+  'command-code', 'continue', 'copilot', 'cursor', 'devin', 'droid',
+  'grok', 'hermes', 'kimi', 'mistral-vibe', 'openclaw', 'qwen-code', 'rovo'
 ])
 
 const agent = agentArg ? agentArg.slice('--agent='.length) : 'crush'

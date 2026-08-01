@@ -133,6 +133,41 @@ function assert(label, condition, detail = '') {
     `got stdout="${r.stdout.slice(0, 500)}"`)
 }
 
+// Test 9: All known valid agent IDs from tui-agent-config.ts are accepted
+const ALL_VALID = [
+  'claude', 'claude-agent-teams', 'openclaude', 'codex', 'autohand', 'ante',
+  'opencode', 'mimo-code', 'pi', 'omp', 'gemini', 'antigravity', 'aider',
+  'goose', 'amp', 'kilo', 'kiro', 'crush', 'aug', 'cline', 'codebuff',
+  'command-code', 'continue', 'copilot', 'cursor', 'devin', 'droid',
+  'grok', 'hermes', 'kimi', 'mistral-vibe', 'openclaw', 'qwen-code', 'rovo'
+]
+for (const validAgent of ALL_VALID) {
+  const r = runDispatch(['--dry-run', `--agent=${validAgent}`, fixtureTask])
+  assert(`agent-list: ${validAgent} is accepted`,
+    r.exitCode === 0,
+    `got exitCode=${r.exitCode}, stderr="${r.stderr.slice(0, 100)}"`)
+}
+
+// Test 10: Agent names that look plausible but are wrong are rejected
+{
+  const r = runDispatch(['--agent=copilot-cli', fixtureTask])
+  assert('agent-fake: copilot-cli is rejected (real agent is copilot)',
+    r.exitCode === 2,
+    `got exitCode=${r.exitCode}`)
+}
+{
+  const r = runDispatch(['--agent=cursor-agent', fixtureTask])
+  assert('agent-fake: cursor-agent is rejected (real agent is cursor)',
+    r.exitCode === 2,
+    `got exitCode=${r.exitCode}`)
+}
+{
+  const r = runDispatch(['--agent=gemini-cli', fixtureTask])
+  assert('agent-fake: gemini-cli is rejected (real agent is gemini)',
+    r.exitCode === 2,
+    `got exitCode=${r.exitCode}`)
+}
+
 console.log(`\n${passed} passed, ${failed} failed out of ${passed + failed} assertions`)
 
 if (failures.length > 0) {
