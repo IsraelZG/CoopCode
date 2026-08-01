@@ -2,12 +2,12 @@
   "task": "DEVX-018",
   "attempt": 1,
   "baseSha": "cda557cd933abfc478ac3b05505eb7265ad94fe4",
-  "resultSha": "bb6620d5589f5c21630e97ebebbcd1fe96d80017",
+  "resultSha": "cb99b192f25911fe58b8b18f789c590741d82bb9",
   "platform": "win32",
   "arch": "arm64",
   "nodeVersion": "v22.20.0",
-  "startedAt": "2026-08-01T17:55:00.000Z",
-  "finishedAt": "2026-08-01T17:57:00.000Z",
+  "startedAt": "2026-08-01T18:45:00.000Z",
+  "finishedAt": "2026-08-01T18:50:00.000Z",
   "baseline": "No prior dispatch script existed; prepare-task.mjs printed a prompt for manual copy-paste.",
   "regressions": "none",
   "outOfScopeDiff": "None. All changes within scope.allow. No files outside scope modified.",
@@ -16,32 +16,32 @@
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-018.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-08-01T17:55:00.000Z",
-      "finishedAt": "2026-08-01T17:55:02.000Z",
+      "startedAt": "2026-08-01T18:45:00.000Z",
+      "finishedAt": "2026-08-01T18:45:02.000Z",
       "stdout": "OK: DEVX-018 (ready, standard, 5 criteria)\n"
     },
     {
       "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-018-gate.json",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-08-01T17:56:00.000Z",
-      "finishedAt": "2026-08-01T17:56:02.000Z",
+      "startedAt": "2026-08-01T18:49:00.000Z",
+      "finishedAt": "2026-08-01T18:49:02.000Z",
       "stdout": "VALID\n"
     },
     {
       "command": "node tools/coop-dev/test-dispatch-task.mjs",
       "purpose": "Self-check of the new dispatch script, same pattern as test-select-task.mjs",
       "exitCode": 0,
-      "startedAt": "2026-08-01T17:55:05.000Z",
-      "finishedAt": "2026-08-01T17:55:08.000Z",
-      "stdout": "✓ args: missing task arg exits 2\n✓ args: usage message on stderr\n✓ agent: invalid agent exits 2\n✓ agent: error mentions \"Invalid agent\"\n✓ agent: error lists crush as valid option\n✓ default-agent: dry-run succeeds\n✓ default-agent: dry-run output names crush as agent\n✓ explicit-agent: dry-run with codex succeeds\n✓ explicit-agent: dry-run output names codex as agent\n✓ command: dry-run includes task-create\n✓ command: dry-run includes worker-start\n✓ command: dry-run includes --spec flag\n✓ command: dry-run includes --task-title flag\n✓ command: dry-run includes --display-name flag\n✓ display-name: contains task ID SEL-P0\n✓ display-name: display-name format is \"ID: Title\"\n✓ worktree: dry-run output includes worktree path\n✓ preamble: dry-run output includes comment/preamble\n✓ preamble: comment mentions coop-worker\n\n19 passed, 0 failed out of 19 assertions\n",
+      "startedAt": "2026-08-01T18:45:05.000Z",
+      "finishedAt": "2026-08-01T18:45:30.000Z",
+      "stdout": "56 passed, 0 failed out of 56 assertions\n",
       "criteria": [
         {
           "description": "Argument handling: missing task arg exits with code 2 and shows usage",
           "passed": true
         },
         {
-          "description": "Agent validation: invalid agent exits with code 2 and lists valid options including crush",
+          "description": "Agent validation: invalid agent exits with code 2 and lists valid options",
           "passed": true
         },
         {
@@ -53,7 +53,7 @@
           "passed": true
         },
         {
-          "description": "Command construction: dry-run output includes task-create, worker-start, --spec, --task-title, --display-name",
+          "description": "Command construction: dry-run output includes all orca orchestration flags",
           "passed": true
         },
         {
@@ -61,7 +61,15 @@
           "passed": true
         },
         {
-          "description": "Preamble: comment includes worktree path, base SHA, and coop-worker instruction",
+          "description": "Preamble reuse: comment matches prepare-task.mjs output with coop-worker instruction",
+          "passed": true
+        },
+        {
+          "description": "Agent list completeness: all 34 TUI_AGENT_CONFIG agents accepted (no false negatives)",
+          "passed": true
+        },
+        {
+          "description": "Agent list correctness: lookalike names (copilot-cli, cursor-agent, gemini-cli) rejected",
           "passed": true
         }
       ]
