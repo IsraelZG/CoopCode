@@ -2,7 +2,7 @@
 {
   "id": "DEVX-013",
   "title": "Triage the 144 pre-existing Orca suite failures: signal or import noise",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -126,5 +126,14 @@ information a human needs to decide which failures are worth a task.
 ## Handoff
 
 Worker and reviewer return evidence to the dispatcher/state owner, who decides
-which signal findings become new tasks. This task closing does not imply any
-of the 144 got fixed — only classified.
+ which signal findings become new tasks. This task closing does not imply any
+ of the 144 got fixed — only classified.
+
+## Integration
+
+- Review decision: `accept`
+- Approved result SHA: `dea6c9ca35b9a3c0a2efb6f7ebdee31ed58d4132`
+- Rebased equivalent result: `3b9f088487fe51fe6ed92e11883ba58108764205`
+- Merge commit: `8d5051ebd`
+- Gate: task and Gate Artifact validators (`exit 0`); report contents were
+  byte-identical before and after the rebase.

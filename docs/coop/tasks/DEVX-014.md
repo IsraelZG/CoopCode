@@ -2,7 +2,7 @@
 {
   "id": "DEVX-014",
   "title": "UI-fusion step 2, first slice: render live OpenCode sessions via @opencode-ai/sdk in a purpose-built React screen",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -132,6 +132,13 @@ ticket 10): prove the wiring works before building out more screens.
 ## Handoff
 
 Worker and reviewer return evidence to the dispatcher/state owner. This task
-closing proves the wiring, not full UI-fusion — later screens (chat,
-diagnostics, whatever else step 2 needs) are separate tasks once this slice
-is accepted.
+ closing proves the wiring, not full UI-fusion — later screens (chat,
+ diagnostics, whatever else step 2 needs) are separate tasks once this slice
+ is accepted.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `19e99d50d22264f3c5ace731760e009afb885f55`
+- Merge commit: `e90af294c`
+- Gate: task/Gate Artifact validators and 4 IPC tests (`exit 0`).

@@ -2,7 +2,7 @@
 {
   "id": "DEVX-011",
   "title": "Pay the AgentDir Python debt by 2026-08-27: port the evidence core into apps/desktop/orca as TS/JS",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "routine",
@@ -145,5 +145,12 @@ regra que já foi quebrada.
 
 Worker e reviewer devolvem evidência ao dispatcher/dono do estado, que anexa
 sem reescrever tentativas anteriores. Se a data passar sem conclusão, o dono
-do estado executa a reversão descrita em **Prazo** e registra o motivo; isso
-não exige nova task.
+ do estado executa a reversão descrita em **Prazo** e registra o motivo; isso
+ não exige nova task.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `00d7bbc91ae74b5d9528890704e0ab70bf2c0fd4`
+- Merge commit: `61573396a`
+- Gate: task/Gate Artifact validators and 20 evidence tests (`exit 0`).
