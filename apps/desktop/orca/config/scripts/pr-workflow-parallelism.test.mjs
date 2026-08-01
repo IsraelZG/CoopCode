@@ -70,6 +70,7 @@ describe('PR workflow parallelism', () => {
   it('keeps every real-zsh test in the dedicated shell lane', () => {
     const discoveredFiles = globSync(testFilePatterns)
       .filter((testFile) => realZshUsage.test(readFileSync(testFile, 'utf8')))
+      .map((testFile) => testFile.replace(/\\/g, '/'))
       .sort()
 
     expect(discoveredFiles).toEqual([...shellContractFiles].sort())

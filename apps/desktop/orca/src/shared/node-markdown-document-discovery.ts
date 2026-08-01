@@ -1,6 +1,6 @@
 import { opendir } from 'node:fs/promises'
 import type { Dirent, Dir } from 'node:fs'
-import { join } from 'node:path'
+import { joinRuntimePath } from './cross-platform-path'
 import {
   assertMarkdownDocumentPathWithinLimit,
   createMarkdownDocumentListingBudget,
@@ -63,7 +63,7 @@ export async function discoverMarkdownRelativePaths(
       }
       if (entry.isDirectory()) {
         if (shouldDescend) {
-          await visitDirectory(join(absoluteDirectoryPath, entry.name), relativePath, nextDepth)
+          await visitDirectory(joinRuntimePath(absoluteDirectoryPath, entry.name), relativePath, nextDepth)
         }
         continue
       }
