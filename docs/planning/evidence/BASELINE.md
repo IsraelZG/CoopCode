@@ -54,6 +54,18 @@ contagens, e mesmo assim só linha a linha, nunca do resumo. Leva ~21 minutos
 até travar (não ~16 min como medido anteriormente). **Nunca use isso como gate
 de task — e não espere um resumo limpo ao fim.**
 
+**2026-08-01 (DEVX-015):** O arquivo `config/scripts/resolve-7za-path.test.mjs`
+agora roda isoladamente até o fim (15 testes, ~812ms) sem travar. A causa raiz
+eram duas: (a) o shebang `#!/usr/bin/env node` na linha 1 de
+`resolve-7za-path.mjs` que o vitest não parseava, impedindo até a carga do
+arquivo; (b) as chamadas a `app-builder-lib`'s `getPath7za()` dentro dos
+testes, que disparavam download/subprocess reais sem timeout. Um seam de
+ambiente (`__ORCA_MOCK_7ZA_PATH`) evita o download em testes; o caminho de
+produção por `getPath7za()` continua inalterado. A suíte completa **não foi
+re-executada até o fim** nesta task (tomaria ~21 min; o gate mensurável é o
+arquivo individual). Se ainda travar no teardown, a causa remanescente é um
+finding — não perseguir aqui.
+
 ### Rodar apenas os testes da sua task
 
 Verificado em 2026-07-31, exit 0:
