@@ -1,0 +1,57 @@
+{
+  "task": "DEVX-014",
+  "attempt": 1,
+  "baseSha": "7e0f747cc274646e060597a37ad6a9c31f3002c9",
+  "resultSha": "19e99d50d22264f3c5ace731760e009afb885f55",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T19:20:28.000Z",
+  "finishedAt": "2026-07-31T19:20:28.000Z",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-014.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T19:19:50.000Z",
+      "finishedAt": "2026-07-31T19:19:50.000Z",
+      "stdout": "OK: DEVX-014 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task is valid and ready for execution",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/opencode-sdk.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T19:20:28.000Z",
+      "finishedAt": "2026-07-31T19:20:28.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  4 passed (4)",
+      "criteria": [
+        {
+          "description": "Registers opencodeSdk:listSessions handler",
+          "passed": true,
+          "detail": "ipcMain.handle called with correct channel"
+        },
+        {
+          "description": "Handler returns parsed sessions from client",
+          "passed": true,
+          "detail": "Client sessions mapped to OpenCodeSession shape"
+        },
+        {
+          "description": "Handler returns error when client fails",
+          "passed": true,
+          "detail": "Connection refused error returned, not thrown"
+        },
+        {
+          "description": "Handler returns empty sessions on empty list",
+          "passed": true,
+          "detail": "Empty array, no error field"
+        }
+      ]
+    }
+  ]
+}
