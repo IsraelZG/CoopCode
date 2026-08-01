@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { joinRuntimePath } from '../../shared/cross-platform-path'
 import {
   claimsCodexRolloutLayout,
   findTrustedCodexSessionResume,
@@ -249,18 +250,18 @@ describe('findTrustedCodexSessionResume legacy-rescan home ranking', () => {
   const accountBHome = join('/userData', 'codex-accounts', 'account-b', 'home')
 
   const rolloutIn = (homePath: string): string =>
-    join(homePath, 'sessions', '2026', '07', '20', `rollout-2026-07-20T15-50-19-${sessionId}.jsonl`)
+    joinRuntimePath(homePath, 'sessions', '2026', '07', '20', `rollout-2026-07-20T15-50-19-${sessionId}.jsonl`)
 
   // Why: one id already lives in several homes on main — the one-shot migrateLegacySessions copies
   // each per-account rollout into the shared mirror and leaves the original. #10770 widens this to
   // every managed home. Either way the id alone stops naming an account.
   const listRolloutInEveryHome = async function* (sessionsRoot: string): AsyncIterable<string> {
-    yield join(sessionsRoot, '2026', '07', '20', `rollout-2026-07-20T15-50-19-${sessionId}.jsonl`)
+    yield joinRuntimePath(sessionsRoot, '2026', '07', '20', `rollout-2026-07-20T15-50-19-${sessionId}.jsonl`)
   }
 
   const listRolloutIn = (...homePaths: string[]) =>
     async function* (sessionsRoot: string): AsyncIterable<string> {
-      if (homePaths.some((homePath) => sessionsRoot === join(homePath, 'sessions'))) {
+      if (homePaths.some((homePath) => sessionsRoot === joinRuntimePath(homePath, 'sessions'))) {
         yield* listRolloutInEveryHome(sessionsRoot)
       }
     }
@@ -363,9 +364,9 @@ describe('findTrustedCodexSessionResume legacy-rescan home ranking', () => {
     const windowsAccountAHome = `${windowsRoot}\\AppData\\Roaming\\Orca\\codex-accounts\\a\\home`
     const windowsAccountBHome = `${windowsRoot}\\AppData\\Roaming\\Orca\\codex-accounts\\b\\home`
     const windowsRolloutIn = (homePath: string): string =>
-      `${join(homePath, 'sessions')}\\2026\\07\\20\\rollout-2026-07-20T15-50-19-${sessionId}.jsonl`
+      `${joinRuntimePath(homePath, 'sessions')}/2026/07/20/rollout-2026-07-20T15-50-19-${sessionId}.jsonl`
     const listSessionFiles = async function* (sessionsRoot: string): AsyncIterable<string> {
-      yield `${sessionsRoot}\\2026\\07\\20\\rollout-2026-07-20T15-50-19-${sessionId}.jsonl`
+      yield `${sessionsRoot}/2026/07/20/rollout-2026-07-20T15-50-19-${sessionId}.jsonl`
     }
 
     await expect(

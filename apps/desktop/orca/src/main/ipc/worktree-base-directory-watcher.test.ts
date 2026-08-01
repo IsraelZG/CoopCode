@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { join, sep } from 'node:path'
 import type { GlobalSettings, Repo } from '../../shared/types'
 import type { WorktreeBasePollEvent } from './worktree-base-directory-poller'
+import { resolveRuntimePath } from '../../shared/cross-platform-path'
 
 vi.mock('fs/promises', () => ({
   readFile: vi.fn(async () => ''),
@@ -52,7 +53,7 @@ const unsubscribeMocks = new Map<string, ReturnType<typeof vi.fn>>()
 const absolutePath = (...parts: string[]): string => join(sep, ...parts)
 const WORKTREE_ROOT = absolutePath('workspace', 'worktrees')
 const PROJECT_ROOT = absolutePath('workspace', 'projects', 'project')
-const PROJECT_GIT_COMMON_DIR = join(PROJECT_ROOT, '.git')
+const PROJECT_GIT_COMMON_DIR = resolveRuntimePath(PROJECT_ROOT, '.git')
 
 const settings = {
   workspaceDir: WORKTREE_ROOT,

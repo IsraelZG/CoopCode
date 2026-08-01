@@ -1,7 +1,7 @@
 const SLASH_CHAR_CODE = '/'.charCodeAt(0)
 
 export function isWindowsAbsolutePathLike(value: string): boolean {
-  return /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('//')
+  return /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('//') || value.startsWith('\\')
 }
 
 export function normalizeRuntimePathSeparators(value: string): string {
@@ -25,7 +25,11 @@ export function normalizeRuntimePathSeparators(value: string): string {
 export function normalizeRuntimePathForComparison(rawValue: string): string {
   // Normalize before any folding so the WSL alias branch below is covered too.
   const value = rawValue.normalize('NFC')
-  const isWindowsPath = isWindowsAbsolutePathLike(value)
+  // Why: root-relative Windows paths (`\workspace\...`) and mixed-separator
+  // paths assembled from normalized roots and backslash-listing output both carry
+  // backslashes that must be normalized for comparison to succeed.
+  const isWindowsPath =
+    isWindowsAbsolutePathLike(value)
   // Why: backslash is a valid POSIX filename character; fold it only when the
   // path itself proves Windows drive/UNC semantics.
   const normalized = trimRuntimePathTrailingSlash(
@@ -68,6 +72,23 @@ export function getRuntimePathBasename(value: string): string {
     return ''
   }
   return trimmed.split(/[\\/]/).findLast(Boolean) ?? ''
+}
+
+/**
+ * Join path segments using `/` regardless of the host platform separator.
+ * Strips leading and trailing separators from intermediate segments but preserves
+ * the first segment's leading separator and root marker.
+ *
+ * Why: `node:path.join` emits backslashes on Windows, corrupting POSIX-style
+ * logical paths. This always emits `/` so comparison and concatenation stay
+ * deterministic regardless of where the path originated.
+ */
+export function joinRuntimePath(...segments: string[]): string {
+  const [first, ...rest] = segments
+  if (first === undefined) return ''
+  const cleanedFirst = first.replace(/[\\/]+$/, '')
+  const cleanedRest = rest.map((s) => s.replace(/^[\\/]+/, '').replace(/[\\/]+$/, ''))
+  return [cleanedFirst, ...cleanedRest].join('/')
 }
 
 /**
