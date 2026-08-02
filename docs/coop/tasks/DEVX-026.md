@@ -2,7 +2,7 @@
 {
   "id": "DEVX-026",
   "title": "Apply DEVX-023 reviewer findings: immutable SQLite URI and dead-code cleanup in extract-candidates.mjs",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -128,4 +128,11 @@ sibling-probe ran green. The reviewer confirms the URI change matches
 `file:<abs>?immutable=1`, the three dead-code removals are clean, and the
 existing 19 assertions plus the new sibling-probe all pass against the
 result SHA. The integrator merges and updates `.context/plans/mvp.yaml`
-when they accept.
+ when they accept.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `d7c8683a49883cf09e37c2cc7ede6062402e6bfa`
+- Merge commit: `f210539fa`
+- Gate: task/Gate Artifact validators and 30 extractor assertions (`exit 0`).

@@ -2,7 +2,7 @@
 {
   "id": "DEVX-020",
   "title": "Finish the node:path.join-on-Windows cluster: repo-detection fallback, ai-vault RPC, dead markdown-discovery module, CI script",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -126,5 +126,12 @@ in every future suite triage.
 
 Worker and reviewer return evidence to the dispatcher/state owner. Closing
 this task, together with `DEVX-016`, retires the entire `node:path.join`
-cluster the DEVX-013 triage found — no further follow-up should remain from
-it afterward.
+ cluster the DEVX-013 triage found — no further follow-up should remain from
+ it afterward.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `0e1cb4df6e3dae14150c7ce42a56a93d803a8863`
+- Merge commit: `a553eefe8`
+- Gate: task/Gate Artifact validators and 58 focused tests (`exit 0`).

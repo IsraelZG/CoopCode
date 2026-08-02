@@ -2,7 +2,7 @@
 {
   "id": "DEVX-025",
   "title": "Tool/MCP/LSP usage analytics from the Crush session corpus: error rates, context cost, candidate findings",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -172,3 +172,10 @@ Worker and reviewer return evidence to the dispatcher/state owner. This task
 produces candidate findings about tool/MCP/LSP usage efficiency; adopting
 any of them into `PITFALLS.md`, a skill, or `AGENTS.md` guidance is a
 separate human decision on reviewed material.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `8fa61a4de05381a4c7c28cd02a080b98f91f21c7`
+- Merge commit: `2e00d4b73`
+- Gate: task/Gate Artifact validators and 18 offline analytics assertions (`exit 0`).

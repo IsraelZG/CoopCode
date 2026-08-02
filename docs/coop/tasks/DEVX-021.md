@@ -2,7 +2,7 @@
 {
   "id": "DEVX-021",
   "title": "Fix five remaining isolated DEVX-013 signal findings: EISDIR handling, rate-limit defaults, a malformed loopback path, a real WSL test hang, and an unreliable log-path fallback",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -130,3 +130,10 @@ and none needs further investigation, not because they're related.
 Worker and reviewer return evidence to the dispatcher/state owner. These five
 fixes, together with `DEVX-015`, `DEVX-016`/`DEVX-020`, and `DEVX-017`, close
 every signal finding the `DEVX-013` triage identified.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `f7d5854e84214fa1a16e4fd11a782f393625daae`
+- Merge commit: `99d4112fe`
+- Gate: task/Gate Artifact validators and 163 focused tests (`exit 0`).
