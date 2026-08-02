@@ -472,6 +472,7 @@ import type {
 import type {
   OpenCodeSdkListSessionsResult
 } from '../shared/opencode-sdk-types'
+import type { CoopBoardResult } from '../main/ipc/coop-board'
 import type {
   AgentType,
   NativeChatMessage,
@@ -861,6 +862,10 @@ export type OpenCodeUsageApi = {
 
 export type OpenCodeSdkApi = {
   listSessions: () => Promise<OpenCodeSdkListSessionsResult>
+}
+
+export type CoopBoardApi = {
+  listTasks: (args: { repoRoot: string }) => Promise<CoopBoardResult>
 }
 
 export type AiVaultApi = {
@@ -2643,6 +2648,7 @@ export type PreloadApi = {
   openCodeUsage: OpenCodeUsageApi
   aiVault: AiVaultApi
   openCodeSdk: OpenCodeSdkApi
+  coopBoard?: CoopBoardApi
   nativeChat: NativeChatApi
   fs: {
     readDir: (args: { dirPath: string; connectionId?: string }) => Promise<DirEntry[]>
