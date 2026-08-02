@@ -1,0 +1,63 @@
+{
+  "task": "DEVX-027",
+  "attempt": 1,
+  "baseSha": "84615ff29e21254aec3ed4458398a49511d71c7c",
+  "resultSha": "df03f44c057b341bad56a9e80c05d69bc0b1c1c0",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-02T15:55:41.341Z",
+  "finishedAt": "2026-08-02T15:57:30.000Z",
+  "baseline": "Base 84615ff29e21254aec3ed4458398a49511d71c7c contains the DEVX-027 task spec and the DEVX-025 source report. docs/coop/tool-usage-pitfalls.md did not exist at base. .claude/skills/coop-worker/SKILL.md was ignored by default, but DEVX-027 explicitly allowed that path and required the skill text there to gain the new Start and Work guidance.",
+  "regressions": "None observed. This attempt is documentation and skill guidance only; no product code or contract validators were changed.",
+  "outOfScopeDiff": "No intentional change outside DEVX-027 scope.allow. An exploratory edit to the tracked skills/coop-worker/SKILL.md mirror was reverted before the deliverable commit; final committed deliverable files before this artifact are only .claude/skills/coop-worker/SKILL.md and docs/coop/tool-usage-pitfalls.md. C:\\Dev2026\\Docs\\PITFALLS.md reports no git status or diff for PITFALLS.md.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-027.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T15:55:41.341Z",
+      "finishedAt": "2026-08-02T15:55:42.268Z",
+      "stdout": "OK: DEVX-027 (ready, standard, 4 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid and executable from base 84615ff29e21254aec3ed4458398a49511d71c7c.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1: docs/coop/tool-usage-pitfalls.md exists in the fixed adoption format and adopts all six DEVX-025 tool-usage candidates with original message-id citations.",
+          "passed": true,
+          "detail": "The file contains P-001 through P-006 with Data, Sintoma, Causa raiz, Solução aplicada, Evidência, Como prevenir recorrência and Limites fields. Each entry cites docs/planning/evidence/DEVX-025-tool-usage-report.md plus the original message IDs from DEVX-025."
+        },
+        {
+          "description": "Criterion 2: .claude/skills/coop-worker/SKILL.md Work section gained the two immediately actionable rules.",
+          "passed": true,
+          "detail": "The Work section now says to re-view after stale-read edit failures and to use view offset/limit for large files instead of reading whole files by default."
+        },
+        {
+          "description": "Criterion 3: .claude/skills/coop-worker/SKILL.md Start section tells workers to read docs/coop/tool-usage-pitfalls.md before beginning work.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 4: C:\\Dev2026\\Docs\\PITFALLS.md was untouched by this task.",
+          "passed": true,
+          "detail": "Checked with rtk git -C C:/Dev2026/Docs status --short -- PITFALLS.md and rtk git -C C:/Dev2026/Docs diff -- PITFALLS.md; both produced no output."
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-027-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T15:57:29.000Z",
+      "finishedAt": "2026-08-02T15:57:30.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against gate-artifact-v1 schema and is bound to resultSha df03f44c057b341bad56a9e80c05d69bc0b1c1c0.",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
