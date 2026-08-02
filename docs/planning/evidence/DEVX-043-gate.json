@@ -1,0 +1,91 @@
+{
+  "task": "DEVX-043",
+  "attempt": 1,
+  "baseSha": "77f03c7cecf8f118f038a68cb8df7037d4b44e1f",
+  "resultSha": "6522cd91f4834db03648d8442eae096f51788b4f",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-02T19:13:30.000Z",
+  "finishedAt": "2026-08-02T19:14:42.000Z",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-043.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T19:13:30.000Z",
+      "finishedAt": "2026-08-02T19:13:31.000Z",
+      "stdout": "OK: DEVX-043 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task is valid and ready for execution",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-043-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T19:14:35.000Z",
+      "finishedAt": "2026-08-02T19:14:36.000Z",
+      "stdout": "OK: valid gate artifact",
+      "criteria": [
+        {
+          "description": "Artifact matches the gate-artifact-v1 schema",
+          "passed": true
+        },
+        {
+          "description": "baseSha matches the immutable task base",
+          "passed": true,
+          "detail": "77f03c7cecf8f118f038a68cb8df7037d4b44e1f"
+        },
+        {
+          "description": "resultSha matches the commit that contains the deliverable",
+          "passed": true,
+          "detail": "6522cd91f4834db03648d8442eae096f51788b4f"
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-learning-review.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T19:14:20.000Z",
+      "finishedAt": "2026-08-02T19:14:21.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  17 passed (17)",
+      "criteria": [
+        {
+          "description": "Extractor candidate parser handles extract-candidates.mjs JSON shape",
+          "passed": true,
+          "detail": "parseExtractorCandidates maps finding.text, severity, citation file/section/grep"
+        },
+        {
+          "description": "Report candidate parser handles DEVX-025 structured candidate blocks",
+          "passed": true,
+          "detail": "parseReportCandidates extracts Sintoma/Causa raiz/Evidência/Como prevenir recorrência"
+        },
+        {
+          "description": "Citation replay locates the cited section and grep marker in the real file",
+          "passed": true,
+          "detail": "resolveCitationInText + replayCitation return rendered original context with line numbers"
+        },
+        {
+          "description": "Verdicts persist durably and survive close/reopen",
+          "passed": true,
+          "detail": "loadVerdicts/saveVerdicts write docs/planning/evidence/<source>-candidate-verdicts.json"
+        },
+        {
+          "description": "IPC handlers register and setVerdict persists through the bridge",
+          "passed": true,
+          "detail": "coopLearningReview:load/replay/setVerdict registered; invalid verdicts rejected"
+        },
+        {
+          "description": "Renderer screen lists candidates, replays citations and marks verdicts",
+          "passed": true,
+          "detail": "CoopLearningReviewScreen tests (5) run in the same suite and pass"
+        }
+      ]
+    }
+  ]
+}
