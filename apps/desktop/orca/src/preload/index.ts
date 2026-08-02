@@ -4091,6 +4091,13 @@ const api = {
     listSessions: (): Promise<unknown> => ipcRenderer.invoke('opencodeSdk:listSessions')
   },
 
+  coopLearningReview: {
+    load: (args?: unknown): Promise<unknown> => ipcRenderer.invoke('coopLearningReview:load', args),
+    replay: (args: unknown): Promise<unknown> => ipcRenderer.invoke('coopLearningReview:replay', args),
+    setVerdict: (args: unknown): Promise<unknown> =>
+      ipcRenderer.invoke('coopLearningReview:setVerdict', args)
+  },
+
   nativeChat: {
     readSession: (
       agent: AgentType,

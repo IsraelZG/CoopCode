@@ -60,6 +60,7 @@ import RightSidebar from './components/right-sidebar'
 import { StarNagCard } from './components/StarNagCard'
 import { StarNagAgentValueMomentObserver } from './components/star-nag/StarNagAgentValueMomentObserver'
 import OpenCodeSessionsScreen from './components/opencode-sessions/OpenCodeSessionsScreen'
+import CoopLearningReviewScreen from './components/coop-learning-review/CoopLearningReviewScreen'
 import { StarNagToastHost } from './components/star-nag/StarNagToastHost'
 import { SkillFreshnessNudge } from './components/skills/SkillFreshnessNudge'
 import { SkillFreshnessUpdateDialog } from './components/skills/SkillFreshnessUpdateDialog'
@@ -2614,6 +2615,14 @@ function App(): React.JSX.Element {
               compact
             >
               <OpenCodeSessionsScreen />
+            </RecoverableRenderErrorBoundary>
+            <RecoverableRenderErrorBoundary
+              boundaryId="overlay.coop-learning-review"
+              surface="overlay"
+              resetKey={activeView}
+              compact
+            >
+              <CoopLearningReviewScreen />
             </RecoverableRenderErrorBoundary>
             <RecoverableRenderErrorBoundary
               boundaryId="overlay.star-nag-toast"
