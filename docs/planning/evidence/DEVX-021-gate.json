@@ -1,0 +1,59 @@
+{
+  "task": "DEVX-021",
+  "attempt": 1,
+  "baseSha": "67a139186fcd65d6035bd28367654e8b3439d00b",
+  "resultSha": "f7d5854e84214fa1a16e4fd11a782f393625daae",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-07-31T21:54:00.000Z",
+  "finishedAt": "2026-07-31T21:57:00.000Z",
+  "baseline": "docs/planning/evidence/BASELINE.md",
+  "regressions": "none",
+  "outOfScopeDiff": "None. Only the five files in scope.allow were modified; no test files changed.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-021.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T21:55:00.000Z",
+      "finishedAt": "2026-07-31T21:55:01.000Z",
+      "stdout": "OK: DEVX-021 (ready, standard, 5 criteria)\n"
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/native-chat/transcript-watch-error.test.ts src/main/rate-limits/service.test.ts src/main/runtime/orca-runtime-files.test.ts src/relay/rotating-log-writer.test.ts src/renderer/src/components/editor/monaco-content-sync.undo-history.test.ts",
+      "purpose": "Run this task's five affected test files, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-07-31T21:56:00.000Z",
+      "finishedAt": "2026-07-31T21:56:26.000Z",
+      "stdout": "Test Files  5 passed (5)\n     Tests  163 passed (163)",
+      "criteria": [
+        {
+          "description": "transcript-watch-error.test.ts: all 4 tests pass — directory-at-transcript-path surfaces the 'Transcript unavailable' frame once and still recovers with a real snapshot",
+          "passed": true,
+          "detail": "Fixed in transcript-watch.ts: a stat-isDirectory check in attemptInstall emits the friendly error frame and keeps a native watcher that installs the engine once a readable transcript replaces the directory."
+        },
+        {
+          "description": "service.test.ts: all 71 tests pass — built request options default allowUsagePanelSupplement to true, omit the proxy key when unconfigured, and allow PTY fallback for managed WSL targets",
+          "passed": true,
+          "detail": "Fixed in service.ts: resolveClaudeFetchOptions defaults the supplement on and spreads the proxy key only when set; shouldAllowClaudePtyFallback now permits managed WSL targets on Windows."
+        },
+        {
+          "description": "orca-runtime-files.test.ts: all 79 tests pass — the IPv4-loopback terminal link joins to the correct absolutePath, and the WSL temp-artifact translation no longer hangs",
+          "passed": true,
+          "detail": "Fixed in orca-runtime-files.ts: the authority regex first tries the loopback+drive form (//127.0.0.1C:\\...) before the generic split, and canonicalPathForArtifactComparison skips realpath for WSL UNC paths that can block on the SMB timeout."
+        },
+        {
+          "description": "rotating-log-writer.test.ts: all 7 tests pass — a directory log path synchronously reports active: false",
+          "passed": true,
+          "detail": "Fixed in rotating-log-writer.ts: open() stat-checks the log path and marks the writer failed when it is a directory, before openSync (which succeeds on Windows directories and only fails on the first write)."
+        },
+        {
+          "description": "monaco-content-sync.undo-history.test.ts: both tests pass — the model value round-trips LF (no unexpected \\r\\n) and read-only live-tail appends stay non-undoable",
+          "passed": true,
+          "detail": "Fixed in monaco-content-sync.ts: syncContentOnMount/syncContentUpdate pin the model to LF (EndOfLineSequence.LF) when its EOL differs, independent of host OS."
+        }
+      ]
+    }
+  ]
+}
