@@ -1,0 +1,58 @@
+---
+name: coop-worker
+description: Implement or rework exactly one assigned Coop task in its designated worktree. Use when a task spec and attempt are ready, including bounded fixes requested by review. Applies TDD where behavior is testable, runs declared gates, records evidence, and hands off without approving or merging.
+---
+
+# Coop Worker
+
+Own one attempt, not the roadmap.
+
+## Start
+
+If the worktree was prepared by `tools/coop-dev/prepare-task.mjs`, the short
+generated prompt plus the task spec is the complete assignment. Do not require
+the dispatcher to repeat this skill or the task contents.
+
+1. Confirm task ID, attempt, immutable base SHA and assigned worktree.
+2. Read `docs/coop/tool-usage-pitfalls.md` before beginning work.
+3. Read the complete task and its cited sources.
+4. Confirm state is executable and every required decision is present.
+5. For rework, treat the blocking review findings as the closed correction
+   scope.
+6. Preserve any live dispatch IDs and reporting contract.
+
+## Work
+
+1. Reproduce the behavior or write the smallest failing test for each
+   behavioral criterion.
+2. Implement the minimum change that makes it pass.
+3. Refactor only while the tests remain green.
+4. Stay inside `scope.allow`. Read-only context does not authorize edits.
+5. If `edit` fails on a stale-read guard, re-`view` the file before retrying;
+   never retry from stale context.
+6. Use `view` with `offset`/`limit` for large files instead of reading the
+   whole file by default.
+7. Do not fix unrelated debt. Record it as a follow-up finding.
+8. Run every declared gate exactly as specified.
+9. Record commands, exit codes, result SHA and artifacts in the handoff.
+   `resultSha` is `git rev-parse HEAD` at the moment gates finish — fixed
+   before the Gate Artifact is written, never re-stamped afterward, even if a
+   reviewer reports it doesn't match a later HEAD. See "Vinculação do
+   `resultSha`" in `docs/coop/gate-artifact-v1.md`; a real fix touches code
+   outside `docs/planning/evidence/` and is a new attempt, not a rewritten SHA.
+
+TDD is not mandatory for prose, rename, generated formatting or purely visual
+CSS. Use the observable check declared by the task instead.
+
+## Block instead of invent
+
+Block or ask when the task contradicts current code, requires a product choice,
+needs a path outside scope, lacks a dependency, encounters a secret/approval,
+or would require destructive behavior.
+
+## Finish
+
+Return result SHA/files, criteria demonstrated, gate results, remaining risks
+and hands-on verification. Under a live dispatch, report completion exactly
+once using its injected contract, then stop. Never approve, merge, deploy, pay,
+delete material data or edit lifecycle state by hand.
