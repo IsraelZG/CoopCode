@@ -1,0 +1,83 @@
+{
+  "task": "DEVX-025",
+  "attempt": 1,
+  "baseSha": "ff3e5b147a959266f783769da5a76a6838dd3461",
+  "resultSha": "8fa61a4de05381a4c7c28cd02a080b98f91f21c7",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-02T00:44:24.026Z",
+  "finishedAt": "2026-08-02T00:44:25.232Z",
+  "baseline": "Corpus Crush medido read-only 2026-08-01/02: C:/Dev2026/Docs/.crush/crush.db.bak (725 sessions, 63.348 tool_results, 120.370.736 chars) como corpus de registro e crush.db vivo (13 sessions, 821 tool_results, 2.349.855 chars) mantido em seção separada. O .bak (756.899.840 bytes, mtime 2026-07-27T18:06:47.146Z) foi aberto com node:sqlite { readOnly: true } e verificado inalterado (tamanho+mtime) após cada execução completa (meta.bakFileUnchanged=true em todas as rodadas; crush.db.bak-wal permanece 0 bytes). Extractor reproduz a tabela de grounding da task em todos os 6 pares (edit 5056/162/18361/840; view 16765/4253/71499/353; bash 26357/1128/59896/31; mcp_git_git_branch 38/15885/97415/0; mcp_context7_get-library-docs 16/39266/53985/0; mcp_headroom_headroom_retrieve 183/5549/39680/0). Achados: (1) 840 erros de edit classificados em 11 buckets sem unclassified — stale-read-guard 478 (56.9%), old-string-not-found 216 (25.7%), edit-without-read 78 (9.3%), no-op-edit 30, ambiguous-match 16, demais <=5; (2) mcp_git_git_branch: mediana 8749 / max 97415 chars (24/38 chamadas >1000), max lista 518 branches (message d4030d88-...); (3) bash: 26.360 comandos classificados por primeiro verbo (cobertura total): build-tooling 15033 (57.0%), git-vcs 5899 (22.4%), file-read 4806 (18.2%), cd-navigation 233, other 319, powershell 39, external-cli 24, echo 7; fração com ferramenta dedicada = file-read+git-vcs = 10.705 (40.6%; +cd = 41.5%), contra diretivas do próprio AGENTS.md do corpus ('git MCP (nunca bash git)' §2, 'github MCP (nunca gh)' §3) e guidance de sessão 'Prefer dedicated tools over Bash'. MCP/LSP vs nativo: nativo 61.147 calls (96.5%) / 115.115.937 chars (95.6%); mcp_* 2.114 calls (3.3%) / 5.242.156 chars (4.4%) / 19 erros; lsp_* 87 calls / 12.643 chars (0.01%) / 22 erros (25.3%); por servidor: git 2.5% de todo o contexto, headroom 0.8%, context7 0.7%, playwright 0.3%, sequential-thinking/github ~0 — MCP é minoria significativa, LSP é arredondamento. Qualidade de dados: 72 nomes distintos; malformados (1 ocorrência cada): Edit, globl, gl, apid_f5e34f14-06cb-42da-8b89-c2b49a2a5512. Todo candidato tem citação (message id ou query reproduzível); relatório em formato PITFALLS-ready (Sintoma/Causa raiz/Evidência/Como prevenir recorrência), sem escrever em C:/Dev2026/Docs/PITFALLS.md.",
+  "regressions": "None — o extractor abre crush.db.bak e crush.db somente leitura e nunca escreve, rotaciona ou WAL-recupera nada sob C:/Dev2026/Docs/. Nenhum arquivo fora do scope foi alterado.",
+  "outOfScopeDiff": "Nenhuma mudança fora do scope declarado (4 arquivos: extractor, self-check, relatório, gate artifact). Fixtures do teste são geradas em temp dir e apagadas ao final (nada commitado).",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-025.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T00:44:24.026Z",
+      "finishedAt": "2026-08-02T00:44:24.252Z",
+      "stdout": "OK: DEVX-025 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid (ready, standard, 5 criteria)",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-025-gate.json --result-sha=8fa61a4de05381a4c7c28cd02a080b98f91f21c7",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T00:44:39.500Z",
+      "finishedAt": "2026-08-02T00:44:39.700Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1 (read-only across both DBs, .bak size+mtime unchanged): crush.db.bak 756.899.840 bytes / mtime 2026-07-27T18:06:47.146Z antes e depois de cada execução; meta.bakFileUnchanged=true na rodada final; crush.db vivo lido read-only e reportado em seção separada (13 sessions / 821 tool_results), nunca mesclado",
+          "passed": true,
+          "detail": "Comando: rtk node --no-warnings tools/corpus-learning/extract-tool-usage-stats.mjs. Abre com node:sqlite { readOnly: true }; verificado via meta.bakFileUnchanged e stat antes/depois."
+        },
+        {
+          "description": "Criterion 2 (três achados explicados, não re-confirmados): (a) 840 erros de edit classificados em 11 buckets com mensagem real (stale-read-guard 478=56.9%, old-string-not-found 216=25.7%, edit-without-read 78=9.3%, no-op-edit 30, ambiguous-match 16, demais <=5; 0 unclassified) + message ids citados por bucket; (b) mcp_git_git_branch: modo list serializa todos os branches com metadados em JSON pretty-printed — max 97.415 chars / 518 branches (d4030d88-...), 24/38 chamadas >1000 chars; (c) bash: 26.360 comandos classificados integralmente por primeiro verbo — file-read 4.806 (18.2%) poderia usar view/grep/glob/ls; + git-vcs 5.899 (22.4%) = 40.6% plausivelmente substituível, contra diretivas reais do AGENTS.md do corpus (git MCP 'nunca bash git') e guidance 'Prefer dedicated tools over Bash'",
+          "passed": true,
+          "detail": "Classificação total, não amostra; exemplos com message id citados no relatório (ex.: 15ecfebf-..., 21a8817c-..., 577b1e38-...)."
+        },
+        {
+          "description": "Criterion 3 (MCP/LSP vs nativo explícito): nativo 61.147 calls (96.5%) / 115.115.937 chars (95.6%); mcp_* 2.114 (3.3%) / 5.242.156 (4.4%) / 19 erros; lsp_* 87 (0.14%) / 12.643 (0.01%) / 22 erros. Per-server: git 1.781 calls / 3.065.324 chars (2.5% de todo o contexto), headroom 183 / 1.015.456 (0.8%), context7 32 / 788.549 (0.7%), playwright 63 / 366.336 (0.3%), sequential-thinking 54 / 6.429, github 1 / 62. Veredito declarado no relatório: MCP é minoria significativa (4.4%), LSP é arredondamento (0.01%)",
+          "passed": true,
+          "detail": "Famílias e servidores calculados pelo extractor a partir dos 63.348 tool_results; tabelas no relatório."
+        },
+        {
+          "description": "Criterion 4 (citação em todo candidato): cada achado cita message id consultável (SELECT ... WHERE id='<id>' no .bak read-only) ou query reproduzível; malformados (Edit, globl, gl, apid_<uuid>; 1 ocorrência cada) registrados como aside de qualidade de dados, não como achado próprio",
+          "passed": true,
+          "detail": "Citações por bucket no relatório (seção Achado 1-3 e candidatos P-??-DEVX-025-1..6)."
+        },
+        {
+          "description": "Criterion 5 (relatório em formato PITFALLS-ready): 6 candidatos (P-??-DEVX-025-1..6) com Sintoma/Causa raiz/Evidência/Como prevenir recorrência em docs/planning/evidence/DEVX-025-tool-usage-report.md; nada escrito em C:/Dev2026/Docs/PITFALLS.md (adoção = decisão humana)",
+          "passed": true,
+          "detail": "Seção 'Candidatos PITFALLS-ready (critério 5)' do relatório."
+        }
+      ]
+    },
+    {
+      "command": "node tools/corpus-learning/test-extract-tool-usage-stats.mjs",
+      "purpose": "Self-check of the stats extractor, same pattern as test-select-task.mjs",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T00:44:24.544Z",
+      "finishedAt": "2026-08-02T00:44:25.232Z",
+      "stdout": "18 passed, 0 failed out of 18 assertions\n",
+      "criteria": [
+        {
+          "description": "18/18 assertions pass against small fixture DBs (nunca o .bak real de 757 MB): per-tool calls/errors/rate, avg/median/max chars, buckets de erro de edit (4 razões), git_branch payload, MCP per-server, lsp/native families, classificação de bash (git-vcs/file-read/cd/build), malformed names, corpusFileUnchanged, live separado, offline-safe sem DB",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
