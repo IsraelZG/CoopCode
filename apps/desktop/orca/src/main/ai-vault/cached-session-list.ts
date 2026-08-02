@@ -1,4 +1,4 @@
-import { join } from 'node:path'
+import { joinRuntimePath } from '../../shared/cross-platform-path'
 import { scanAiVaultSessions } from './session-scanner'
 import { getWslHomeAsync, listWslDistrosAsync } from '../wsl'
 import type { AiVaultListArgs, AiVaultListResult } from '../../shared/ai-vault-types'
@@ -50,7 +50,7 @@ export async function listAiVaultSessions(args?: AiVaultListArgs): Promise<AiVau
 
   inflightKey = key
   const additionalCodexSessionsDirs =
-    sources.getAdditionalCodexHomePaths?.().map((homePath) => join(homePath, 'sessions')) ?? []
+    sources.getAdditionalCodexHomePaths?.().map((homePath) => joinRuntimePath(homePath, 'sessions')) ?? []
   inflightList = (async () =>
     scanAiVaultSessions({
       limit: args?.limit,

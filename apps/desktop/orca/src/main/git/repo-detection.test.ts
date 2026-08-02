@@ -95,7 +95,7 @@ describe('isGitRepo', () => {
     withGitUnavailable(() => {
       expect(isGitRepo(symlinkedNestedDir)).toBe(true)
       expect(getGitRepoRoot(symlinkedNestedDir)).toBe(
-        realpathSync.native(realRepo).replace(/\\/g, '/')
+        realpathSync.native(realRepo)
       )
     })
   })
@@ -131,7 +131,7 @@ describe('isGitRepo', () => {
 
     const expectedRoot = git(symlinkedTargetDir, ['rev-parse', '--show-toplevel'])
       .trim()
-      .replace(/\\/g, '/')
+      .replace(/\//g, path.sep)
 
     withGitUnavailable(() => {
       expect(isGitRepo(symlinkedTargetDir)).toBe(true)

@@ -150,7 +150,7 @@ export function getGitRepoRoot(path: string): string {
   }
   const markerScan = scanGitMarkerSync(path)
   if (markerScan.status === 'valid') {
-    return normalizeGitRepoRootForInputPath(path, markerScan.rootPath)
+    return markerScan.rootPath
   }
   return path
 }
