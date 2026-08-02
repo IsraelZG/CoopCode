@@ -18,7 +18,6 @@
     "end_time_utc": "06:00",
     "network": "blocked",
     "allowed_commands": ["node", "npm", "git"],
-    "allowed_write_destinations": ["docs/", "tools/"],
     "preserve_evidence": true
   },
   "prohibited_actions": [

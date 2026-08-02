@@ -49,7 +49,7 @@ if (!overnight || typeof overnight !== 'object') {
 } else {
   const required = [
     'max_tasks', 'max_concurrent_workers', 'end_time_utc',
-    'network', 'allowed_commands', 'allowed_write_destinations', 'preserve_evidence'
+    'network', 'allowed_commands', 'preserve_evidence'
   ]
   for (const field of required) {
     if (!(field in overnight)) {
@@ -74,15 +74,6 @@ if (!overnight || typeof overnight !== 'object') {
     for (let i = 0; i < overnight.allowed_commands.length; i++) {
       if (typeof overnight.allowed_commands[i] !== 'string' || overnight.allowed_commands[i].trim() === '') {
         errors.push(`overnight.allowed_commands[${i}] must be a non-empty string`)
-      }
-    }
-  }
-  if (!Array.isArray(overnight.allowed_write_destinations) || overnight.allowed_write_destinations.length < 1) {
-    errors.push('overnight.allowed_write_destinations must be a non-empty array of strings')
-  } else {
-    for (let i = 0; i < overnight.allowed_write_destinations.length; i++) {
-      if (typeof overnight.allowed_write_destinations[i] !== 'string' || overnight.allowed_write_destinations[i].trim() === '') {
-        errors.push(`overnight.allowed_write_destinations[${i}] must be a non-empty string`)
       }
     }
   }

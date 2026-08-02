@@ -10,7 +10,6 @@
     "end_time_utc": "25:99",
     "network": "open",
     "allowed_commands": [],
-    "allowed_write_destinations": [],
     "preserve_evidence": "yes"
   },
   "prohibited_actions": ["push", "merge", "deploy", "payment", "material_removal"],
