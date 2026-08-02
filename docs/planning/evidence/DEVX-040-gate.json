@@ -1,0 +1,80 @@
+{
+  "task": "DEVX-040",
+  "attempt": 1,
+  "baseSha": "77f03c7cecf8f118f038a68cb8df7037d4b44e1f",
+  "resultSha": "fd4d2ce915f69ddc1ab7ce52578b3c1253281c59",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-08-02T16:15:00.000Z",
+  "finishedAt": "2026-08-02T16:15:00.000Z",
+  "nodeVersion": "v22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-040.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T16:15:00.000Z",
+      "finishedAt": "2026-08-02T16:15:00.000Z"
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T16:24:00.000Z",
+      "finishedAt": "2026-08-02T16:24:30.000Z",
+      "criteria": [
+        {
+          "description": "Main-process module parses task frontmatter and Integration section",
+          "passed": true,
+          "detail": "apps/desktop/orca/src/main/ipc/coop-board.test.ts passes: 4/4 tests"
+        },
+        {
+          "description": "Worktree/branch detection overrides frontmatter to working",
+          "passed": true,
+          "detail": "Live run on this repo shows DEVX-024, DEVX-022, DEVX-027, DEVX-040, DEVX-043 as working"
+        },
+        {
+          "description": "Recursive dependency blocking computed",
+          "passed": true,
+          "detail": "DEVX-001 blocked by Missing dependency PLAT-013; DEVX-041/042 blocked by DEVX-040 working"
+        },
+        {
+          "description": "Renderer screen wired into App.tsx",
+          "passed": true,
+          "detail": "CoopBoardScreen added at apps/desktop/orca/src/renderer/src/components/coop-board/"
+        },
+        {
+          "description": "Hands-on evidence against real docs/coop/tasks/",
+          "passed": true,
+          "detail": "Real repo run returned 31 tasks with done, working, blocked states and worktree paths"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "apps/desktop/orca/src/main/ipc/coop-board.ts",
+      "sha256": "fd72b7f6e1f22d87af26cb534b08596b692648dca2e6d9915ff6d186ef3852f3"
+    },
+    {
+      "path": "apps/desktop/orca/src/main/ipc/coop-board.test.ts",
+      "sha256": "a1750123b57260bbffc5136e44286fb0fd17dde611b375b03e3aa3f42f22b860"
+    },
+    {
+      "path": "apps/desktop/orca/src/renderer/src/components/coop-board/CoopBoardScreen.tsx",
+      "sha256": "8eb3c7446684674dab253ce3affc78d309bd80ac091118de7a1c72257757edba"
+    },
+    {
+      "path": "apps/desktop/orca/src/renderer/src/App.tsx",
+      "sha256": "1c1160eede260a9f2d0078fba2a75c67d545c6898334cb7d42c5ba4e8d244ca9"
+    },
+    {
+      "path": "apps/desktop/orca/src/preload/api-types.ts",
+      "sha256": "72574b8884aa4dc4134ba2fb2dfdb49676f43ffd4d8cc64c278f6d1ab8bd1a25"
+    },
+    {
+      "path": "apps/desktop/orca/src/preload/index.ts",
+      "sha256": "e7fd10f82bb6a877b292fe2452d0a8650c6fb83784c5df8dd843bd5a0712ffe0"
+    }
+  ]
+}
