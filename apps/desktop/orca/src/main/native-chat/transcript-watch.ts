@@ -1,4 +1,6 @@
-import { extname } from 'node:path'
+import { watch } from 'node:fs'
+import { stat } from 'node:fs/promises'
+import { basename, dirname, extname } from 'node:path'
 import type { NativeChatMessage } from '../../shared/native-chat-types'
 import { resolveSessionFilePath } from './session-file-resolver'
 import { installTranscriptWatcher } from './transcript-watch-engine'
@@ -25,7 +27,97 @@ async function attemptInstall(
   if (!filePath) {
     return null
   }
+  const pathStat = await stat(filePath).catch(() => null)
+  if (pathStat?.isDirectory()) {
+    // Why: a directory sitting at the transcript path is a persistent read
+    // error (every tail read throws EISDIR), not a not-yet-flushed session.
+    // On POSIX the tail reader reaches EISDIR and the engine's error frame
+    // fires; on Windows stat().size of a directory is 0, so the reader
+    // short-circuits into an empty "success" frame and the degraded-UX
+    // message is silently dropped. Detect it up front.
+    return installDirectoryErrorSubscription(filePath, decode, args)
+  }
   return installTranscriptWatcher(filePath, decode, args)
+}
+
+/**
+ * Subscription for a transcript path that stat-succeeds but is a directory:
+ * emits the friendly error snapshot once and keeps a native watcher bound so
+ * the subscription still recovers (real snapshot, same subscription) once a
+ * readable transcript replaces the directory.
+ */
+function installDirectoryErrorSubscription(
+  filePath: string,
+  decode: (line: string, fallbackId: string) => NativeChatMessage | null,
+  args: SubscribeNativeChatTranscriptArgs
+): NativeChatTranscriptSubscription {
+  const watchedName = basename(filePath)
+  const { onInitialSnapshot } = args
+  let closed = false
+  let engine: NativeChatTranscriptSubscription | null = null
+  let watcher: ReturnType<typeof watch> | null = null
+
+  if (onInitialSnapshot) {
+    onInitialSnapshot([], false, 0, 'Transcript unavailable')
+  }
+
+  function installEngine(): void {
+    if (closed || engine) {
+      return
+    }
+    void installTranscriptWatcher(filePath, decode, args).then((subscription) => {
+      if (closed) {
+        subscription?.unsubscribe()
+        return
+      }
+      if (subscription) {
+        engine = subscription
+        watcher?.close()
+        watcher = null
+      }
+    })
+  }
+
+  try {
+    // Why: watch the parent so a directory->file replacement (rename) is
+    // visible, mirroring transcript-native-watcher's strategy.
+    watcher = watch(dirname(filePath), (event, changedName) => {
+      if (changedName !== null && changedName.toString() !== watchedName) {
+        return
+      }
+      void stat(filePath)
+        .then((value) => {
+          if (!value.isDirectory()) {
+            installEngine()
+          }
+        })
+        .catch(() => {
+          // Path still missing/unreachable — keep watching for the replacement.
+        })
+    })
+    watcher.unref?.()
+    watcher.on('error', () => {
+      // Keep the error frame; a later event or reconciliation attempt can
+      // still install the engine once the path becomes readable.
+    })
+  } catch {
+    // Best-effort watch: the error frame is already out; recovery is limited
+    // to whatever fs.watch provides when the path becomes watchable again.
+  }
+
+  return {
+    watching: true,
+    unsubscribe: () => {
+      if (closed) {
+        return
+      }
+      closed = true
+      watcher?.close()
+      watcher = null
+      engine?.unsubscribe()
+      engine = null
+    }
+  }
 }
 
 // Why: Claude Code (and other agents) can take from ~3s to minutes to flush a

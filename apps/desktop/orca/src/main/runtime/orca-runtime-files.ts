@@ -52,6 +52,7 @@ import {
 } from './file-watcher-host'
 import { wslAwareSpawn } from '../git/runner'
 import { parseWslPath, toWindowsWslPath } from '../wsl'
+import { isWslUncPath } from '../../shared/wsl-paths'
 import { isENOENT, resolveAuthorizedPath } from '../ipc/filesystem-auth'
 import { listQuickOpenFiles } from '../ipc/filesystem-list-files'
 import { searchWithGitGrep } from '../ipc/filesystem-search-git'
@@ -2325,7 +2326,13 @@ function normalizeTerminalFileUriAuthorityPath(
   if (!pathText.startsWith('//')) {
     return pathText
   }
-  const match = /^\/\/([^/\\]+)([/\\].*)$/.exec(pathText)
+  // Why: some terminals emit the loopback authority and the local drive path
+  // concatenated with no separator (`//127.0.0.1C:\Users\...`). The greedy
+  // host group would otherwise swallow the drive letter into the authority, so
+  // try the loopback+drive form first.
+  const match =
+    /^\/\/(127\.0\.0\.1|localhost|::1)([A-Za-z]:[\\/].*)$/.exec(pathText) ??
+    /^\/\/([^/\\]+)([/\\].*)$/.exec(pathText)
   if (!match) {
     return pathText
   }
@@ -2382,6 +2389,14 @@ async function localTerminalArtifactRoots(worktreePath: string): Promise<string[
 }
 
 async function canonicalPathForArtifactComparison(path: string): Promise<string> {
+  // Why: Win32 realpath against the WSL 9P filesystem (\\wsl.localhost\...) is
+  // unreliable — it can block for the SMB timeout when the distro isn't running
+  // and, even when it is, the resolved form can differ from the translated
+  // grant path. The translated UNC path is already the exact artifact path, so
+  // treat it as canonical without probing real filesystem state.
+  if (isWslUncPath(path)) {
+    return path
+  }
   try {
     return await realpath(path)
   } catch {
