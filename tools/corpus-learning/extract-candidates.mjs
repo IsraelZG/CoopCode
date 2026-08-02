@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite'
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { join, basename } from 'node:path'
+import { join } from 'node:path'
 import process from 'node:process'
 
 const CORPUS_DIR = process.env.CORPUS_DIR || 'C:/Dev2026/Docs/tasks'
@@ -84,9 +84,6 @@ function findSpecFeedback(contentLines) {
 
 function extractFindings(sections, contentLines, fullText) {
   const findings = []
-
-  const section8Key = Object.keys(sections).find(k => /^8\./.test(k))
-  const s8 = section8Key ? sections[section8Key] : null
 
   const lines = fullText.replace(/\r\n/g, '\n').split('\n')
   const headingLines = []
@@ -229,7 +226,7 @@ function extractFindings(sections, contentLines, fullText) {
   return findings
 }
 
-function buildCitation(taskFile, taskId, finding) {
+function buildCitation(taskFile, finding) {
   if (!finding.section || finding.section === 'root') return null
   let sectionRef = `## ${finding.section}`
   if (finding.subsection && finding.subsection !== finding.section) {
@@ -280,7 +277,15 @@ function main() {
   try {
     dbSizeBefore = statSync(DB_PATH).size
     dbMtimeBefore = statSync(DB_PATH).mtimeMs
-    db = new DatabaseSync(DB_PATH, { open: true, readOnly: true })
+    // The corpus crush.db.bak is the only copy of the session history
+    // and lives in WAL mode. Opening it read-only via a bare path still
+    // creates a -shm and a 0-byte -wal sibling on the first connection,
+    // which is a write under C:\Dev2026\Docs\ the extractor must never
+    // make. The `?immutable=1` URI flag opens the database read-only
+    // AND refuses to create the WAL/SHM pair, so the directory stays
+    // untouched.
+    const dbUri = `file:${DB_PATH}?immutable=1`
+    db = new DatabaseSync(dbUri, { open: true, readOnly: true })
   } catch {
     // DB is optional enrichment. Without it, sessions are empty and the
     // deterministic filter still runs (offline/offline tests).
@@ -341,7 +346,7 @@ function main() {
       const markerLetter = finding.marker[0]
       stats.findingsByMarker[markerLetter] = (stats.findingsByMarker[markerLetter] || 0) + 1
 
-      const citation = buildCitation(filePath, taskId, finding)
+      const citation = buildCitation(filePath, finding)
 
       if (!citation) {
         stats.candidatesDropped++

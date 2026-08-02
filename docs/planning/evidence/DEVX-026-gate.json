@@ -1,0 +1,83 @@
+{
+  "task": "DEVX-026",
+  "attempt": 1,
+  "baseSha": "ff3e5b147a959266f783769da5a76a6838dd3461",
+  "resultSha": "d7c8683a49883cf09e37c2cc7ede6062402e6bfa",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-01T21:10:00.000Z",
+  "finishedAt": "2026-08-01T21:25:00.000Z",
+  "baseline": "DEVX-026 is a sequential rework on top of DEVX-023 (integrated via merge 7fd55340c, accepted with the original code). The reviewer's four findings (1 MAJOR + 3 MINOR) were recorded in the prior session but not applied before integration; this attempt applies them on a fresh branch. Base commit is the tip of origin/main at dispatch time (ff3e5b147); the corpus file C:\\Dev2026\\Docs\\.crush\\crush.db.bak (757 MB, WAL mode) and the 594 task files under C:\\Dev2026\\Docs\\tasks\\ were not touched by this attempt and remain the same read-only inputs as DEVX-023. The DEVX-023 sample audit (24/24 faithful, seed 20260801) and the 19 offline assertions that the gate already validated against resultSha 707ffbc49 are preserved unchanged; this attempt extends the offline self-check from 19 to 30 assertions and proves the corpus-file invariant end-to-end against a real WAL DB.",
+  "regressions": "None. The 19 prior self-check assertions still pass on the new code path. The extractor's payload shape, marker parsing, citation contract, severity labelling, rework-round capture, §1 Objetivo extraction, and drop-on-missing-citation behaviour are byte-identical to DEVX-023 (no source change in those code paths). A live URI probe and a full extractor end-to-end run against a fresh WAL DB both confirm zero -shm and zero -wal siblings appear in the DB directory. The corpus crush.db.bak was not opened by this attempt; the offline self-check uses fixtures and a temp DB inside os.tmpdir(), so this attempt cannot have written under C:\\Dev2026\\Docs\\ even by accident.",
+  "outOfScopeDiff": "No change outside the declared scope.allow. tools/corpus-learning/extract-candidates.mjs (4 hunks: import on line 3, dead section8Key/s8 in extractFindings, buildCitation signature, the DatabaseSync call in main) and tools/corpus-learning/test-extract-candidates.mjs (extended with 11 new assertions and the new imports needed for the probe) are the only code changes. docs/planning/evidence/DEVX-026-gate.json is this artifact. docs/coop/tasks/DEVX-026.md is the new task spec, which is in scope as the spec file is the source of truth for the attempt and lives next to the other CoopCode task files.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-026.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T21:20:00.000Z",
+      "finishedAt": "2026-08-01T21:20:01.000Z",
+      "stdout": "OK: DEVX-026 (ready, standard, 4 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid (ready, standard, 4 criteria)",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-026-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T21:24:30.000Z",
+      "finishedAt": "2026-08-01T21:24:31.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against schema and result SHA",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1 (immutable SQLite URI): extract-candidates.mjs opens the DB via `file:${DB_PATH}?immutable=1`; the inline comment records the reason (WAL-mode corpus file must not gain -shm/-wal siblings).",
+          "passed": true,
+          "detail": "Confirmed by source-code invariant: assertion `rework: source opens the DB via a file:<path>?immutable=1 URI` and `rework: source no longer passes a bare path to DatabaseSync` both pass on the committed source."
+        },
+        {
+          "description": "Criterion 2 (sibling-probe in self-check): test-extract-candidates.mjs creates a temp WAL DB, opens it through the same code path the extractor uses, reads a row, and asserts zero -shm and zero -wal siblings before and after. Temp file is deleted on success and failure.",
+          "passed": true,
+          "detail": "Two probes cover this: `URI probe: opened WAL DB via file:<path>?immutable=1 and read a row` reads {n: 42}; `URI probe: zero -shm and -wal siblings created in the DB directory` returns an empty list. A third probe (`e2e: extractor exit 0 against a real WAL DB` plus `e2e: zero -shm and -wal siblings next to the corpus DB`) repeats the same invariant through the full extractor code path with a real DB_PATH."
+        },
+        {
+          "description": "Criterion 3 (dead code removed): unused `basename` import, dead `section8Key` / `s8` pair in `extractFindings`, and unused `taskId` parameter on `buildCitation` are all gone. The surviving `const s8 = sections[k]` in main() is preserved (it is used).",
+          "passed": true,
+          "detail": "Five source-code invariants pass: `rework: dead section8Key / s8 pair in extractFindings is gone`, `rework: surviving const s8 = sections[k] in main() is preserved`, `rework: dead basename import is gone`, `rework: buildCitation takes only (taskFile, finding)`, plus the URI invariants from criterion 1. All 19 prior offline assertions also pass on the new code, so no behavioural regression slipped in."
+        },
+        {
+          "description": "Criterion 4 (gate artifact bound to result SHA): docs/planning/evidence/DEVX-026-gate.json validates against validate-gate-artifact.mjs with resultSha d7c8683a49883cf09e37c2cc7ede6062402e6bfa and baseline referencing the DEVX-023 integration commit.",
+          "passed": true,
+          "detail": "Validator prints VALID; schema fields (task, attempt, baseSha, resultSha, platform, arch, startedAt, finishedAt, nodeVersion, gates, baseline, regressions, outOfScopeDiff) all conform to gate-artifact-v1.schema.json."
+        }
+      ]
+    },
+    {
+      "command": "node tools/corpus-learning/test-extract-candidates.mjs",
+      "purpose": "Self-check of the extractor, including the new immutable-URI probe and the no-siblings invariant",
+      "exitCode": 0,
+      "startedAt": "2026-08-01T21:23:00.000Z",
+      "finishedAt": "2026-08-01T21:23:03.000Z",
+      "stdout": "30 passed, 0 failed out of 30 assertions\n",
+      "criteria": [
+        {
+          "description": "All 30 self-check assertions pass (was 19 in DEVX-023; +11 cover the rework)",
+          "passed": true
+        },
+        {
+          "description": "Coverage: existing 19 (run structural, FX-001..FX-005, citation invariants) + 7 source-code invariants (immutable=1 present, bare DB_PATH gone, basename gone, section8Key/s8 pair gone, surviving s8 in main() preserved, buildCitation signature) + 2 URI probes (WAL DB read, zero siblings) + 3 end-to-end probes (extractor exit 0, expected E2E-001 candidate emitted, zero siblings next to the DB)",
+          "passed": true,
+          "detail": "Exit 0; full stdout: 30 passed, 0 failed out of 30 assertions. No SQLite ExperimentalWarning is treated as a failure (it is informational; node:sqlite is still flagged experimental in Node 22.20)."
+        }
+      ]
+    }
+  ]
+}

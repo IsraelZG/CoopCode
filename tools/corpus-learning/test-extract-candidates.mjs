@@ -1,8 +1,17 @@
 import { spawnSync } from 'node:child_process'
-import { readdirSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
+import { DatabaseSync } from 'node:sqlite'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const fixturesDir = path.join(repoRoot, 'tools', 'corpus-learning', 'fixtures')
@@ -148,6 +157,185 @@ if (r.output && !r.output.parseError) {
   assert('run: cited files all exist in the corpus',
     [...citationFiles].every((f) => fixtureFiles.some((ff) => ff === path.basename(f))),
     [...citationFiles].join(','))
+}
+
+// === DEVX-026 rework probes ===
+//
+// The reviewer of DEVX-023 attempt 1 found that opening crush.db.bak with
+// `node:sqlite` `{ readOnly: true }` still creates a 32 KB `-shm` and a
+// 0-byte `-wal` on the first connection (the corpus file is in WAL mode).
+// The fix is to open via the SQLite URI `file:<path>?immutable=1`, which
+// opens read-only AND refuses to create the WAL/SHM pair. These three
+// probes pin the invariant in the source, prove the URI itself behaves
+// the way the fix assumes, and run the real extractor end-to-end against
+// a WAL DB to confirm the directory stays clean.
+
+{
+  // Source-code invariants. Read once, check five things in one pass so the
+  // tests document what the rework actually changed instead of a long
+  // comment string we have to keep in sync.
+  const extractorSource = readFileSync(extractor, 'utf8')
+
+  // The reviewer found the dead `s8` local on the line right after
+  // `const section8Key = …` inside extractFindings. Both lines were
+  // removed; the only remaining `const s8` is the *used* one in main()
+  // (line ~330 in the integrated file) which we must not touch. Pin
+  // the rework by checking the dead pair is gone AND the surviving
+  // `const s8` still lives inside main().
+  assert('rework: dead `section8Key` / `s8` pair in `extractFindings` is gone',
+    !/const section8Key\b/.test(extractorSource) &&
+      !/\bconst s8 = section8Key\b/.test(extractorSource),
+    '`const section8Key` or its dependent `s8` still present')
+  const survivingS8 = extractorSource.match(/\bconst s8 = sections\[k\][\s\S]*?\n\s*\}/)
+  assert('rework: surviving `const s8 = sections[k]` in main() is preserved',
+    Boolean(survivingS8),
+    'the only remaining `const s8` is in main() and must stay')
+
+  assert('rework: source opens the DB via a file:<path>?immutable=1 URI',
+    extractorSource.includes('?immutable=1') &&
+      extractorSource.includes('new DatabaseSync'),
+    'expected `?immutable=1` flag in the DatabaseSync constructor call')
+  assert('rework: source no longer passes a bare path to DatabaseSync',
+    !/new DatabaseSync\(DB_PATH,\s*\{/.test(extractorSource),
+    'bare DB_PATH passed; the readOnly flag alone creates -shm/-wal siblings')
+  assert('rework: dead `basename` import is gone',
+    !/\bbasename\b/.test(extractorSource),
+    'basename still referenced in the source')
+  assert('rework: buildCitation takes only (taskFile, finding)',
+    /function buildCitation\(taskFile, finding\)/.test(extractorSource) &&
+      !/function buildCitation\(taskFile, taskId, finding\)/.test(extractorSource),
+    'buildCitation signature still has the unused taskId parameter')
+}
+
+{
+  // Probe the URI itself: open a WAL DB the way the extractor does and
+  // verify a) the row is readable and b) no -shm / -wal is created.
+  const tmpDir = mkdtempSync(path.join(tmpdir(), 'extractor-sibling-probe-'))
+  const tmpDb = path.join(tmpDir, 'probe.db')
+  let probeDb = null
+  let row = null
+  let siblingsAfter = []
+  try {
+    probeDb = new DatabaseSync(tmpDb, { open: true })
+    probeDb.exec('PRAGMA journal_mode = WAL')
+    probeDb.exec('CREATE TABLE t (n INTEGER)')
+    probeDb.exec('INSERT INTO t VALUES (42)')
+    probeDb.close()
+    probeDb = null
+
+    const dbUri = `file:${tmpDb}?immutable=1`
+    probeDb = new DatabaseSync(dbUri, { open: true, readOnly: true })
+    row = probeDb.prepare('SELECT n FROM t').get()
+    probeDb.close()
+    probeDb = null
+
+    siblingsAfter = readdirSync(tmpDir).filter(
+      (f) => f.endsWith('-shm') || f.endsWith('-wal'),
+    )
+  } finally {
+    if (probeDb) {
+      try { probeDb.close() } catch { /* already closed */ }
+    }
+    rmSync(tmpDir, { recursive: true, force: true })
+  }
+
+  assert('URI probe: opened WAL DB via file:<path>?immutable=1 and read a row',
+    row && row.n === 42,
+    `row=${JSON.stringify(row)}`)
+  assert('URI probe: zero -shm and -wal siblings created in the DB directory',
+    siblingsAfter.length === 0,
+    `siblings=${siblingsAfter.join(',') || 'none'}`)
+}
+
+{
+  // End-to-end: build a tiny corpus + WAL DB, point the extractor at it,
+  // and prove the DB directory never gains -shm / -wal siblings.
+  const tmpRoot = mkdtempSync(path.join(tmpdir(), 'extractor-e2e-'))
+  const corpusDir = path.join(tmpRoot, 'tasks')
+  const dbDir = path.join(tmpRoot, 'db')
+  const dbPath = path.join(dbDir, 'e2e.db')
+  mkdirSync(corpusDir, { recursive: true })
+  mkdirSync(dbDir, { recursive: true })
+  // Minimal corpus task with a single reviewer-finding marker.
+  const taskPath = path.join(corpusDir, 'E2E-001.md')
+  writeFileSync(taskPath, [
+    '---',
+    'id: E2E-001',
+    '---',
+    '',
+    '## 1. Objetivo',
+    '',
+    'prove the extractor end-to-end with a real SQLite DB and zero siblings',
+    '',
+    '## 8. Log de Handover',
+    '',
+    '### Parecer do Agente Revisor',
+    '',
+    '**[B1] (BLOCKER) — sibling files must not appear next to the corpus DB**',
+    '',
+  ].join('\n'))
+
+  let setupDb = null
+  let exitCode = null
+  let stdout = ''
+  let stderr = ''
+  let siblingsAfter = []
+  try {
+    setupDb = new DatabaseSync(dbPath, { open: true })
+    setupDb.exec('PRAGMA journal_mode = WAL')
+    // Schema mirrors the real crush.db: columns the extractor reads from
+    // sessions when building the join index.
+    setupDb.exec(`CREATE TABLE sessions (
+      id TEXT PRIMARY KEY,
+      parent_session_id TEXT,
+      title TEXT,
+      message_count INTEGER,
+      prompt_tokens INTEGER,
+      completion_tokens INTEGER,
+      cost REAL,
+      updated_at INTEGER,
+      created_at INTEGER,
+      summary_message_id INTEGER,
+      todos TEXT
+    )`)
+    setupDb.close()
+    setupDb = null
+
+    const result = spawnSync(process.execPath, ['--no-warnings', extractor], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      timeout: 30_000,
+      env: {
+        ...process.env,
+        CORPUS_DIR: corpusDir,
+        DB_PATH: dbPath,
+      },
+    })
+    exitCode = result.status
+    stdout = result.stdout || ''
+    stderr = result.stderr || ''
+
+    siblingsAfter = readdirSync(dbDir).filter(
+      (f) => f.endsWith('-shm') || f.endsWith('-wal'),
+    )
+  } finally {
+    if (setupDb) {
+      try { setupDb.close() } catch { /* already closed */ }
+    }
+    rmSync(tmpRoot, { recursive: true, force: true })
+  }
+
+  assert('e2e: extractor exit 0 against a real WAL DB',
+    exitCode === 0,
+    `exit=${exitCode} stderr=${stderr.slice(0, 200)}`)
+  const hasE2E = stdout.includes('"taskId": "E2E-001"') ||
+    stdout.includes('"taskId":"E2E-001"')
+  assert('e2e: emitted the expected E2E-001 candidate',
+    hasE2E,
+    `stdout first 200 chars: ${stdout.slice(0, 200)}`)
+  assert('e2e: zero -shm and -wal siblings next to the corpus DB',
+    siblingsAfter.length === 0,
+    `siblings=${siblingsAfter.join(',') || 'none'}`)
 }
 
 console.log(`\n${passed} passed, ${failed} failed out of ${passed + failed} assertions`)
