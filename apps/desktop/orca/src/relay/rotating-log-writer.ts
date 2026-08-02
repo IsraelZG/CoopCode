@@ -37,6 +37,21 @@ export class RotatingLogWriter {
 
   private open(mode: 'a' | 'w' = 'a'): void {
     try {
+      // Why: on Windows openSync() succeeds against a directory path ('a') and
+      // only the first write then fails with EISDIR, leaving `active` true in
+      // the meantime; detect the directory synchronously so the stdout/stderr
+      // fallback engages immediately.
+      let isDirectory = false
+      try {
+        isDirectory = statSync(this.logPath).isDirectory()
+      } catch {
+        // Path absent yet — openSync creates it below.
+      }
+      if (isDirectory) {
+        this.failed = true
+        this.fd = null
+        return
+      }
       // 'a' preserves pre-JS boot output already in relay.log and keeps
       // concurrent appends atomic; 'w' truncates in place (used as the rotation
       // fallback when a rename cannot succeed — e.g. Windows, where the launch

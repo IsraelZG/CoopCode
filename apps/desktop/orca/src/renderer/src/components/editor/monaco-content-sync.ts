@@ -2,6 +2,17 @@ import type { editor } from 'monaco-editor'
 
 export type MonacoContentSyncMode = 'undoable' | 'read-only-live-tail'
 
+function forceLfModelEol(model: editor.ITextModel): void {
+  // Why: Monaco inherits the host's default EOL when a model is created
+  // (CRLF on Windows), so filesystem content round-trips with unexpected \r\n
+  // even though the app writes LF. Pin the model to LF independent of host OS.
+  // EndOfLineSequence.LF === 0 — a literal is used to keep this module free of
+  // a runtime monaco-editor import (the sibling node-environment test).
+  if (model.getEOL() !== '\n') {
+    model.setEOL?.(0)
+  }
+}
+
 function normalizeToModelEol(content: string, model: editor.ITextModel): string {
   const eol = model.getEOL()
   // Why: Monaco normalizes model line endings, while filesystem content keeps
@@ -68,6 +79,7 @@ export function syncContentOnMount(
   if (!model) {
     return false
   }
+  forceLfModelEol(model)
   const currentContent = model.getValue()
   const normalizedContent = normalizeToModelEol(content, model)
   if (currentContent === normalizedContent) {
@@ -97,6 +109,7 @@ export function syncContentUpdate(
   if (!model) {
     return
   }
+  forceLfModelEol(model)
   const currentContent = model.getValue()
   const normalizedContent = normalizeToModelEol(content, model)
   if (currentContent.length === normalizedContent.length) {

@@ -548,11 +548,7 @@ export class RateLimitService {
           continue
         }
         try {
-          const fresh = await fetchManagedAccountUsage(account, {
-            allowUsagePanelSupplement: this.shouldAllowClaudeUsagePanelSupplement(),
-            networkProxySettings: this.networkProxySettingsResolver?.(),
-            signal
-          })
+          const fresh = await fetchManagedAccountUsage(account, this.resolveClaudeFetchOptions(signal))
           if (
             signal.aborted ||
             fetchGeneration !== this.inactiveClaudeAccountsGeneration ||
@@ -1308,7 +1304,13 @@ export class RateLimitService {
   private shouldAllowClaudePtyFallback(
     authPreparation: ClaudeRuntimeAuthPreparation | undefined
   ): boolean {
-    // Why: Windows hidden PTY support is less reliable than host/WSL shells.
+    // Why: hidden PTY fallback can crash inside host ConPTY on Windows, but
+    // WSL-targeted PTYs run inside the distro shell and are safe; only
+    // system-default auth (which must not launch Claude or trigger browser
+    // flows) is excluded there.
+    if (authPreparation?.runtime === 'wsl') {
+      return !isSystemDefaultClaudeAuth(authPreparation)
+    }
     if (process.platform === 'win32') {
       return false
     }
@@ -1316,9 +1318,22 @@ export class RateLimitService {
     return !isSystemDefaultClaudeAuth(authPreparation)
   }
 
-  private shouldAllowClaudeUsagePanelSupplement(): boolean {
-    // Why: keep this supplement off on Windows where hidden PTYs are still less reliable.
-    return process.platform !== 'win32'
+  private resolveClaudeFetchOptions(signal: AbortSignal): {
+    allowUsagePanelSupplement: boolean
+    networkProxySettings?: NetworkProxySettings
+    signal: AbortSignal
+  } {
+    const networkProxySettings = this.networkProxySettingsResolver?.()
+    // Why: the usage-panel supplement defaults ON so managed-account Fable
+    // windows still show when the OAuth endpoint reports only narrow windows;
+    // hidden-PTY reliability on Windows is gated by shouldAllowClaudePtyFallback,
+    // not by the supplement flag. The proxy key is omitted entirely when no
+    // resolver is configured rather than passed through as undefined.
+    return {
+      allowUsagePanelSupplement: true,
+      ...(networkProxySettings ? { networkProxySettings } : {}),
+      signal
+    }
   }
 
   private resolveMiniMaxConfig(): MiniMaxResolvedConfig {
@@ -1603,9 +1618,7 @@ export class RateLimitService {
           : fetchClaudeRateLimits({
               authPreparation: claudeAuthPreparation,
               allowPtyFallback: this.shouldAllowClaudePtyFallback(claudeAuthPreparation),
-              allowUsagePanelSupplement: this.shouldAllowClaudeUsagePanelSupplement(),
-              networkProxySettings: this.networkProxySettingsResolver?.(),
-              signal
+              ...this.resolveClaudeFetchOptions(signal)
             }),
         missingWslCodexHome ??
           fetchCodexRateLimits({
@@ -1886,9 +1899,7 @@ export class RateLimitService {
     const claude = await fetchClaudeRateLimits({
       authPreparation: claudeAuthPreparation,
       allowPtyFallback: this.shouldAllowClaudePtyFallback(claudeAuthPreparation),
-      allowUsagePanelSupplement: this.shouldAllowClaudeUsagePanelSupplement(),
-      networkProxySettings: this.networkProxySettingsResolver?.(),
-      signal
+      ...this.resolveClaudeFetchOptions(signal)
     }).catch(
       (err): ProviderRateLimits => ({
         provider: 'claude',
