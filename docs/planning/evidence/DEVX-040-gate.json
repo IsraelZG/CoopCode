@@ -17,6 +17,13 @@
       "finishedAt": "2026-08-02T16:15:00.000Z"
     },
     {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-040-gate.json --result-sha=fd4d2ce915f69ddc1ab7ce52578b3c1253281c59",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T17:45:00.000Z",
+      "finishedAt": "2026-08-02T17:45:01.000Z"
+    },
+    {
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
