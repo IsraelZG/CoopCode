@@ -15,6 +15,11 @@ export const WorkerStartParams = z.object({
   setup: z.enum(['run', 'skip', 'inherit']).optional(),
   terminal: OptionalString,
   agent: OptionalString,
+  // Why: DEVX-044 — request a restricted opencode agent profile (built via
+  // `opencode agent create --mode subagent --permissions <csv>`) for headless
+  // `opencode run --attach --agent <profile>` dispatches. Valid for opencode only.
+  opencodeAgentProfile: OptionalString,
+  opencodeAgentPermissions: OptionalString,
   retryOf: OptionalString,
   timeoutMs: OptionalFiniteNumber,
   devMode: z.boolean().optional()

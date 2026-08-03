@@ -839,6 +839,8 @@ export const ORCHESTRATION_HANDLERS: Record<string, CommandHandler> = {
       setup: getOptionalStringFlag(flags, 'setup'),
       agent: getOptionalStringFlag(flags, 'agent'),
       terminal: getOptionalStringFlag(flags, 'terminal'),
+      opencodeAgentProfile: getOptionalStringFlag(flags, 'opencode-agent-profile'),
+      opencodeAgentPermissions: getOptionalStringFlag(flags, 'opencode-agent-permissions'),
       retryOf: getOptionalStringFlag(flags, 'retry-of'),
       timeoutMs: getOptionalPositiveIntegerValueFlag(flags, 'timeout-ms'),
       run: getOptionalStringFlag(flags, 'run'),

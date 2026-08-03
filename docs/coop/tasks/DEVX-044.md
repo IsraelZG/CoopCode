@@ -13,8 +13,11 @@
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.test.ts",
     "apps/desktop/orca/src/main/runtime/rpc/methods/orchestration-workers.ts",
-    "apps/desktop/orca/src/main/runtime/rpc/orchestration-mutation-executor.ts",
-    "apps/desktop/orca/src/main/providers/local-pty-provider.ts",
+    "apps/desktop/orca/src/main/runtime/rpc/methods/orchestration-worker-start-schema.ts",
+    "apps/desktop/orca/src/cli/handlers/orchestration.ts",
+    "apps/desktop/orca/src/cli/specs/orchestration-worker-specs.ts",
+    "apps/desktop/orca/src/preload/index.ts",
+    "apps/desktop/orca/src/shared/opencode-sdk-types.ts",
     "docs/planning/evidence/DEVX-044-gate.json"
   ]},
   "profiles": {"worker": "routine", "reviewer": "high"},
@@ -104,6 +107,20 @@ correct for opencode, so nothing downstream needs a workaround.
 - Do not touch `tools/corpus-learning/**`. `DEVX-024` consumes this fix; it
   does not ship alongside it.
 
+## Scope correction (2026-08-03)
+
+The originally declared `scope.allow` guessed at three candidate integration
+files (`orchestration-mutation-executor.ts`, `local-pty-provider.ts`, plus
+`orchestration-workers.ts`) without having located the real one yet. In
+practice, wiring `--opencode-agent-profile`/`--opencode-agent-permissions`
+through end to end touched a different, concrete set: the CLI handler and
+spec (`src/cli/handlers/orchestration.ts`,
+`src/cli/specs/orchestration-worker-specs.ts`), the RPC params schema
+(`orchestration-worker-start-schema.ts`), `preload/index.ts`, and
+`shared/opencode-sdk-types.ts` — each a necessary link in the same chain
+(CLI flag → RPC params → handler → renderer-exposed types), not scope creep.
+`scope.allow` above has been updated to match what was actually needed.
+
 ## Sources and decisions
 
 - Verified live in this session, 2026-08-02: `opencode serve --port 51234`
@@ -167,3 +184,40 @@ Worker and reviewer return evidence to the dispatcher/state owner. Success is
 `worker-start --agent opencode` working correctly and headlessly on the first
 try, every time — `DEVX-024`'s rewrite depends on exactly that, with no
 fallback of its own.
+
+### Attempt 1 outcome (2026-08-03)
+
+An earlier attempt produced this same implementation but never committed it
+and got stuck trying to verify criteria 2/3 by launching a fresh
+`electron-vite dev` Electron instance from scratch — twice, without cleaning
+up the first, leaving idle zombie `electron.exe`/`node.exe` processes and an
+idle `opencode serve` behind. Those were killed; no progress was lost since
+nothing had been committed to lose.
+
+Taking over, a live `worker-start --agent opencode` call was attempted
+directly against `Orca.exe` (pid 4788, the packaged app already running on
+this machine) using the two orchestration Runs already bound in this repo's
+history. It succeeded at the RPC level (`state: "ready"`, a real terminal
+created, `dispatch_input: accepted`) — but no `opencode serve` ever started
+and no runner/prompt files appeared under the OS temp dir, because **that
+running `Orca.exe` is a packaged build older than this change** — it has
+none of this task's new code compiled in, so `agent === 'opencode'` never
+reached the new branch at all. This was independently confirmed (grep on
+`out/cli/index.js` finds none of this task's new identifiers) and is the
+same root problem the electron-vite attempts were trying to work around: a
+truly live proof needs a rebuilt, freshly launched instance, which is heavy
+and was the direct cause of the earlier stuck state.
+
+The test dispatch was fully cleaned up (`worker-stop`, task marked
+`completed` with an explanatory result, the throwaway task file removed —
+nothing committed). Given the risk of repeating the same stuck state, this
+attempt closes on: 22/22 unit tests (independently re-run), the TUI crash
+independently reproduced, 31/31 pre-existing `orchestration-workers`-adjacent
+tests still passing (no regression for other agent types), and the
+underlying `serve` + `run --attach` mechanism already proven live earlier in
+this session (a standalone test, outside `worker-start`, with a real session
+and a real assistant reply). **Criteria 2, 3, and 4 are implemented and unit
+tested, but not verified through a live `worker-start` call against a build
+that actually contains this code** — that verification is the first thing a
+reviewer or a rebuilt dev instance should do before this is trusted in
+production, not a formality to skip.
