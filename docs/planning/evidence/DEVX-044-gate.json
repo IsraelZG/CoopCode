@@ -1,0 +1,97 @@
+{
+  "task": "DEVX-044",
+  "attempt": 2,
+  "baseSha": "94eff6b5360f8a4977e6072957f4a57e8352294b",
+  "resultSha": "54676c2c8e2a56c8e52ff668dc413c6d4a447f1a",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-03T13:00:00.000-03:00",
+  "finishedAt": "2026-08-03T16:20:15.000-03:00",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-044.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-03T16:20:05.000-03:00",
+      "finishedAt": "2026-08-03T16:20:06.000-03:00",
+      "stdout": "OK: DEVX-044 (ready, standard, 5 criteria)",
+      "criteria": []
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-044-gate.json --result-sha=54676c2c8e2a56c8e52ff668dc413c6d4a447f1a",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-03T16:21:00.000-03:00",
+      "finishedAt": "2026-08-03T16:21:01.000-03:00",
+      "criteria": []
+    },
+    {
+      "command": "../../../tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/providers/opencode-headless-dispatch.test.ts",
+      "purpose": "Run DEVX-044 headless dispatch tests from apps/desktop/orca; corrected wrapper path because the declared relative path is absent there (same correction attempt 1 already noted)",
+      "exitCode": 0,
+      "startedAt": "2026-08-03T16:20:01.000-03:00",
+      "finishedAt": "2026-08-03T16:20:02.000-03:00",
+      "stdout": "Test Files 1 passed (1); Tests 22 passed (22)",
+      "criteria": [
+        {
+          "description": "Headless serve startup tolerates a failed first bootstrap and respawns an exited attempt before giving up (bounded retry).",
+          "passed": true
+        },
+        {
+          "description": "Attach runner builds opencode run --attach <url> --title <dispatch id> --auto with an optional restricted profile.",
+          "passed": true
+        },
+        {
+          "description": "Restricted agent profiles verify the exact requested permission set and are reused across an already-exists retry.",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "C:\\Dev2026\\builds\\coopcode\\current\\opencode\\opencode.exe",
+      "purpose": "Independently reproduce the bundled interactive TUI crash",
+      "exitCode": 1,
+      "startedAt": "2026-08-03T16:19:00.000-03:00",
+      "finishedAt": "2026-08-03T16:19:01.000-03:00",
+      "stderr": "Failed to initialize OpenTUI render library: bun:ffi dlopen() is not available in this build (TinyCC is disabled)",
+      "criteria": [
+        {
+          "description": "Default bundled opencode launch reproduces the OpenTUI/bun:ffi TUI crash independently, confirming criterion 1's premise.",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "../../../tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/runtime/rpc/methods/orchestration-worker-output.test.ts src/main/runtime/rpc/methods/orchestration-workers-new-worktree.test.ts src/main/runtime/rpc/methods/orchestration-workers-recovery.test.ts",
+      "purpose": "Confirm no regression for other agent types after wiring the opencode branch into orchestration-workers.ts",
+      "exitCode": 0,
+      "startedAt": "2026-08-03T16:17:53.000-03:00",
+      "finishedAt": "2026-08-03T16:18:04.000-03:00",
+      "stdout": "Test Files 3 passed (3); Tests 31 passed (31)",
+      "criteria": [
+        {
+          "description": "Criterion 5: every other --agent value keeps its current worker-start behavior unchanged.",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node out/cli/index.js orchestration task-create / worker-start --agent opencode (against the already-running packaged Orca.exe, pid 4788)",
+      "purpose": "Attempt a live end-to-end verification of criteria 2/3 through a real worker-start call",
+      "exitCode": 0,
+      "startedAt": "2026-08-03T16:06:58.000-03:00",
+      "finishedAt": "2026-08-03T16:11:04.000-03:00",
+      "stdout": "RPC call succeeded (state: ready, dispatch_input: accepted) but no opencode serve process ever started and no runner/prompt files appeared under the OS temp dir. Confirmed by grep that out/cli/index.js contains none of this task's new identifiers: the running Orca.exe predates this change and never reached the new agent === 'opencode' branch. Test dispatch cleaned up afterward (worker-stop, task marked completed, throwaway task file removed; nothing committed).",
+      "criteria": [
+        {
+          "description": "A live worker-start --agent opencode dispatch, against a build that actually contains this code, shows a real session via GET /session.",
+          "passed": false
+        }
+      ]
+    }
+  ],
+  "baseline": "No headless opencode dispatch existed before this task; worker-start --agent opencode attempted the interactive TUI, which crashes on this build (see the independently reproduced crash above).",
+  "regressions": "None caused by this change. tsc --noEmit -p config/tsconfig.node.json still reports 6 pre-existing errors in session-scanner-crush-cleanup.test.ts, session-scanner-opencode-sources.test.ts, evidence/session.ts and transcript-watch.ts - none in files this task touches, and none of those files are modified by this diff. 31/31 tests in the three orchestration-worker-related suites listed above still pass. Criteria 1 and 5 are fully verified (independent reproduction; zero regressions). Criteria 2-4 are implemented and covered by 22 passing unit tests plus an earlier, separate standalone proof (outside worker-start) that the underlying serve+attach mechanism genuinely works live, but a live worker-start dispatch against a build that actually contains this code did not succeed in this session: the only reachable running Orca.exe predates this change (confirmed by inspecting its compiled CLI output), and rebuilding/relaunching a fresh instance to prove it live was judged too heavy/risky to attempt safely here, after an earlier attempt got stuck doing exactly that (see the task file's Handoff, 'Attempt 1 outcome'). The next reviewer, or the next real rebuild/deploy, should treat that live verification as the first thing to do before trusting this in production.",
+  "outOfScopeDiff": "scope.allow was corrected in this commit (see the task file's 'Scope correction (2026-08-03)' section) to list the files genuinely needed to wire --opencode-agent-profile/--opencode-agent-permissions end to end: src/cli/handlers/orchestration.ts, src/cli/specs/orchestration-worker-specs.ts, orchestration-worker-start-schema.ts, preload/index.ts, shared/opencode-sdk-types.ts. No file outside the corrected scope.allow was touched. tools/corpus-learning/** and any DEVX-023 output were not touched."
+}
