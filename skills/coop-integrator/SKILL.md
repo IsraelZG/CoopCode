@@ -10,13 +10,17 @@ Integrate evidence, not optimism.
 ## Preconditions
 
 - task is in review;
-- independent decision is `accept`;
-- approval references the exact result SHA;
-- blocking findings are resolved;
+- the task's own file has a `## Review (attempt N)` section (`coop-reviewer`'s
+  durable record — see that skill) whose *last* block's `Decision` is
+  `accept`, for the exact `Result SHA reviewed` being integrated;
+- blocking findings from that last block are resolved;
 - base branch and authorization are explicit;
 - push/merge permission is present for this run.
 
-Stop if any precondition is missing.
+Stop if any precondition is missing — in particular, stop if no `## Review`
+section exists at all, rather than treating a verbal/chat-only approval as
+sufficient. An approval that lives only in a prior conversation is not
+verifiable here and does not satisfy this precondition.
 
 ## Procedure
 
