@@ -1,59 +1,89 @@
 {
   "task": "DEVX-040",
-  "attempt": 1,
+  "attempt": 2,
   "baseSha": "77f03c7cecf8f118f038a68cb8df7037d4b44e1f",
-  "resultSha": "fd4d2ce915f69ddc1ab7ce52578b3c1253281c59",
+  "resultSha": "672be473688571b3427dcc05d02ab4d7e387e38d",
   "platform": "win32",
   "arch": "arm64",
-  "startedAt": "2026-08-02T16:15:00.000Z",
-  "finishedAt": "2026-08-02T16:15:00.000Z",
+  "startedAt": "2026-08-04T19:12:00.000Z",
+  "finishedAt": "2026-08-04T19:13:40.000Z",
   "nodeVersion": "v22.20.0",
   "gates": [
     {
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-040.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-08-02T16:15:00.000Z",
-      "finishedAt": "2026-08-02T16:15:00.000Z"
+      "startedAt": "2026-08-04T19:12:00.000Z",
+      "finishedAt": "2026-08-04T19:12:02.000Z",
+      "stdout": "OK: DEVX-040 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task contract is valid and executable",
+          "passed": true
+        }
+      ]
     },
     {
-      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-040-gate.json --result-sha=fd4d2ce915f69ddc1ab7ce52578b3c1253281c59",
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-040-gate.json --result-sha=672be473688571b3427dcc05d02ab4d7e387e38d",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-08-02T17:45:00.000Z",
-      "finishedAt": "2026-08-02T17:45:01.000Z"
+      "startedAt": "2026-08-04T19:13:35.000Z",
+      "finishedAt": "2026-08-04T19:13:36.000Z",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against the v1 schema with the fixed result SHA",
+          "passed": true,
+          "detail": "resultSha 672be4736 is git rev-parse HEAD of the deliverable commit, fixed before the artifact was written and never re-stamped"
+        }
+      ]
     },
     {
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
-      "startedAt": "2026-08-02T16:24:00.000Z",
-      "finishedAt": "2026-08-02T16:24:30.000Z",
+      "startedAt": "2026-08-04T19:12:15.000Z",
+      "finishedAt": "2026-08-04T19:12:16.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  5 passed (5)",
       "criteria": [
         {
           "description": "Main-process module parses task frontmatter and Integration section",
           "passed": true,
-          "detail": "apps/desktop/orca/src/main/ipc/coop-board.test.ts passes: 4/4 tests"
+          "detail": "coop-board.test.ts passes: 5/5 tests (frontmatter + Integration, worktree override, non-DEVX id override, recursive blocking, handler registration)"
         },
         {
           "description": "Worktree/branch detection overrides frontmatter to working",
           "passed": true,
-          "detail": "Live run on this repo shows DEVX-024, DEVX-022, DEVX-027, DEVX-040, DEVX-043 as working"
+          "detail": "Live run against this repo (C:/Dev2026/agentic-ide) classified 7 tasks as working via worktree detection (DEVX-022, DEVX-027, DEVX-040, DEVX-043, DEVX-044, DEVX-045, DEVX-046), all frontmatter 'ready'"
         },
         {
           "description": "Recursive dependency blocking computed",
           "passed": true,
-          "detail": "DEVX-001 blocked by Missing dependency PLAT-013; DEVX-041/042 blocked by DEVX-040 working"
+          "detail": "DEVX-001 blocked by 'Missing dependency PLAT-013'; DEVX-041 and DEVX-042 blocked by 'DEVX-040 is working'; DEVX-024 blocked by DEVX-044"
         },
         {
           "description": "Renderer screen wired into App.tsx",
           "passed": true,
-          "detail": "CoopBoardScreen added at apps/desktop/orca/src/renderer/src/components/coop-board/"
+          "detail": "CoopBoardScreen at apps/desktop/orca/src/renderer/src/components/coop-board/ rendered via overlay.coop-board boundary in App.tsx, preload coopBoard.listTasks -> coopBoard:listTasks channel"
         },
         {
-          "description": "Hands-on evidence against real docs/coop/tasks/",
+          "description": "BLOCKER rework fix: coopBoard:listTasks is registered in the app IPC bootstrap",
           "passed": true,
-          "detail": "Real repo run returned 31 tasks with done, working, blocked states and worktree paths"
+          "detail": "registerCoopBoardHandlers() imported and called in register-core-handlers.ts next to registerOpenCodeSdkHandlers(); repo-wide grep confirms the wiring is the only production call site"
+        },
+        {
+          "description": "MAJOR rework fix: worktree branch matching generalized to task/<id-lowercase>",
+          "passed": true,
+          "detail": "coop-board.ts matches refs/heads/task/(.+) for any task id shape; unit test proves PLAT-013 with branch refs/heads/task/plat-013 is classified working (the prepare-task.mjs convention for any id)"
+        },
+        {
+          "description": "MAJOR rework fix: worktree detection routed through src/main/git/runner.ts",
+          "passed": true,
+          "detail": "coop-board.ts uses gitExecFileAsync(['worktree', 'list', '--porcelain']) from ../git/runner; no spawnSync('git') remains in src/main/ipc/coop-board.ts; the live evidence run executed through the runner against the real repo"
+        },
+        {
+          "description": "Hands-on screenshot evidence against real docs/coop/tasks/",
+          "passed": true,
+          "detail": "docs/planning/evidence/DEVX-040-board.png (full board) and DEVX-040-board.jpg (viewport) rendered from DEVX-040-live-board.json (real loadCoopBoard output over the git runner). Shows Done (24, e.g. DEVX-001..DEVX-023), dependency-blocked (DEVX-001 missing PLAT-013, DEVX-041/042 blocked by DEVX-040 working), and Working via worktree detection (DEVX-040 frontmatter 'ready' with live task/devx-040 worktree)"
         }
       ]
     }
@@ -61,11 +91,15 @@
   "artifacts": [
     {
       "path": "apps/desktop/orca/src/main/ipc/coop-board.ts",
-      "sha256": "fd72b7f6e1f22d87af26cb534b08596b692648dca2e6d9915ff6d186ef3852f3"
+      "sha256": "2743f9f91bec1c47af8f4f006a0a921b39138227620ce0a73262b3c5c72eab74"
     },
     {
       "path": "apps/desktop/orca/src/main/ipc/coop-board.test.ts",
-      "sha256": "a1750123b57260bbffc5136e44286fb0fd17dde611b375b03e3aa3f42f22b860"
+      "sha256": "6f2204e0446705b744ea3335f2f40af4b94be38cb782807db2b2884baa550165"
+    },
+    {
+      "path": "apps/desktop/orca/src/main/ipc/register-core-handlers.ts",
+      "sha256": "63a5c006d8d7c8aaa1a84ef808589212aaff120e46f09b815de27a7bade05aa4"
     },
     {
       "path": "apps/desktop/orca/src/renderer/src/components/coop-board/CoopBoardScreen.tsx",
@@ -82,6 +116,18 @@
     {
       "path": "apps/desktop/orca/src/preload/index.ts",
       "sha256": "e7fd10f82bb6a877b292fe2452d0a8650c6fb83784c5df8dd843bd5a0712ffe0"
+    },
+    {
+      "path": "docs/planning/evidence/DEVX-040-board.png",
+      "sha256": "5941b3d8260ea5d8a659aaa436cc5c24c802eac9a5cacb54cb1d9876d73ebb8f"
+    },
+    {
+      "path": "docs/planning/evidence/DEVX-040-board.jpg",
+      "sha256": "b48308a29ddf7a0b05fd0f928ce1741a12d114b62e458d5b0ceb40d5261fe5be"
+    },
+    {
+      "path": "docs/planning/evidence/DEVX-040-live-board.json",
+      "sha256": "6cc2acc324795a878a7c880ed292cb8aaafd6e60a66c634b3d5a1c44adea8e88"
     }
   ]
 }
