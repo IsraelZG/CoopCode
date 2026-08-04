@@ -182,9 +182,20 @@ describe('coop-learning-review parsers', () => {
     expect(first.origin).toBe('report')
     expect(first.ruleText).toContain('re-`view` antes de re-`edit`')
     expect(first.excerpt).toContain('file ... has been modified since it was last read')
-    expect(first.citation).toBeNull()
+    expect(first.citation?.file).toContain('DEVX-025-tool-usage-report.md')
+    expect(first.citation?.section).toContain('Candidato P-??-DEVX-025-1')
     expect(first.extra?.title).toContain('edit` falha por stale-read')
     expect(first.extra?.evidencia).toContain('2224b121-d227-4156-bfaa-5ead03ad1f84')
+  })
+
+  it('replays a report-origin candidate citation against the report file', () => {
+    const candidates = parseReportCandidates(REPORT_SAMPLE, 'DEVX-025')
+    const first = candidates[0]
+    expect(first.citation).not.toBeNull()
+    const result = resolveCitationInText(REPORT_SAMPLE, first.citation!)
+    expect(result.ok).toBe(true)
+    expect(result.sectionHeading).toContain('Candidato P-??-DEVX-025-1')
+    expect(result.contextLines.join('\n')).toContain('re-`view` antes de re-`edit`')
   })
 })
 
@@ -321,6 +332,15 @@ describe('verdict durability', () => {
     writeFileSync(join(dir, 'DEVX-023-candidate-verdicts.json'), '{oops', 'utf8')
     expect(loadVerdicts('DEVX-023', dir)).toEqual({})
   })
+
+  it('refuses to load verdicts for a traversal source', () => {
+    expect(loadVerdicts('../escape', dir)).toEqual({})
+  })
+
+  it('refuses to save verdicts for a traversal source', () => {
+    expect(() => saveVerdicts('../escape', { a: 'accepted' }, dir)).toThrow(/traversal/)
+    expect(existsSync(join(dir, '..', 'escape-candidate-verdicts.json'))).toBe(false)
+  })
 })
 
 describe('discoverRepoRoot', () => {
@@ -387,6 +407,27 @@ describe('coop-learning-review IPC handlers', () => {
       })) as { ok: boolean; error: string }
       expect(result.ok).toBe(false)
       expect(result.error).toContain('invalid verdict')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('rejects a traversal source in setVerdict without writing outside evidence', async () => {
+    registerCoopLearningReviewHandlers()
+    const setVerdictHandler = handleMock.mock.calls.find(
+      (call) => call[0] === 'coopLearningReview:setVerdict'
+    )?.[1] as (event: unknown, args: unknown) => Promise<unknown>
+    const dir = mkdtempSync(join(tmpdir(), 'coop-learning-ipc-'))
+    try {
+      const result = (await setVerdictHandler(undefined, {
+        source: '../escape',
+        candidateId: 'x',
+        verdict: 'accepted',
+        rootDir: dir
+      })) as { ok: boolean; error: string }
+      expect(result.ok).toBe(false)
+      expect(result.error).toContain('traversal')
+      expect(existsSync(join(dir, '..', 'escape-candidate-verdicts.json'))).toBe(false)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

@@ -15,6 +15,7 @@ import { lazyWithRetry as lazy } from '@/lib/lazy-with-retry'
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpen,
   Minimize2,
   MoreHorizontal,
   PanelLeft,
@@ -60,7 +61,9 @@ import RightSidebar from './components/right-sidebar'
 import { StarNagCard } from './components/StarNagCard'
 import { StarNagAgentValueMomentObserver } from './components/star-nag/StarNagAgentValueMomentObserver'
 import OpenCodeSessionsScreen from './components/opencode-sessions/OpenCodeSessionsScreen'
-import CoopLearningReviewScreen from './components/coop-learning-review/CoopLearningReviewScreen'
+import CoopLearningReviewScreen, {
+  COOP_LEARNING_REVIEW_OPEN_EVENT
+} from './components/coop-learning-review/CoopLearningReviewScreen'
 import { StarNagToastHost } from './components/star-nag/StarNagToastHost'
 import { SkillFreshnessNudge } from './components/skills/SkillFreshnessNudge'
 import { SkillFreshnessUpdateDialog } from './components/skills/SkillFreshnessUpdateDialog'
@@ -2063,6 +2066,27 @@ function App(): React.JSX.Element {
             </TooltipContent>
           </Tooltip>
         )}
+        {/* Why: DEVX-043's candidate-review overlay listens for this window event; the button is the human-visible trigger. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="sidebar-toggle"
+              onClick={() => window.dispatchEvent(new CustomEvent(COOP_LEARNING_REVIEW_OPEN_EVENT))}
+              aria-label={translate(
+                'auto.App.coopLearningReview.open',
+                'Review corpus-learning candidates'
+              )}
+            >
+              <BookOpen size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {translate(
+              'auto.App.coopLearningReview.open',
+              'Review corpus-learning candidates'
+            )}
+          </TooltipContent>
+        </Tooltip>
       </div>
       {/* Why: Back/Forward span worktree + page history, so show the cluster wherever the shortcut is live (hidden in Settings/non-stack views). */}
       {shouldShowWorktreeHistoryControls(activeView) && (

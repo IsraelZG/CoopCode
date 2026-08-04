@@ -12,10 +12,12 @@
   "scope": {"allow": [
     "apps/desktop/orca/src/main/ipc/coop-learning-review.ts",
     "apps/desktop/orca/src/main/ipc/coop-learning-review.test.ts",
+    "apps/desktop/orca/src/main/ipc/register-core-handlers.ts",
     "apps/desktop/orca/src/preload/index.ts",
     "apps/desktop/orca/src/preload/api-types.ts",
     "apps/desktop/orca/src/renderer/src/components/coop-learning-review/**",
     "apps/desktop/orca/src/renderer/src/App.tsx",
+    "apps/desktop/orca/src/shared/coop-learning-review.ts",
     "docs/planning/evidence/DEVX-043-gate.json"
   ]},
   "profiles": {"worker": "routine", "reviewer": "routine"},
@@ -150,3 +152,19 @@ or skill remains a separate, explicit human decision outside this tool.
   - MINOR — `apps/desktop/orca/src/main/ipc/coop-learning-review.ts` `verdictsFilePathFor`/`saveVerdicts`/`loadVerdicts` build the verdicts path via `join(evidenceDir, \`${source}-candidate-verdicts.json\`)` without validating `source` for traversal segments, unlike `replayCitation`'s citation file handling (`hasTraversalSegment`). A crafted `source` (from `coopLearningReview:load`/`setVerdict` IPC args) containing `../` could write outside `docs/planning/evidence/`. In every case the filename keeps the fixed `-candidate-verdicts.json` suffix, so it structurally can never become `PITFALLS.md`, `docs/coop/tool-usage-pitfalls.md`, or a skill file — the task's core non-goal holds regardless — but the traversal check should be applied here too for defense in depth.
   - MINOR/INFO — `replayCitation` only rejects traversal segments (`..`) in *relative* citation paths; `isAbsolute(citation.file)` bypasses that check entirely, so an absolute path in a candidate's citation is opened with no boundary check. Read-only, and today's candidate sources are locally generated/trusted, but it's a broader file-read surface than the Non-goals' "this project's own markdown task corpus" implies.
   - INFO — `docs/planning/evidence/DEVX-043-gate.json`'s recorded `stdout` for the `validate-gate-artifact.mjs` gate is `"OK: valid gate artifact"`, but re-running that exact command against this artifact prints `VALID` — the literal text doesn't match what the tool actually outputs, though the exit code and pass/fail semantics are correct and the resultSha binding itself checks out independently (walked back from HEAD `f36ad38bb`, which touches only `DEVX-043-gate.json`, to `6522cd91f`, which matches the artifact's declared `resultSha`).
+
+## Scope correction (attempt 2)
+
+The rework adds two files to `scope.allow` that attempt 1 touched without a
+documented disposition (reviewer MAJOR finding):
+
+- `apps/desktop/orca/src/main/ipc/register-core-handlers.ts` — the 2-line
+  registration site that mounts `registerCoopLearningReviewHandlers()`; the
+  feature cannot load without it.
+- `apps/desktop/orca/src/shared/coop-learning-review.ts` — the cross-layer
+  type contract shared by main/preload/renderer; the feature cannot compile
+  without it.
+
+Both are minimal wiring/typing with no unsafe writes, matching how DEVX-044
+documented its own scope correction. The reviewer classified them MAJOR-not-
+BLOCKER precisely because neither writes to any forbidden target.

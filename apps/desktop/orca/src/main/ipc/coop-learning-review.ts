@@ -41,12 +41,18 @@ function resolveRootDir(rootDir: string | undefined): string {
   return discoverRepoRoot() ?? process.cwd()
 }
 
-function verdictsFilePathFor(source: string, evidenceDir: string): string {
+function verdictsFilePathFor(source: string, evidenceDir: string): string | null {
+  if (hasTraversalSegment(source)) {
+    return null
+  }
   return join(evidenceDir, `${source}-candidate-verdicts.json`)
 }
 
 export function loadVerdicts(source: string, evidenceDir: string): Record<string, LearningCandidateVerdict> {
   const filePath = verdictsFilePathFor(source, evidenceDir)
+  if (filePath === null) {
+    return {}
+  }
   if (!existsSync(filePath)) {
     return {}
   }
@@ -76,8 +82,11 @@ export function saveVerdicts(
   verdicts: Record<string, LearningCandidateVerdict>,
   evidenceDir: string
 ): string {
-  mkdirSync(evidenceDir, { recursive: true })
   const filePath = verdictsFilePathFor(source, evidenceDir)
+  if (filePath === null) {
+    throw new Error(`refusing to persist verdicts for source with traversal segment: ${source}`)
+  }
+  mkdirSync(evidenceDir, { recursive: true })
   const payload = {
     source,
     updatedAt: new Date().toISOString(),
@@ -347,7 +356,11 @@ const REPORT_CANDIDATE_HEADING = /^#{2,6}\s+Candidato\s+(.+?)\s*·\s*(.+?)\s*$/
 const REPORT_FIELD =
   /\*\*(Sintoma|Causa raiz|Evidência|Como prevenir recorrência \(candidato\)|Como prevenir recorrência):\*\*\s*([\s\S]*?)(?=\n\*\*|\n#{1,6}\s|$)/g
 
-export function parseReportCandidates(markdown: string, source: string): LearningCandidate[] {
+export function parseReportCandidates(
+  markdown: string,
+  source: string,
+  reportPath: string = DEFAULT_DEVX025_REPORT_REL
+): LearningCandidate[] {
   const candidates: LearningCandidate[] = []
   const lines = markdown.replace(/\r\n/g, '\n').split('\n')
   let current: { marker: string; title: string; body: string[] } | null = null
@@ -379,7 +392,13 @@ export function parseReportCandidates(markdown: string, source: string): Learnin
       taskId: source,
       ruleText,
       excerpt: sintoma,
-      citation: null,
+      // Why: DEVX-025-style report candidates carry no per-candidate file path, so
+      // the replayable citation points at the candidate's own block inside the
+      // report file — a human replays it and sees the full report context.
+      citation: {
+        file: reportPath,
+        section: `Candidato ${marker} · ${title}`
+      },
       extra: {
         markerToken: marker,
         title,
@@ -432,7 +451,14 @@ function loadCandidates(args: CoopLearningReviewLoadArgs, rootDir: string): {
       ? resolve(rootDir, args.reportPath)
       : join(rootDir, DEFAULT_DEVX025_REPORT_REL)
     if (existsSync(reportPath)) {
-      candidates.push(...parseReportCandidates(readFileSync(reportPath, 'utf8'), args.source ?? DEFAULT_SOURCE_FOR_REPORT))
+      candidates.push(
+        ...parseReportCandidates(
+          readFileSync(reportPath, 'utf8'),
+          args.source ?? DEFAULT_SOURCE_FOR_REPORT,
+          // Why: store a repo-relative path so replayCitation can resolve it from any rootDir.
+          path.relative(rootDir, reportPath)
+        )
+      )
     } else {
       missingSources.push(reportPath)
     }
@@ -483,8 +509,17 @@ export function registerCoopLearningReviewHandlers(): void {
         return {
           ok: false,
           verdicts: {},
-          path: verdictsFilePathFor(args.source, evidenceDir),
+          path: verdictsFilePathFor(args.source, evidenceDir) ?? '',
           error: `invalid verdict: ${String(args.verdict)}`
+        }
+      }
+      const verdictsFilePath = verdictsFilePathFor(args.source, evidenceDir)
+      if (verdictsFilePath === null) {
+        return {
+          ok: false,
+          verdicts: {},
+          path: '',
+          error: `refusing to persist verdicts for source with traversal segment: ${args.source}`
         }
       }
       const verdicts = loadVerdicts(args.source, evidenceDir)
