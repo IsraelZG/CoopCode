@@ -120,6 +120,37 @@ describe('Coop board read model', () => {
     )
   })
 
+  it('classifies any task id shape (not just devx-N) as working via its task branch worktree', async () => {
+    await writeTask('PLAT-013', { state: 'ready' })
+    await writeTask('DEVX-040', { state: 'ready' })
+
+    const result = await loadCoopBoard({
+      repoRoot,
+      worktreePorcelain: [
+        'worktree C:/Dev2026/worktrees/CoopCode/PLAT-013',
+        'HEAD 3333333333333333333333333333333333333333',
+        'branch refs/heads/task/plat-013',
+        '',
+        'worktree C:/Dev2026/worktrees/CoopCode/DEVX-040',
+        'HEAD 4444444444444444444444444444444444444444',
+        'branch refs/heads/task/devx-040',
+        ''
+      ].join('\n')
+    })
+
+    expect(result.tasks.find((task) => task.id === 'PLAT-013')).toEqual(
+      expect.objectContaining({
+        state: 'working',
+        frontmatterState: 'ready',
+        worktreePath: 'C:/Dev2026/worktrees/CoopCode/PLAT-013',
+        branch: 'refs/heads/task/plat-013'
+      })
+    )
+    expect(result.tasks.find((task) => task.id === 'DEVX-040')).toEqual(
+      expect.objectContaining({ state: 'working', frontmatterState: 'ready' })
+    )
+  })
+
   it('computes dependency blocking from computed dependency states', async () => {
     await writeTask('DEVX-001', { state: 'done' })
     await writeTask('DEVX-002', { state: 'ready' })

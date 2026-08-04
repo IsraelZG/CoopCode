@@ -1,7 +1,7 @@
-import { spawnSync } from 'node:child_process'
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ipcMain } from 'electron'
+import { gitExecFileAsync } from '../git/runner'
 
 
 export type CoopTaskState = 'draft' | 'ready' | 'working' | 'review' | 'done' | 'blocked'
@@ -131,24 +131,22 @@ function parseWorktreePorcelain(porcelain: string): WorktreeRecord[] {
   return records
 }
 
-function getWorktreePorcelain(repoRoot: string): string {
-  const result = spawnSync('git', ['worktree', 'list', '--porcelain'], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    shell: false
-  })
-  if (result.status !== 0) {
-    const stderr = result.stderr?.trim()
-    throw new Error(stderr || 'git worktree list failed')
+async function getWorktreePorcelain(repoRoot: string): Promise<string> {
+  try {
+    const { stdout } = await gitExecFileAsync(['worktree', 'list', '--porcelain'], { cwd: repoRoot })
+    return stdout
+  } catch (err) {
+    const text = err instanceof Error ? err.message : ''
+    throw new Error(text || 'git worktree list failed')
   }
-  return result.stdout ?? ''
 }
 
 function worktreeByTaskId(records: WorktreeRecord[]): Map<string, WorktreeRecord> {
   const byTaskId = new Map<string, WorktreeRecord>()
   for (const record of records) {
     const branch = record.branch ?? ''
-    const match = branch.match(/^refs\/heads\/task\/(devx-\d+)$/i)
+    // Why: prepare-task.mjs creates task/<id-lowercase> for any task id shape (DEVX-040, PLAT-013), not just devx-N.
+    const match = branch.match(/^refs\/heads\/task\/(.+)$/)
     if (match) {
       byTaskId.set(match[1].toUpperCase(), record)
     }
@@ -215,7 +213,7 @@ async function readTaskFile(taskPath: string, liveWorktrees: Map<string, Worktre
 export async function loadCoopBoard(options: LoadCoopBoardOptions): Promise<CoopBoardResult> {
   const repoRoot = path.resolve(options.repoRoot)
   const tasksRoot = path.join(repoRoot, 'docs', 'coop', 'tasks')
-  const porcelain = options.worktreePorcelain ?? getWorktreePorcelain(repoRoot)
+  const porcelain = options.worktreePorcelain ?? (await getWorktreePorcelain(repoRoot))
   const liveWorktrees = worktreeByTaskId(parseWorktreePorcelain(porcelain))
   const entries = await readdir(tasksRoot, { withFileTypes: true })
   const taskFiles = entries
