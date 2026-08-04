@@ -11,7 +11,7 @@
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "docs/coop/tool-usage-pitfalls.md",
-    ".claude/skills/coop-worker/SKILL.md",
+    "skills/coop-worker/SKILL.md",
     "docs/planning/evidence/DEVX-027-gate.json"
   ]},
   "profiles": {"worker": "routine", "reviewer": "routine"},
