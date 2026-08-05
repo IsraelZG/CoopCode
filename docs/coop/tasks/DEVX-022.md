@@ -2,7 +2,7 @@
 {
   "id": "DEVX-022",
   "title": "Retire allowed_write_destinations from the overnight policy; defer to each task's own scope.allow",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -156,3 +156,10 @@ execution task — that decision, if it ever comes, is separate and later.
 - Decision: `accept`
 - Findings:
   - MINOR — `docs/coop/budget-policy-v1.md:43-45` — the new deferral note has a subject/verb gender-agreement error in Portuguese ("a escrita ... é respondido" should be "é respondida", and the "Se ... cai em local permitido é respondido" clause reads as a run-on missing a comma after the conditional) — evidence: added lines "Se a escrita overnight de uma task cai em local permitido é respondido pelo `scope.allow` da própria task (já validado por `validate-task.mjs`), não por uma segunda lista específica do overnight." — impact: cosmetic only, meaning is still clear, does not block understanding or any tooling — criterion: Acceptance criterion 3 (field table drops the row and gains a short note).
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `28faccdea69713a241e33294abdd2eb0feaa7c80`
+- Merge commit: `11b6c18c1`
+- Gate: task/Gate Artifact validators and 19/19 budget-policy fixtures (`exit 0`).
