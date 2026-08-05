@@ -1,4 +1,4 @@
-import { AlertCircle, GitBranch, GitPullRequestArrow, RefreshCw } from 'lucide-react'
+import { AlertCircle, GitBranch, GitPullRequestArrow, RefreshCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppStore } from '@/store'
 import { isGitRepoKind } from '../../../../shared/repo-kind'
 import type { CoopBoardResult, CoopBoardTask, CoopTaskState } from '../../../main/ipc/coop-board'
+
+export const COOP_BOARD_OPEN_EVENT = 'coop-board:open'
 
 const STATE_BADGE_VARIANT: Record<CoopTaskState, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   draft: 'outline',
@@ -116,6 +118,7 @@ export default function CoopBoardScreen() {
     return activeRepo && isGitRepoKind(activeRepo) ? activeRepo : repos.find((item) => isGitRepoKind(item))
   }, [activeRepoId, repos])
   const repoRoot = repo?.path ?? ''
+  const [open, setOpen] = useState(false)
   const [result, setResult] = useState<CoopBoardResult | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -133,61 +136,96 @@ export default function CoopBoardScreen() {
   }, [repoRoot])
 
   useEffect(() => {
-    void fetchBoard()
+    const onOpen = (): void => {
+      setOpen(true)
+      void fetchBoard()
+    }
+    window.addEventListener(COOP_BOARD_OPEN_EVENT, onOpen)
+    return () => window.removeEventListener(COOP_BOARD_OPEN_EVENT, onOpen)
   }, [fetchBoard])
 
+  const close = useCallback((): void => {
+    setOpen(false)
+  }, [])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        close()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, close])
+
+  if (!open) {
+    return null
+  }
+
   return (
-    <Card className="mx-auto mt-8 max-w-5xl">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-2">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <GitPullRequestArrow className="size-4 text-muted-foreground" />
-            Coop Task Board
-          </CardTitle>
-          <p className="font-mono text-xs text-muted-foreground">{repoRoot || 'No git repository selected'}</p>
-          {result?.tasks ? <BoardSummary tasks={result.tasks} /> : null}
-        </div>
-        <Button variant="ghost" size="icon-sm" onClick={fetchBoard} disabled={loading || !repoRoot}>
-          <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {!repoRoot ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">
-            Select a git repository to read Coop task specs.
-          </p>
-        ) : loading && !result ? (
-          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <RefreshCw className="size-4 animate-spin" />
-            Reading task specs…
-          </div>
-        ) : result?.error ? (
-          <div className="flex items-start gap-3 rounded-md border p-4">
-            <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-            <div>
-              <p className="text-sm font-medium">Cannot read Coop tasks</p>
-              <p className="mt-1 text-xs text-muted-foreground">{result.error}</p>
-              <Button variant="outline" size="sm" className="mt-2" onClick={fetchBoard}>
-                Retry
+    <div className="pointer-events-none fixed inset-0 z-40 flex justify-end">
+      <div className="pointer-events-auto flex h-full w-full max-w-2xl flex-col border-l bg-background p-4 shadow-xl">
+        <Card className="flex min-h-0 flex-1 flex-col">
+          <CardHeader className="flex flex-row items-start justify-between gap-4">
+            <div className="space-y-2">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <GitPullRequestArrow className="size-4 text-muted-foreground" />
+                Coop Task Board
+              </CardTitle>
+              <p className="font-mono text-xs text-muted-foreground">{repoRoot || 'No git repository selected'}</p>
+              {result?.tasks ? <BoardSummary tasks={result.tasks} /> : null}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-sm" onClick={fetchBoard} disabled={loading || !repoRoot} aria-label="Refresh Coop Task Board">
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button variant="ghost" size="icon-sm" onClick={close} aria-label="Close Coop Task Board">
+                <X className="size-4" />
               </Button>
             </div>
-          </div>
-        ) : result?.tasks.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No Coop task specs found.</p>
-        ) : (
-          <div className="overflow-hidden rounded-md border">
-            <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span>Task</span>
-              <span>Lifecycle</span>
-              <span>State</span>
-              <span className="text-right">Meta</span>
-            </div>
-            <div className="max-h-[520px] divide-y overflow-auto scrollbar-sleek">
-              {result?.tasks.map((task) => <TaskRow key={task.id} task={task} />)}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          </CardHeader>
+          <CardContent className="min-h-0 flex-1 overflow-auto">
+            {!repoRoot ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Select a git repository to read Coop task specs.
+              </p>
+            ) : loading && !result ? (
+              <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                <RefreshCw className="size-4 animate-spin" />
+                Reading task specs…
+              </div>
+            ) : result?.error ? (
+              <div className="flex items-start gap-3 rounded-md border p-4">
+                <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+                <div>
+                  <p className="text-sm font-medium">Cannot read Coop tasks</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{result.error}</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={fetchBoard}>
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : result?.tasks.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">No Coop task specs found.</p>
+            ) : (
+              <div className="overflow-hidden rounded-md border">
+                <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span>Task</span>
+                  <span>Lifecycle</span>
+                  <span>State</span>
+                  <span className="text-right">Meta</span>
+                </div>
+                <div className="max-h-[520px] divide-y overflow-auto scrollbar-sleek">
+                  {result?.tasks.map((task) => <TaskRow key={task.id} task={task} />)}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   )
 }

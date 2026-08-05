@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  Bot,
+  GitPullRequestArrow,
   Minimize2,
   MoreHorizontal,
   PanelLeft,
@@ -60,8 +62,10 @@ import {
 import RightSidebar from './components/right-sidebar'
 import { StarNagCard } from './components/StarNagCard'
 import { StarNagAgentValueMomentObserver } from './components/star-nag/StarNagAgentValueMomentObserver'
-import OpenCodeSessionsScreen from './components/opencode-sessions/OpenCodeSessionsScreen'
-import CoopBoardScreen from './components/coop-board/CoopBoardScreen'
+import OpenCodeSessionsScreen, {
+  OPENCODE_SESSIONS_OPEN_EVENT
+} from './components/opencode-sessions/OpenCodeSessionsScreen'
+import CoopBoardScreen, { COOP_BOARD_OPEN_EVENT } from './components/coop-board/CoopBoardScreen'
 import CoopLearningReviewScreen, {
   COOP_LEARNING_REVIEW_OPEN_EVENT
 } from './components/coop-learning-review/CoopLearningReviewScreen'
@@ -2086,6 +2090,35 @@ function App(): React.JSX.Element {
               'auto.App.coopLearningReview.open',
               'Review corpus-learning candidates'
             )}
+          </TooltipContent>
+        </Tooltip>
+        {/* Why: DEVX-047's Coop Task Board and OpenCode Sessions panels gate on their own window events; these buttons are the human-visible triggers, alongside the corpus-learning one above. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="sidebar-toggle"
+              onClick={() => window.dispatchEvent(new CustomEvent(COOP_BOARD_OPEN_EVENT))}
+              aria-label={translate('auto.App.coopBoard.open', 'Open Coop Task Board')}
+            >
+              <GitPullRequestArrow size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {translate('auto.App.coopBoard.open', 'Open Coop Task Board')}
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="sidebar-toggle"
+              onClick={() => window.dispatchEvent(new CustomEvent(OPENCODE_SESSIONS_OPEN_EVENT))}
+              aria-label={translate('auto.App.opencodeSessions.open', 'Open OpenCode Sessions')}
+            >
+              <Bot size={16} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {translate('auto.App.opencodeSessions.open', 'Open OpenCode Sessions')}
           </TooltipContent>
         </Tooltip>
       </div>
