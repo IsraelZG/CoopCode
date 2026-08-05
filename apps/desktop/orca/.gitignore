@@ -93,6 +93,7 @@ docs/**
 !docs/reference/git-compatibility.md
 !docs/reference/headless-linux-server.md
 !docs/reference/linux-glibc-compatibility.md
+!docs/reference/windows-arm64-local-build.md
 
 # Stably CLI (only docs/ are tracked)
 .stably/*

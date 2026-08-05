@@ -30,6 +30,7 @@ Orca targets macOS, Linux, and Windows. Keep all platform-dependent behavior beh
 - **Shortcut labels in UI**: Display `⌘` / `⇧` on Mac and `Ctrl+` / `Shift+` on other platforms.
 - **File paths**: Use `path.join` or Electron/Node path utilities — never assume `/` or `\`.
 - **Linux native modules**: keep the glibc floor at Ubuntu 20.04 / glibc 2.31. A module compiled from source on a newer runner can reference symbol versions absent on the floor and crash the app on startup. See [`docs/reference/linux-glibc-compatibility.md`](./docs/reference/linux-glibc-compatibility.md); packaging fails if a bundled native binary needs newer glibc.
+- **Windows arm64 local builds**: a fresh checkout, the typecheck gate, and electron-builder's own native-rebuild/packaging checks each have a known local-only failure mode unrelated to application code. See [`docs/reference/windows-arm64-local-build.md`](./docs/reference/windows-arm64-local-build.md) before assuming a `build:win` or packaging failure is a real regression.
 
 ## SSH Use Case
 
