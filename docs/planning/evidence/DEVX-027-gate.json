@@ -1,0 +1,64 @@
+{
+  "task": "DEVX-027",
+  "attempt": 2,
+  "baseSha": "84615ff29e21254aec3ed4458398a49511d71c7c",
+  "resultSha": "3021ac3f4e84760617a985e64e25e4d2f5ed31e7",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-04T18:50:20.000Z",
+  "finishedAt": "2026-08-04T18:50:35.000Z",
+  "baseline": "Base 84615ff29e21254aec3ed4458398a49511d71c7c contains the DEVX-027 task spec and the DEVX-025 source report. Attempt 1 wrote the new Start/Work guidance only into the git-ignored mirror .claude/skills/coop-worker/SKILL.md (force-added), never into the canonical skills/coop-worker/SKILL.md, so install-skills.mjs --check failed and prepare-task.mjs would silently revert the deliverable. Attempt 2 (this artifact) applies the reviewer's closed correction scope: the two Work rules and the read-first Start step now live in the canonical skills/coop-worker/SKILL.md, the mirror was untracked/regenerated, scope.allow points at the canonical path, and docs/coop/tool-usage-pitfalls.md content is untouched (verified faithful in review).",
+  "regressions": "None observed. This attempt is documentation and skill guidance only; no product code or contract validators were changed. Both mirrors (.claude/skills, .agents/skills) were regenerated from the canonical skills/coop-worker/SKILL.md and install-skills.mjs --check passes clean (exit 0).",
+  "outOfScopeDiff": "The only file outside the corrected scope.allow is docs/coop/tasks/DEVX-027.md itself, whose scope.allow entry was updated from the mirror path .claude/skills/coop-worker/SKILL.md to the canonical skills/coop-worker/SKILL.md per the reviewer's explicit rework directive (the wrong path in scope.allow is what allowed the attempt-1 mistake). C:\\Dev2026\\Docs\\PITFALLS.md reports no git status or diff for PITFALLS.md.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-027.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-04T18:50:20.000Z",
+      "finishedAt": "2026-08-04T18:50:21.000Z",
+      "stdout": "OK: DEVX-027 (ready, standard, 4 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid and executable from base 84615ff29e21254aec3ed4458398a49511d71c7c.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 1: docs/coop/tool-usage-pitfalls.md exists in the fixed adoption format and adopts all six DEVX-025 tool-usage candidates with original message-id citations.",
+          "passed": true,
+          "detail": "Content unchanged from attempt 1; the reviewer independently verified P-001 and P-006 are faithful to docs/planning/evidence/DEVX-025-tool-usage-report.md (numbers and message ids match exactly)."
+        },
+        {
+          "description": "Criterion 2: skills/coop-worker/SKILL.md (canonical) Work section gained the two immediately actionable rules.",
+          "passed": true,
+          "detail": "Canonical skills/coop-worker/SKILL.md Work items 5 and 6 now say to re-view after stale-read edit failures and to use view offset/limit for large files instead of reading whole files by default; verified byte-identical in both regenerated mirrors via install-skills.mjs."
+        },
+        {
+          "description": "Criterion 3: skills/coop-worker/SKILL.md (canonical) Start section tells workers to read docs/coop/tool-usage-pitfalls.md before beginning work.",
+          "passed": true,
+          "detail": "Canonical Start item 2 is 'Read docs/coop/tool-usage-pitfalls.md before beginning work.' and mirrors were regenerated to match."
+        },
+        {
+          "description": "Criterion 4: C:\\Dev2026\\Docs\\PITFALLS.md was untouched by this task.",
+          "passed": true,
+          "detail": "Checked with rtk git -C C:/Dev2026/Docs status --short -- PITFALLS.md and rtk git -C C:/Dev2026/Docs diff -- PITFALLS.md; both produced no output."
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-027-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-04T18:50:34.000Z",
+      "finishedAt": "2026-08-04T18:50:35.000Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against gate-artifact-v1 schema and is bound to resultSha 3021ac3f4e84760617a985e64e25e4d2f5ed31e7.",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

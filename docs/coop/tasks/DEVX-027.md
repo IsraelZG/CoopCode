@@ -11,7 +11,7 @@
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "docs/coop/tool-usage-pitfalls.md",
-    ".claude/skills/coop-worker/SKILL.md",
+    "skills/coop-worker/SKILL.md",
     "docs/planning/evidence/DEVX-027-gate.json"
   ]},
   "profiles": {"worker": "routine", "reviewer": "routine"},
@@ -138,3 +138,133 @@ codebase") from this task's ("how do agents mishandle the tools themselves").
 Worker and reviewer return evidence to the dispatcher/state owner. Success is
 a file agentic-ide's own workers will actually read and apply on every future
 project — not merely a second copy of `DEVX-025`'s report under a new name.
+
+## Review (attempt 1)
+
+- Reviewer: claude-sonnet-5
+- Date: 2026-08-04
+- Result SHA reviewed: `9bfee964223829d792c75a8e770db1f96be315f7`
+- Decision: `rework`
+- Findings:
+  - BLOCKER — `.claude/skills/coop-worker/SKILL.md` (added in commit
+    `df03f44c0`) — The two condensed rules and the "read pitfalls file
+    first" step were written only into the local skill mirror at
+    `.claude/skills/coop-worker/SKILL.md`. `docs/coop/README.md` (lines
+    ~9–28) explicitly documents that the canonical sources are
+    `skills/coop-*` and that `.agents/skills`/`.claude/skills` are
+    generated, git-ignored local copies ("Edite somente `skills/coop-*`"),
+    matching `.gitignore:16` (`.claude/skills/`). The actual canonical
+    file, `skills/coop-worker/SKILL.md`, was never touched by this diff
+    (`git diff 84615ff2..9bfee964 -- skills/coop-worker/SKILL.md` is
+    empty). `git log --all --oneline -- .claude/skills/coop-worker/SKILL.md`
+    shows it was newly force-added by this task's own commit, i.e.
+    `git add -f` was needed to override the ignore rule — evidence: `.claude/skills/`
+    is fully ignored and this path had no prior git history before
+    `df03f44c0`, plus `node tools/coop-dev/install-skills.mjs --check`
+    fails at HEAD with `Skill mirrors are stale: .claude\skills\coop-worker\SKILL.md`
+    (exit 1). `tools/coop-dev/prepare-task.mjs:84` calls
+    `install-skills.mjs` (without `--check`) for every future task
+    worktree, which force-copies the unchanged `skills/coop-worker/SKILL.md`
+    back over `.claude/skills/coop-worker/SKILL.md` — silently reverting
+    this task's entire deliverable the next time any worktree is prepared.
+    Impact: the guidance does not durably reach real workers, contradicting
+    this task's own Handoff ("a file agentic-ide's own workers will
+    actually read and apply on every future project"), and leaves a
+    tracked file inside a directory the project documents as
+    generated/ignored, which will keep drifting. Criterion: acceptance
+    criteria 2 and 3 (criterion 3 specifically requires the file be
+    "actually applied, not merely present" — it is not durably applied).
+    Note: this task's own `scope.allow` names only
+    `.claude/skills/coop-worker/SKILL.md`, not `skills/coop-worker/SKILL.md`
+    — the scope itself points at the wrong (mirror) path, so rework needs
+    to touch the canonical `skills/coop-worker/SKILL.md` and regenerate
+    mirrors via `node tools/coop-dev/install-skills.mjs`, then resolve
+    `.claude/skills/coop-worker/SKILL.md`'s improper git tracking so
+    `install-skills.mjs --check` passes again; per `coop-worker`'s own
+    rule, this finding is the closed correction scope for the rework
+    attempt.
+  - INFO — Gate-artifact `resultSha` binding independently re-verified:
+    HEAD `9bfee9642` only touches
+    `docs/planning/evidence/DEVX-027-gate.json`; the commit immediately
+    before it, `df03f44c0`, matches `DEVX-027-gate.json`'s recorded
+    `resultSha` exactly. Both declared gates
+    (`validate-task.mjs`, `validate-gate-artifact.mjs`) were re-run
+    independently in the worktree and passed (exit 0), matching the
+    artifact's recorded exit codes.
+  - INFO — Scope: all three changed files
+    (`docs/coop/tool-usage-pitfalls.md`,
+    `.claude/skills/coop-worker/SKILL.md`,
+    `docs/planning/evidence/DEVX-027-gate.json`) match `scope.allow`
+    exactly. `C:\Dev2026\Docs\PITFALLS.md` confirmed untouched via
+    `git -C C:\Dev2026\Docs status --porcelain` and
+    `git -C C:\Dev2026\Docs diff --stat -- PITFALLS.md` (both empty for
+    that path; that repo has unrelated pre-existing local changes to other
+    files, none touching `PITFALLS.md`).
+  - INFO — Spot-checked candidates P-001 (stale-read-guard, 478/840,
+    56.9%, message ids `2224b121-d227-4156-bfaa-5ead03ad1f84` /
+    `828a7395-2fc4-43e7-86dd-9e4a6f50b96c`) and P-006 (`view` context
+    cost, 71,303,370 chars, 59.2%, message id
+    `184aff72-791f-4d61-a4fc-6ea21204373f`) in
+    `docs/coop/tool-usage-pitfalls.md` against
+    `docs/planning/evidence/DEVX-025-tool-usage-report.md`: both faithful,
+    numbers and citations match exactly. The file's structure matches
+    `C:\Dev2026\Docs\PITFALLS.md`'s fixed `## P-NNN · Título` /
+    `**Data:**`/`**Sintoma:**`/`**Causa raiz:**`/`**Solução aplicada:**`/
+    `**Evidência:**`/`**Como prevenir recorrência:**`/`**Limites:**`
+    format, in its own `P-001`–`P-006` namespace.
+
+## Review (attempt 2)
+
+- Reviewer: claude-sonnet-5 (coop-reviewer)
+- Date: 2026-08-05
+- Result SHA reviewed: `3021ac3f4e84760617a985e64e25e4d2f5ed31e7`
+- Decision: `accept`
+- Findings:
+  - INFO — Attempt-1 BLOCKER resolved. `git diff 84615ff2..3021ac3f4 --
+    skills/coop-worker/SKILL.md` shows the canonical file's `Start` section
+    gained item 2, "Read `docs/coop/tool-usage-pitfalls.md` before
+    beginning work.", and the `Work` section gained items 5–6: "If `edit`
+    fails on a stale-read guard, re-`view` the file before retrying; never
+    retry from stale context." and "Use `view` with `offset`/`limit` for
+    large files instead of reading the whole file by default." Criteria: 2
+    and 3.
+  - INFO — Mirror hygiene verified directly, not just via the gate
+    artifact's claim. `git ls-files .claude/skills/coop-worker/
+    .agents/skills/coop-worker/` returns nothing (untracked), and
+    `git status --porcelain --ignored=matching -- .claude/skills/coop-worker
+    .agents/skills/coop-worker` reports both as `!!` (ignored), confirming
+    the improper `git add -f` from attempt 1 was undone rather than kept.
+    `diff skills/coop-worker/SKILL.md .claude/skills/coop-worker/SKILL.md`
+    and the `.agents/` equivalent are both byte-identical to the canonical
+    file. Ran `node tools/coop-dev/install-skills.mjs --check` myself
+    (not trusting the gate artifact's recorded output): `OK: 5 skills
+    match both agent directories`, exit 0.
+  - INFO — `scope.allow` in this task's own frontmatter corrected from
+    `.claude/skills/coop-worker/SKILL.md` to `skills/coop-worker/SKILL.md`
+    (verified via `git diff` on `docs/coop/tasks/DEVX-027.md`), matching
+    the reviewer's attempt-1 directive. Full diff stat
+    (`84615ff2..3021ac3f4`) shows exactly four files touched:
+    `docs/coop/tasks/DEVX-027.md` (this task's own spec, carrying the
+    attempt-1 review block and the scope correction),
+    `docs/coop/tool-usage-pitfalls.md`, `skills/coop-worker/SKILL.md`, and
+    `docs/planning/evidence/DEVX-027-gate.json` — all within the corrected
+    `scope.allow` (plus the task file itself, expected).
+  - INFO — Gates independently re-run, not just read from the artifact:
+    `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-027.md` →
+    `OK: DEVX-027 (ready, standard, 4 criteria)`, exit 0. `node
+    tools/coop-dev/validate-gate-artifact.mjs
+    docs/planning/evidence/DEVX-027-gate.json
+    --result-sha=3021ac3f4e84760617a985e64e25e4d2f5ed31e7` → `VALID`, exit
+    0. `resultSha` binding walked back from HEAD (`cfa84e5df`, the
+    gate-recording commit) past exactly one commit that touches only
+    `docs/planning/evidence/DEVX-027-gate.json`, landing on `3021ac3f4` as
+    the reviewed result SHA, per `docs/coop/gate-artifact-v1.md`'s
+    "Vinculação do resultSha".
+  - INFO — Criterion 1 (`docs/coop/tool-usage-pitfalls.md`) and criterion
+    4 (`C:\Dev2026\Docs\PITFALLS.md`) re-checked for regression, since they
+    were outside this rework's scope: `git diff 9bfee9642..3021ac3f4 --
+    docs/coop/tool-usage-pitfalls.md` is empty (file unchanged since
+    attempt 1's independent verification of P-001/P-006 fidelity).
+    `git -C C:\Dev2026\Docs status --porcelain -- PITFALLS.md` and `git -C
+    C:\Dev2026\Docs diff --stat -- PITFALLS.md` both empty — still
+    untouched.

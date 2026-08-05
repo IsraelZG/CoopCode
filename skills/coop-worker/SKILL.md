@@ -14,11 +14,12 @@ generated prompt plus the task spec is the complete assignment. Do not require
 the dispatcher to repeat this skill or the task contents.
 
 1. Confirm task ID, attempt, immutable base SHA and assigned worktree.
-2. Read the complete task and its cited sources.
-3. Confirm state is executable and every required decision is present.
-4. For rework, treat the blocking review findings as the closed correction
+2. Read `docs/coop/tool-usage-pitfalls.md` before beginning work.
+3. Read the complete task and its cited sources.
+4. Confirm state is executable and every required decision is present.
+5. For rework, treat the blocking review findings as the closed correction
    scope.
-5. Preserve any live dispatch IDs and reporting contract.
+6. Preserve any live dispatch IDs and reporting contract.
 
 ## Work
 
@@ -27,9 +28,13 @@ the dispatcher to repeat this skill or the task contents.
 2. Implement the minimum change that makes it pass.
 3. Refactor only while the tests remain green.
 4. Stay inside `scope.allow`. Read-only context does not authorize edits.
-5. Do not fix unrelated debt. Record it as a follow-up finding.
-6. Run every declared gate exactly as specified.
-7. Record commands, exit codes, result SHA and artifacts in the handoff.
+5. If `edit` fails on a stale-read guard, re-`view` the file before retrying;
+   never retry from stale context.
+6. Use `view` with `offset`/`limit` for large files instead of reading the
+   whole file by default.
+7. Do not fix unrelated debt. Record it as a follow-up finding.
+8. Run every declared gate exactly as specified.
+9. Record commands, exit codes, result SHA and artifacts in the handoff.
    `resultSha` is `git rev-parse HEAD` at the moment gates finish — fixed
    before the Gate Artifact is written, never re-stamped afterward, even if a
    reviewer reports it doesn't match a later HEAD. See "Vinculação do
