@@ -2,12 +2,12 @@
 {
   "id": "DEVX-048",
   "title": "OpenCode Sessions must list real per-worktree opencode serve instances, not a hardcoded global port nothing ever listens on",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
   "depends_on": ["DEVX-044"],
-  "blocked_on": ["DEVX-044"],
+  "blocked_on": [],
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "apps/desktop/orca/src/main/opencode-sdk/client.ts",

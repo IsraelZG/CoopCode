@@ -2,12 +2,12 @@
 {
   "id": "DEVX-024",
   "title": "Prove automated loop dispatch on real work, opencode only: CoopCode processes the corpus-learning chunks unattended through a real worker-start, with resumable state",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P2",
   "risk": "high",
   "depends_on": ["DEVX-018", "DEVX-023", "DEVX-044"],
-  "blocked_on": ["DEVX-044"],
+  "blocked_on": [],
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "tools/corpus-learning/chunk-runner.mjs",

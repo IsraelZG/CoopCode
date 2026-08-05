@@ -2,12 +2,12 @@
 {
   "id": "DEVX-041",
   "title": "Show a task's hands-on evidence files inline on the board instead of leaving them as unlinked prose claims",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
   "depends_on": ["DEVX-014", "DEVX-040"],
-  "blocked_on": ["DEVX-040"],
+  "blocked_on": [],
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "apps/desktop/orca/src/main/ipc/coop-board.ts",

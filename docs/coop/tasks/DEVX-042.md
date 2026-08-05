@@ -2,12 +2,12 @@
 {
   "id": "DEVX-042",
   "title": "Rank every task that needs a human decision into one attention view, instead of re-reading every task and log by hand",
-  "state": "draft",
+  "state": "ready",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
   "depends_on": ["DEVX-040"],
-  "blocked_on": ["DEVX-040"],
+  "blocked_on": [],
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "apps/desktop/orca/src/main/ipc/coop-board.ts",
