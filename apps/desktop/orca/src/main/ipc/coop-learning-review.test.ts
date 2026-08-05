@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -362,6 +362,36 @@ describe('coop-learning-review IPC handlers', () => {
     expect(channels).toContain('coopLearningReview:load')
     expect(channels).toContain('coopLearningReview:replay')
     expect(channels).toContain('coopLearningReview:setVerdict')
+  })
+
+  it('load handler returns report-origin candidates when a report is present at the default path', async () => {
+    registerCoopLearningReviewHandlers()
+    const loadHandler = handleMock.mock.calls.find(
+      (call) => call[0] === 'coopLearningReview:load'
+    )?.[1] as (event: unknown, args: unknown) => Promise<unknown>
+    expect(loadHandler).toBeTypeOf('function')
+
+    const dir = mkdtempSync(join(tmpdir(), 'coop-learning-load-'))
+    try {
+      const evidenceDir = join(dir, 'docs', 'planning', 'evidence')
+      mkdirSync(evidenceDir, { recursive: true })
+      writeFileSync(join(evidenceDir, 'DEVX-025-tool-usage-report.md'), REPORT_SAMPLE, 'utf8')
+
+      const result = (await loadHandler(undefined, {
+        rootDir: dir
+      })) as { ok: boolean; candidates: Array<{ origin: string; citation: { file: string } | null }>; error?: string }
+
+      expect(result.ok).toBe(true)
+      expect(result.error).toBeUndefined()
+      expect(result.candidates.length).toBeGreaterThan(0)
+      const reportCandidates = result.candidates.filter((c) => c.origin === 'report')
+      expect(reportCandidates.length).toBeGreaterThan(0)
+      // The citation file must be repo-relative (not an absolute path), which is
+      // exactly what the fixed `relative(rootDir, reportPath)` call produces.
+      expect(reportCandidates[0].citation?.file).toBe(join('docs', 'planning', 'evidence', 'DEVX-025-tool-usage-report.md'))
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 
   it('setVerdict handler persists and returns the updated verdict map', async () => {

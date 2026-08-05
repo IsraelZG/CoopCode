@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { ipcMain } from 'electron'
 import {
   isLearningCandidateVerdict,
@@ -456,7 +456,7 @@ function loadCandidates(args: CoopLearningReviewLoadArgs, rootDir: string): {
           readFileSync(reportPath, 'utf8'),
           args.source ?? DEFAULT_SOURCE_FOR_REPORT,
           // Why: store a repo-relative path so replayCitation can resolve it from any rootDir.
-          path.relative(rootDir, reportPath)
+          relative(rootDir, reportPath)
         )
       )
     } else {
