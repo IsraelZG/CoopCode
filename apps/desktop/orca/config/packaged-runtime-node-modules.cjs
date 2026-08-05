@@ -16,6 +16,7 @@ const requireFromProject = createRequire(join(projectDir, 'package.json'))
 const PACKAGED_RUNTIME_PACKAGE_ROOTS = [
   '@electron-toolkit/utils',
   '@linear/sdk',
+  '@opencode-ai/sdk',
   '@parcel/watcher',
   'electron-updater',
   'i18next',
@@ -65,6 +66,10 @@ function isPackagedExternalSpecifier(specifier) {
     !specifier.startsWith('.') &&
     !specifier.startsWith('/') &&
     specifier !== 'electron' &&
+    // Why: the `node:` prefix is reserved for core modules regardless of whether the
+    // running Node's static `builtinModules` lists it (e.g. `node:sqlite` is still
+    // experimental and absent from that array on Node 22, but is never an npm package).
+    !specifier.startsWith('node:') &&
     !NODE_BUILTINS.has(specifier)
   )
 }
