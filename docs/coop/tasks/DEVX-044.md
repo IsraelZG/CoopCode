@@ -2,7 +2,7 @@
 {
   "id": "DEVX-044",
   "title": "Fix orca orchestration worker-start so opencode dispatch is always headless (serve + run --attach), never the crashing TUI",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "high",
@@ -247,3 +247,11 @@ The review's `human` escalation (attempt 1, result SHA `54676c2c8e2a56c8e52ff668
 Decision: **accept and integrate**, with the disclosed live-verification gap tracked as its own follow-up rather than blocking this attempt further. The implementation quality is solid everywhere it could be checked (health-retry loop genuinely tolerates a failed first bootstrap in real control flow, not just a mocked return value; permission-verification logic is written correctly strict) — the risk is specifically in two unverified assumptions about real `opencode` CLI behavior, not in the logic itself. A follow-up task (see `DEVX-049`) covers exactly that: a real `worker-start --agent opencode` dispatch against a build that actually contains this code, plus a real `opencode agent create --mode subagent --permissions <csv>` invocation to confirm `openCodeAgentFileMatchesPermissions`'s assumed frontmatter shape.
 
 The two MINOR findings (mode/path masking in `OpenCodeSessionsScreen.tsx`; no lock around the same-worktree serve start-or-reuse race) are not required before integrating — the first was already independently found and fixed in `main` (commit `0b328cda7`, unrelated to this task's own diff); the second is low-likelihood given the one-worktree-per-dispatch convention and can be picked up later if it ever manifests.
+
+## Integration
+
+- Human decision: accept (2026-08-05), despite the review's `human` escalation — see "Human decision" section above.
+- Result SHA: `54676c2c8e2a56c8e52ff668dc413c6d4a447f1a`
+- Merge commit: `74e55ff71`
+- Gate: task/Gate Artifact validators and 53 focused tests (`exit 0`), re-verified post-merge.
+- Follow-up: `DEVX-049` covers the live end-to-end verification this attempt could not complete.
