@@ -1,23 +1,23 @@
 {
   "task": "DEVX-043",
-  "attempt": 2,
+  "attempt": 3,
   "baseSha": "77f03c7cecf8f118f038a68cb8df7037d4b44e1f",
-  "resultSha": "1f783be8ded4589dcc3d014b1503b7dbd4916174",
+  "resultSha": "295b72ed9656f2157d0a1372db36b51c78934090",
   "platform": "win32",
   "arch": "arm64",
   "nodeVersion": "v22.20.0",
-  "startedAt": "2026-08-04T19:24:00.000Z",
-  "finishedAt": "2026-08-04T19:24:10.000Z",
-  "baseline": "Base 77f03c7cecf8f118f038a68cb8df7037d4b44e1f contains the DEVX-043 task spec. Attempt 1 (resultSha 6522cd91f) shipped the candidate-list/parse/replay/verdict IPC layer, preload bridge and renderer overlay, but the overlay rendered null unless the window event coop-learning-review:open fired, and nothing in the app dispatched it (BLOCKER); acceptance criterion 5 hands-on evidence was never captured (MAJOR); parseReportCandidates always set citation:null so DEVX-025 report-origin candidates could never be replayed (MAJOR); and two wiring files were touched outside scope.allow without disposition (MAJOR). Attempt 2 (this artifact) applies the reviewer's closed correction scope: a titlebar trigger button in App.tsx dispatches COOP_LEARNING_REVIEW_OPEN_EVENT (pattern: existing sidebar-toggle Tooltip button); parseReportCandidates now emits citation { file: repo-relative report path, section: 'Candidato <marker> · <title>' } so report candidates replay against the report file; verdictsFilePathFor/saveVerdicts/setVerdict reject traversal segments in source like replayCitation; scope.allow lists both wiring files with justification.",
-  "regressions": "None observed. The two pre-existing tsc errors in the orca repo (OpenCodeSessionsScreen.tsx:6 import depth TS2307 and opencode-sdk-types.ts:1 TS2614) are unchanged from base — not introduced by this task. No product behavior outside the DEVX-043 surface was modified.",
-  "outOfScopeDiff": "Four deliverable files were changed, all inside the corrected scope.allow: apps/desktop/orca/src/main/ipc/coop-learning-review.ts, apps/desktop/orca/src/main/ipc/coop-learning-review.test.ts, apps/desktop/orca/src/renderer/src/App.tsx, plus docs/coop/tasks/DEVX-043.md itself (scope.allow correction + scope-correction note, the standard self-documentation mechanism, matching DEVX-044). register-core-handlers.ts and shared/coop-learning-review.ts were already in the deliverable from attempt 1 and are now listed in scope.allow. C:\\Dev2026\\Docs\\PITFALLS.md and all skill files untouched.",
+  "startedAt": "2026-08-05T13:10:00.000Z",
+  "finishedAt": "2026-08-05T13:11:00.000Z",
+  "baseline": "Base 77f03c7cecf8f118f038a68cb8df7037d4b44e1f contains the DEVX-043 task spec. Attempt 1 (resultSha 6522cd91f) shipped the candidate-list/parse/replay/verdict IPC layer, preload bridge and renderer overlay, but the overlay rendered null unless the window event coop-learning-review:open fired, and nothing dispatched it (BLOCKER); criterion 5 hands-on evidence absent (MAJOR); parseReportCandidates always set citation:null so DEVX-025 report-origin candidates could never replay (MAJOR); two wiring files touched outside scope.allow (MAJOR). Attempt 2 (resultSha 1f783be8d) applied the reviewer's correction scope: titlebar trigger button dispatches COOP_LEARNING_REVIEW_OPEN_EVENT; parseReportCandidates emits citation { file: repo-relative report path, section: 'Candidato <marker> · <title>' }; verdictsFilePathFor/saveVerdicts/setVerdict reject traversal sources; scope.allow lists both wiring files. Attempt 3 (this artifact) fixes the attempt-2 BLOCKER: loadCandidates' report branch called path.relative() but the file only imported named node:path members, so coopLearningReview:load threw ReferenceError: path is not defined at runtime and the screen showed zero candidates. Fix reuses the already-imported named relative() (matches the file's import style) and adds a test that invokes the real registered load handler with a report present at its default path. Criterion-5 evidence was re-captured through the real registered IPC handlers, not the pure parsers.",
+  "regressions": "None observed. The two pre-existing tsc errors in the orca repo (OpenCodeSessionsScreen.tsx:6 import depth TS2307 and opencode-sdk-types.ts:1 TS2614) are unchanged from base — not introduced by this task. The prior attempt-2 TS2304 'Cannot find name path' at src/main/ipc/coop-learning-review.ts(459,11) is gone: tsc --noEmit -p config/tsconfig.node.json reports zero errors in any coop-learning-review file. No product behavior outside the DEVX-043 surface was modified.",
+  "outOfScopeDiff": "Two files changed in this attempt, both inside the corrected scope.allow: apps/desktop/orca/src/main/ipc/coop-learning-review.ts (single-line import + single-line call-site fix) and apps/desktop/orca/src/main/ipc/coop-learning-review.test.ts (new load-handler integration test). The titlebar trigger wiring (App.tsx), scope.allow correction, and traversal guard from attempt 2 were left untouched, per the reviewer's rework decision. docs/coop/tasks/DEVX-043.md records the attempt-3 finding. C:\\Dev2026\\Docs\\PITFALLS.md and all skill files untouched.",
   "gates": [
     {
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-043.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-08-04T19:24:00.000Z",
-      "finishedAt": "2026-08-04T19:24:01.000Z",
+      "startedAt": "2026-08-05T13:10:00.000Z",
+      "finishedAt": "2026-08-05T13:10:01.000Z",
       "stdout": "OK: DEVX-043 (ready, standard, 5 criteria)\n",
       "criteria": [
         {
@@ -27,22 +27,22 @@
         {
           "description": "Criterion 1: screen lists candidates with rule text and citation; extractor JSON and report blocks both parse.",
           "passed": true,
-          "detail": "parseExtractorCandidates/parseReportCandidates both covered; report candidates now carry a replayable citation (file = repo-relative report path, section = 'Candidato <marker> · <title>') instead of null."
+          "detail": "parseExtractorCandidates/parseReportCandidates both covered; report candidates carry a replayable citation (file = repo-relative report path, section = 'Candidato <marker> · <title>')."
         },
         {
           "description": "Criterion 2: selecting a candidate replays its citation (opens the cited file, locates the section).",
           "passed": true,
-          "detail": "replayCitation + resolveCitationInText unchanged and test-covered; new test replays a report-origin citation against the report file and resolves sectionHeading 'Candidato P-??-DEVX-025-1 · `edit` falha por stale-read em working tree compartilhado'."
+          "detail": "replayCitation + resolveCitationInText unchanged and test-covered; report-origin and extractor-origin citations replay against real files."
         },
         {
           "description": "Criterion 3/4: verdicts mark accepted/rejected/pending and persist durably to <source>-candidate-verdicts.json.",
           "passed": true,
-          "detail": "Durability tests pass (save/reload/reopen). New guard: verdictsFilePathFor returns null and setVerdict returns an error for traversal sources, so a crafted source can never write outside docs/planning/evidence/."
+          "detail": "Durability tests pass (save/reload/reopen). Traversal sources are rejected for verdict persistence."
         },
         {
-          "description": "Criterion 5: hands-on evidence replaying at least three real citations against the real corpus.",
+          "description": "Criterion 5: hands-on evidence replaying at least three real citations against the real corpus, captured through the real IPC path.",
           "passed": true,
-          "detail": "Ran tools/corpus-learning/extract-candidates.mjs against the real C:\\Dev2026\\Docs\\tasks corpus (597 files, DB C:/Dev2026/Docs/.crush/crush.db.bak) producing 4184991 bytes of candidates.json; then exercised the shipped parseExtractorCandidates + replayCitation against that real output. Three real citations replayed with ok:true and real line-numbered context rendered: 008-02::B1::0 (008-02.md, section 'Handover do Executor:', matchLine 134, context shows '[B1] double-consume corrigido na linha 210...'), 008-02::B1::1 (section 'Parecer do Agente Revisor (Reviewer):'), 008-02::B1::2 (section 'Parecer do Agente Revisor (Reviewer) — Rodada 2:'). Report-origin candidate DEVX-025::report::0 also replayed ok:true against docs/planning/evidence/DEVX-025-tool-usage-report.md, resolving the candidate block at lines 233-238. Full evidence JSON captured at execution time."
+          "detail": "Captured through the real registered coopLearningReview:load handler called with no args (the exact call window.api.coopLearningReview.load() makes) against this repo, where the DEVX-025 report exists at its default path docs/planning/evidence/DEVX-025-tool-usage-report.md. Load returned ok:true with 6 report-origin candidates (DEVX-025::report::0..5), each with repo-relative citation.file, no throw (previously ReferenceError: path is not defined). Three real report-origin citations were replayed through the real registered coopLearningReview:replay handler, all ok:true with rendered context: DEVX-025::report::0 ('Candidato P-??-DEVX-025-1 · `edit` falha por stale-read em working tree compartilhado'), DEVX-025::report::1 ('Candidato P-??-DEVX-025-2 · `edit` exige match byte-exato; drift de whitespace quebra'), DEVX-025::report::2 ('Candidato P-??-DEVX-025-3 · `edit` sem `view` prévio após compactação de contexto'). Evidence exercised the real main-process load/replay path, not the pure parser functions in isolation."
         }
       ]
     },
@@ -50,12 +50,12 @@
       "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-043-gate.json",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-08-04T19:24:09.000Z",
-      "finishedAt": "2026-08-04T19:24:10.000Z",
+      "startedAt": "2026-08-05T13:11:00.000Z",
+      "finishedAt": "2026-08-05T13:11:01.000Z",
       "stdout": "VALID\n",
       "criteria": [
         {
-          "description": "Gate artifact validates against gate-artifact-v1 schema and is bound to resultSha 1f783be8ded4589dcc3d014b1503b7dbd4916174.",
+          "description": "Gate artifact validates against gate-artifact-v1 schema and is bound to resultSha 295b72ed9656f2157d0a1372db36b51c78934090.",
           "passed": true
         }
       ]
@@ -64,16 +64,17 @@
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-learning-review.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
-      "startedAt": "2026-08-04T19:24:04.000Z",
-      "finishedAt": "2026-08-04T19:24:05.000Z",
-      "stdout": "Test Files  1 passed (1)\n     Tests  21 passed (21)\n",
+      "startedAt": "2026-08-05T13:10:02.000Z",
+      "finishedAt": "2026-08-05T13:10:03.000Z",
+      "stdout": "Test Files  1 passed (1)\n     Tests  22 passed (22)\n",
       "criteria": [
         {
-          "description": "coop-learning-review.test.ts: 21/21 tests pass, including the new report-citation replay test and traversal-rejection tests.",
-          "passed": true
+          "description": "coop-learning-review.test.ts: 22/22 tests pass, including the new load-handler integration test that invokes the real registered coopLearningReview:load handler with a report present at its default path.",
+          "passed": true,
+          "detail": "New test 'load handler returns report-origin candidates when a report is present at the default path' registers handlers, finds the actual coopLearningReview:load handler, and calls it with { rootDir: <temp> } where docs/planning/evidence/DEVX-025-tool-usage-report.md exists. Asserts ok:true, no error, report-origin candidates returned, and citation.file is repo-relative (docs/planning/evidence/DEVX-025-tool-usage-report.md) — the exact regression that previously threw ReferenceError: path is not defined. This closes the blind spot the reviewer identified: prior suites only called the pure parser functions directly and never the registered load handler, which is why the bug shipped green twice."
         },
         {
-          "description": "Renderer overlay tests: CoopLearningReviewScreen.test.tsx 5/5 pass (open-event render, list, replay, verdict persistence, load error).",
+          "description": "Renderer overlay tests: CoopLearningReviewScreen.test.tsx 5/5 pass (unchanged from attempt 2).",
           "passed": true
         }
       ]
