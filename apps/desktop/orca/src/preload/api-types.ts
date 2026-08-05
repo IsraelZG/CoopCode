@@ -8,6 +8,14 @@ import type {
   HostedReviewInfo,
   HostedReviewProvider
 } from '../shared/hosted-review'
+import type {
+  CoopLearningReviewLoadArgs,
+  CoopLearningReviewLoadResult,
+  CoopLearningReviewReplayArgs,
+  CoopLearningReviewSetVerdictArgs,
+  CoopLearningReviewSetVerdictResult,
+  ReplayCitationResult
+} from '../shared/coop-learning-review'
 import type { NativeFileDropPayload } from '../shared/native-file-drop'
 import type { DashboardSnapshot, DashboardRevealAgentArgs } from '../shared/dashboard-snapshot'
 import type {
@@ -866,6 +874,12 @@ export type OpenCodeSdkApi = {
 
 export type CoopBoardApi = {
   listTasks: (args: { repoRoot: string }) => Promise<CoopBoardResult>
+}
+
+export type CoopLearningReviewApi = {
+  load: (args?: CoopLearningReviewLoadArgs) => Promise<CoopLearningReviewLoadResult>
+  replay: (args: CoopLearningReviewReplayArgs) => Promise<ReplayCitationResult>
+  setVerdict: (args: CoopLearningReviewSetVerdictArgs) => Promise<CoopLearningReviewSetVerdictResult>
 }
 
 export type AiVaultApi = {
@@ -2649,6 +2663,7 @@ export type PreloadApi = {
   aiVault: AiVaultApi
   openCodeSdk: OpenCodeSdkApi
   coopBoard?: CoopBoardApi
+  coopLearningReview: CoopLearningReviewApi
   nativeChat: NativeChatApi
   fs: {
     readDir: (args: { dirPath: string; connectionId?: string }) => Promise<DirEntry[]>

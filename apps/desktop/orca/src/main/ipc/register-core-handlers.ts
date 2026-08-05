@@ -13,6 +13,7 @@ import { registerCodexUsageHandlers } from './codex-usage'
 import { registerOpenCodeUsageHandlers } from './opencode-usage'
 import { registerOpenCodeSdkHandlers } from './opencode-sdk'
 import { registerCoopBoardHandlers } from './coop-board'
+import { registerCoopLearningReviewHandlers } from './coop-learning-review'
 import { registerGitHubHandlers } from './github'
 import { registerGitLabHandlers } from './gitlab'
 import { registerHostedReviewHandlers } from './hosted-review'
@@ -148,6 +149,7 @@ export function registerCoreHandlers(
   registerOpenCodeUsageHandlers(openCodeUsage)
   registerOpenCodeSdkHandlers()
   registerCoopBoardHandlers()
+  registerCoopLearningReviewHandlers()
   registerCodexAccountHandlers(codexAccounts, () => store.getSettings())
   registerAgentHookHandlers(runtime, { getPtyIdForPaneKey })
   registerCodexConfigSyncHandlers(codexAccounts.runtimeHomeService)
