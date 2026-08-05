@@ -1,11 +1,52 @@
-import { AlertCircle, GitBranch, GitPullRequestArrow, RefreshCw } from 'lucide-react'
+import { AlertCircle, FileCode, FileText, GitBranch, GitPullRequestArrow, Image as ImageIcon, RefreshCw, Eye, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppStore } from '@/store'
 import { isGitRepoKind } from '../../../../shared/repo-kind'
-import type { CoopBoardResult, CoopBoardTask, CoopTaskState } from '../../../main/ipc/coop-board'
+
+export type CoopTaskState = 'draft' | 'ready' | 'working' | 'review' | 'done' | 'blocked'
+
+export type CoopTaskIntegration = {
+  reviewDecision?: string
+  resultSha?: string
+  mergeCommit?: string
+}
+
+export type CoopTaskEvidenceFile = {
+  name: string
+  relativePath: string
+  absolutePath: string
+  size: number
+  extension: string
+  fileType: 'image' | 'text' | 'json' | 'markdown' | 'other'
+}
+
+export type CoopBoardTask = {
+  id: string
+  title: string
+  state: CoopTaskState
+  frontmatterState: CoopTaskState
+  priority: string
+  risk: string
+  dependsOn: string[]
+  blockedOn: string[]
+  blocked: boolean
+  blockingReasons: string[]
+  worktreePath?: string
+  branch?: string
+  integration?: CoopTaskIntegration
+  evidenceFiles: CoopTaskEvidenceFile[]
+  evidenceClaimed: boolean
+  evidenceMissing: boolean
+}
+
+export type CoopBoardResult = {
+  repoRoot: string
+  tasks: CoopBoardTask[]
+  error?: string
+}
 
 const STATE_BADGE_VARIANT: Record<CoopTaskState, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   draft: 'outline',
@@ -30,7 +71,34 @@ function getTaskStateLabel(state: CoopTaskState): string {
       return 'Done'
     case 'blocked':
       return 'Blocked'
+    default:
+      return 'Draft'
   }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+async function loadEvidenceContent(filePath: string): Promise<{ content: string; isImage: boolean }> {
+  try {
+    if (typeof (window.electron as any)?.ipcRenderer?.invoke === 'function') {
+      return await (window.electron as any).ipcRenderer.invoke('coopBoard:readEvidenceFile', { filePath })
+    }
+  } catch {
+    // fallback
+  }
+  if (typeof window.api?.fs?.readFile === 'function') {
+    const res = await window.api.fs.readFile({ filePath })
+    if (res.isImage || res.mimeType?.startsWith('image/')) {
+      const mime = res.mimeType || 'image/png'
+      return { content: `data:${mime};base64,${res.content}`, isImage: true }
+    }
+    return { content: res.content, isImage: false }
+  }
+  throw new Error('Unable to read file content')
 }
 
 function TaskStateBadge({ task }: { task: CoopBoardTask }) {
@@ -38,12 +106,38 @@ function TaskStateBadge({ task }: { task: CoopBoardTask }) {
   return <Badge variant={STATE_BADGE_VARIANT[displayedState]}>{getTaskStateLabel(displayedState)}</Badge>
 }
 
-function TaskRow({ task }: { task: CoopBoardTask }) {
+function TaskRow({
+  task,
+  isSelected,
+  onSelect
+}: {
+  task: CoopBoardTask
+  isSelected: boolean
+  onSelect: () => void
+}) {
   return (
-    <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 px-3 py-2 text-sm hover:bg-accent">
-      <div className="font-mono text-xs text-muted-foreground">{task.id}</div>
+    <div
+      onClick={onSelect}
+      className={`grid grid-cols-[112px_1fr_104px_160px] gap-3 px-3 py-2 text-sm cursor-pointer transition-colors ${
+        isSelected ? 'bg-accent/80 font-medium border-l-2 border-primary' : 'hover:bg-accent/50'
+      }`}
+    >
+      <div className="font-mono text-xs text-muted-foreground flex flex-col justify-center">
+        <span>{task.id}</span>
+      </div>
       <div className="min-w-0">
-        <p className="truncate font-medium">{task.title}</p>
+        <div className="flex items-center gap-2">
+          <p className="truncate font-medium">{task.title}</p>
+          {task.evidenceMissing ? (
+            <Badge variant="destructive" className="font-mono text-[10px] px-1.5 py-0 shrink-0">
+              evidence claimed, file not found
+            </Badge>
+          ) : task.evidenceFiles.length > 0 ? (
+            <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 shrink-0 gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-500/40">
+              {task.evidenceFiles.length} file{task.evidenceFiles.length > 1 ? 's' : ''}
+            </Badge>
+          ) : null}
+        </div>
         {task.blockingReasons.length > 0 ? (
           <p className="mt-1 truncate text-xs text-muted-foreground">
             Blocked by {task.blockingReasons.join(', ')}
@@ -71,6 +165,205 @@ function TaskRow({ task }: { task: CoopBoardTask }) {
         <Badge variant="outline" className="font-mono text-[11px]">
           {task.risk}
         </Badge>
+      </div>
+    </div>
+  )
+}
+
+function ImageThumbnail({ file, onOpen }: { file: CoopTaskEvidenceFile; onOpen: () => void }) {
+  const [src, setSrc] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let unmounted = false
+    setLoading(true)
+    loadEvidenceContent(file.absolutePath)
+      .then((res) => {
+        if (!unmounted) {
+          setSrc(res.content)
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!unmounted) setLoading(false)
+      })
+    return () => {
+      unmounted = true
+    }
+  }, [file.absolutePath])
+
+  return (
+    <div
+      onClick={onOpen}
+      className="group relative flex h-24 w-36 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md border bg-muted/30 hover:border-primary transition-all"
+    >
+      {loading ? (
+        <RefreshCw className="size-4 animate-spin text-muted-foreground" />
+      ) : src ? (
+        <>
+          <img src={src} alt={file.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Eye className="size-5 text-white" />
+          </div>
+        </>
+      ) : (
+        <ImageIcon className="size-6 text-muted-foreground" />
+      )}
+    </div>
+  )
+}
+
+function FilePreviewModal({ file, onClose }: { file: CoopTaskEvidenceFile; onClose: () => void }) {
+  const [data, setData] = useState<{ content: string; isImage: boolean } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    loadEvidenceContent(file.absolutePath)
+      .then((res) => {
+        setData(res)
+        setLoading(false)
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to read file')
+        setLoading(false)
+      })
+  }, [file.absolutePath])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+      <div className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-lg border bg-background shadow-xl">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            {file.fileType === 'image' ? (
+              <ImageIcon className="size-4 text-blue-500" />
+            ) : file.fileType === 'json' ? (
+              <FileCode className="size-4 text-amber-500" />
+            ) : (
+              <FileText className="size-4 text-emerald-500" />
+            )}
+            <span className="font-mono text-sm font-semibold">{file.name}</span>
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {formatFileSize(file.size)}
+            </Badge>
+          </div>
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <X className="size-4" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-auto p-4">
+          {loading ? (
+            <div className="flex items-center justify-center py-12 text-muted-foreground">
+              <RefreshCw className="size-5 animate-spin mr-2" /> Loading preview…
+            </div>
+          ) : error ? (
+            <div className="flex items-center gap-2 text-destructive py-8 justify-center">
+              <AlertCircle className="size-5" />
+              <span>{error}</span>
+            </div>
+          ) : data?.isImage || file.fileType === 'image' ? (
+            <div className="flex items-center justify-center py-2">
+              <img src={data?.content} alt={file.name} className="max-h-[70vh] max-w-full rounded-md object-contain shadow-md" />
+            </div>
+          ) : (
+            <pre className="max-h-[65vh] overflow-auto rounded-md bg-muted p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
+              {data?.content}
+            </pre>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TaskDetailSection({
+  task,
+  onOpenPreview
+}: {
+  task: CoopBoardTask
+  onOpenPreview: (file: CoopTaskEvidenceFile) => void
+}) {
+  return (
+    <div className="mt-4 rounded-md border bg-card p-4 space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm font-bold text-primary">{task.id}</span>
+            <TaskStateBadge task={task} />
+            <Badge variant="outline" className="font-mono text-xs">
+              Priority: {task.priority}
+            </Badge>
+            <Badge variant="outline" className="font-mono text-xs">
+              Risk: {task.risk}
+            </Badge>
+          </div>
+          <h3 className="mt-1 text-base font-semibold">{task.title}</h3>
+        </div>
+      </div>
+
+      {task.evidenceMissing ? (
+        <div className="flex items-start gap-3 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-destructive">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <div className="text-xs">
+            <p className="font-semibold">evidence claimed, file not found</p>
+            <p className="mt-0.5 opacity-90">
+              Task spec claims hands-on evidence, but no matching file (pattern <code className="font-mono">{task.id}-*</code>) exists under <code className="font-mono">docs/planning/evidence/</code>.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      <div>
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+          Hands-on Evidence Files ({task.evidenceFiles.length})
+        </h4>
+        {task.evidenceFiles.length === 0 ? (
+          <p className="text-xs text-muted-foreground py-2 italic">
+            No evidence files found under <code className="font-mono">docs/planning/evidence/</code> matching <code className="font-mono">{task.id}-*</code>.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {task.evidenceFiles.map((file) => (
+              <div key={file.name} className="flex flex-col gap-2 rounded-md border bg-muted/20 p-3 hover:border-accent transition-colors">
+                <div className="flex items-center justify-between gap-2 min-w-0">
+                  <div className="flex items-center gap-1.5 truncate">
+                    {file.fileType === 'image' ? (
+                      <ImageIcon className="size-3.5 shrink-0 text-blue-500" />
+                    ) : file.fileType === 'json' ? (
+                      <FileCode className="size-3.5 shrink-0 text-amber-500" />
+                    ) : (
+                      <FileText className="size-3.5 shrink-0 text-emerald-500" />
+                    )}
+                    <span className="truncate font-mono text-xs font-medium" title={file.name}>
+                      {file.name}
+                    </span>
+                  </div>
+                  <Badge variant="outline" className="font-mono text-[10px] shrink-0">
+                    {formatFileSize(file.size)}
+                  </Badge>
+                </div>
+
+                {file.fileType === 'image' ? (
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <ImageThumbnail file={file} onOpen={() => onOpenPreview(file)} />
+                    <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => onOpenPreview(file)}>
+                      <Eye className="size-3" /> View Image
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <span className="font-mono text-[11px] text-muted-foreground uppercase">{file.fileType}</span>
+                    <Button variant="outline" size="sm" className="text-xs h-7 gap-1" onClick={() => onOpenPreview(file)}>
+                      <Eye className="size-3" /> Preview
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -118,6 +411,8 @@ export default function CoopBoardScreen() {
   const repoRoot = repo?.path ?? ''
   const [result, setResult] = useState<CoopBoardResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [previewFile, setPreviewFile] = useState<CoopTaskEvidenceFile | null>(null)
 
   const fetchBoard = useCallback(async () => {
     if (!repoRoot) {
@@ -126,15 +421,24 @@ export default function CoopBoardScreen() {
     }
     setLoading(true)
     try {
-      setResult(await window.api.coopBoard?.listTasks({ repoRoot }))
+      const res = await window.api.coopBoard?.listTasks({ repoRoot })
+      setResult(res)
+      if (res?.tasks && res.tasks.length > 0 && !selectedTaskId) {
+        setSelectedTaskId(res.tasks[0].id)
+      }
     } finally {
       setLoading(false)
     }
-  }, [repoRoot])
+  }, [repoRoot, selectedTaskId])
 
   useEffect(() => {
     void fetchBoard()
   }, [fetchBoard])
+
+  const selectedTask = useMemo(() => {
+    if (!result?.tasks) return null
+    return result.tasks.find((t) => t.id === selectedTaskId) ?? result.tasks[0] ?? null
+  }, [result?.tasks, selectedTaskId])
 
   return (
     <Card className="mx-auto mt-8 max-w-5xl">
@@ -175,19 +479,35 @@ export default function CoopBoardScreen() {
         ) : result?.tasks.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">No Coop task specs found.</p>
         ) : (
-          <div className="overflow-hidden rounded-md border">
-            <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <span>Task</span>
-              <span>Lifecycle</span>
-              <span>State</span>
-              <span className="text-right">Meta</span>
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-md border">
+              <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <span>Task</span>
+                <span>Lifecycle</span>
+                <span>State</span>
+                <span className="text-right">Meta</span>
+              </div>
+              <div className="max-h-[380px] divide-y overflow-auto scrollbar-sleek">
+                {result?.tasks.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    isSelected={task.id === selectedTask?.id}
+                    onSelect={() => setSelectedTaskId(task.id)}
+                  />
+                ))}
+              </div>
             </div>
-            <div className="max-h-[520px] divide-y overflow-auto scrollbar-sleek">
-              {result?.tasks.map((task) => <TaskRow key={task.id} task={task} />)}
-            </div>
+
+            {selectedTask ? (
+              <TaskDetailSection task={selectedTask} onOpenPreview={(file) => setPreviewFile(file)} />
+            ) : null}
           </div>
         )}
+
+        {previewFile ? <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} /> : null}
       </CardContent>
     </Card>
   )
 }
+

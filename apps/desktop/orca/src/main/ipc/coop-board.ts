@@ -1,4 +1,4 @@
-import { readdir, readFile } from 'node:fs/promises'
+import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
 import { ipcMain } from 'electron'
 import { gitExecFileAsync } from '../git/runner'
@@ -10,6 +10,15 @@ export type CoopTaskIntegration = {
   reviewDecision?: string
   resultSha?: string
   mergeCommit?: string
+}
+
+export type CoopTaskEvidenceFile = {
+  name: string
+  relativePath: string
+  absolutePath: string
+  size: number
+  extension: string
+  fileType: 'image' | 'text' | 'json' | 'markdown' | 'other'
 }
 
 export type CoopBoardTask = {
@@ -26,6 +35,9 @@ export type CoopBoardTask = {
   worktreePath?: string
   branch?: string
   integration?: CoopTaskIntegration
+  evidenceFiles: CoopTaskEvidenceFile[]
+  evidenceClaimed: boolean
+  evidenceMissing: boolean
 }
 
 export type CoopBoardResult = {
@@ -186,13 +198,89 @@ function computeBlocking(tasks: CoopBoardTask[]): CoopBoardTask[] {
   })
 }
 
-async function readTaskFile(taskPath: string, liveWorktrees: Map<string, WorktreeRecord>): Promise<CoopBoardTask> {
+function getFileType(extension: string): CoopTaskEvidenceFile['fileType'] {
+  const ext = extension.toLowerCase()
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+    return 'image'
+  }
+  if (ext === 'json') {
+    return 'json'
+  }
+  if (['md', 'markdown'].includes(ext)) {
+    return 'markdown'
+  }
+  if (['txt', 'log'].includes(ext)) {
+    return 'text'
+  }
+  return 'other'
+}
+
+export function isEvidenceClaimed(text: string): boolean {
+  const matchSection = text.match(/##\s+(?:Acceptance|Handoff)[\s\S]*?(?=\n##\s+|$)/gi)
+  const targetText = matchSection ? matchSection.join('\n') : text
+  const pattern = /hands-on\s+evidence|evidênci?a[s]?\s+hands-on|verificaçã[o|ões]?\s+hands-on/i
+  return pattern.test(targetText)
+}
+
+async function loadEvidenceFilesMap(repoRoot: string): Promise<Map<string, CoopTaskEvidenceFile[]>> {
+  const evidenceMap = new Map<string, CoopTaskEvidenceFile[]>()
+  const evidenceDir = path.join(repoRoot, 'docs', 'planning', 'evidence')
+  try {
+    const entries = await readdir(evidenceDir, { withFileTypes: true })
+    for (const entry of entries) {
+      if (!entry.isFile()) continue
+      const name = entry.name
+      const match = name.match(/^([a-zA-Z0-9]+-[a-zA-Z0-9]+)-/i)
+      if (!match) continue
+      const taskId = match[1].toUpperCase()
+      const absolutePath = path.join(evidenceDir, name)
+      const relativePath = path.join('docs', 'planning', 'evidence', name).replace(/\\/g, '/')
+      let size = 0
+      try {
+        const stats = await stat(absolutePath)
+        size = stats.size
+      } catch {
+        // ignore stat errors
+      }
+      const ext = path.extname(name).slice(1)
+      const fileObj: CoopTaskEvidenceFile = {
+        name,
+        relativePath,
+        absolutePath,
+        size,
+        extension: ext.toLowerCase(),
+        fileType: getFileType(ext)
+      }
+      const existing = evidenceMap.get(taskId) ?? []
+      existing.push(fileObj)
+      evidenceMap.set(taskId, existing)
+    }
+  } catch {
+    // ignore missing directory
+  }
+
+  for (const files of evidenceMap.values()) {
+    files.sort((a, b) => a.name.localeCompare(b.name))
+  }
+  return evidenceMap
+}
+
+async function readTaskFile(
+  taskPath: string,
+  liveWorktrees: Map<string, WorktreeRecord>,
+  evidenceMap: Map<string, CoopTaskEvidenceFile[]>
+): Promise<CoopBoardTask> {
   const text = await readFile(taskPath, 'utf8')
   const frontmatter = parseFrontmatter(text)
   const id = asString(frontmatter.id)
   const frontmatterState = asTaskState(frontmatter.state)
   const liveWorktree = liveWorktrees.get(id)
   const state = frontmatterState !== 'done' && liveWorktree ? 'working' : frontmatterState
+
+  const evidenceFiles = evidenceMap.get(id.toUpperCase()) ?? []
+  const evidenceClaimed = isEvidenceClaimed(text)
+  const evidenceMissing = evidenceClaimed && evidenceFiles.length === 0
+
   return {
     id,
     title: asString(frontmatter.title),
@@ -206,7 +294,10 @@ async function readTaskFile(taskPath: string, liveWorktrees: Map<string, Worktre
     blockingReasons: [],
     worktreePath: liveWorktree?.worktreePath,
     branch: liveWorktree?.branch,
-    integration: parseIntegration(text)
+    integration: parseIntegration(text),
+    evidenceFiles,
+    evidenceClaimed,
+    evidenceMissing
   }
 }
 
@@ -215,11 +306,12 @@ export async function loadCoopBoard(options: LoadCoopBoardOptions): Promise<Coop
   const tasksRoot = path.join(repoRoot, 'docs', 'coop', 'tasks')
   const porcelain = options.worktreePorcelain ?? (await getWorktreePorcelain(repoRoot))
   const liveWorktrees = worktreeByTaskId(parseWorktreePorcelain(porcelain))
+  const evidenceMap = await loadEvidenceFilesMap(repoRoot)
   const entries = await readdir(tasksRoot, { withFileTypes: true })
   const taskFiles = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
     .map((entry) => path.join(tasksRoot, entry.name))
-  const tasks = await Promise.all(taskFiles.map((taskPath) => readTaskFile(taskPath, liveWorktrees)))
+  const tasks = await Promise.all(taskFiles.map((taskPath) => readTaskFile(taskPath, liveWorktrees, evidenceMap)))
   tasks.sort((a, b) => compareTaskIds(a.id, b.id))
   return {
     repoRoot,
@@ -239,4 +331,20 @@ export function registerCoopBoardHandlers(): void {
       return { repoRoot: args.repoRoot, tasks: [], error: message } satisfies CoopBoardResult
     }
   })
+
+  ipcMain.handle('coopBoard:readEvidenceFile', async (_event, args: { filePath?: unknown }) => {
+    if (typeof args?.filePath !== 'string' || !args.filePath.trim()) {
+      throw new Error('filePath is required')
+    }
+    const resolvedPath = path.resolve(args.filePath)
+    const ext = path.extname(resolvedPath).slice(1).toLowerCase()
+    const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)
+    const content = await readFile(resolvedPath)
+    if (isImg) {
+      const mimeType = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
+      return { content: `data:${mimeType};base64,${content.toString('base64')}`, isImage: true }
+    }
+    return { content: content.toString('utf8'), isImage: false }
+  })
 }
+
