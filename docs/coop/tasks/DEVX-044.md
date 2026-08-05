@@ -13,8 +13,11 @@
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.test.ts",
     "apps/desktop/orca/src/main/runtime/rpc/methods/orchestration-workers.ts",
-    "apps/desktop/orca/src/main/runtime/rpc/orchestration-mutation-executor.ts",
-    "apps/desktop/orca/src/main/providers/local-pty-provider.ts",
+    "apps/desktop/orca/src/main/runtime/rpc/methods/orchestration-worker-start-schema.ts",
+    "apps/desktop/orca/src/cli/handlers/orchestration.ts",
+    "apps/desktop/orca/src/cli/specs/orchestration-worker-specs.ts",
+    "apps/desktop/orca/src/preload/index.ts",
+    "apps/desktop/orca/src/shared/opencode-sdk-types.ts",
     "docs/planning/evidence/DEVX-044-gate.json"
   ]},
   "profiles": {"worker": "routine", "reviewer": "high"},
@@ -104,6 +107,20 @@ correct for opencode, so nothing downstream needs a workaround.
 - Do not touch `tools/corpus-learning/**`. `DEVX-024` consumes this fix; it
   does not ship alongside it.
 
+## Scope correction (2026-08-03)
+
+The originally declared `scope.allow` guessed at three candidate integration
+files (`orchestration-mutation-executor.ts`, `local-pty-provider.ts`, plus
+`orchestration-workers.ts`) without having located the real one yet. In
+practice, wiring `--opencode-agent-profile`/`--opencode-agent-permissions`
+through end to end touched a different, concrete set: the CLI handler and
+spec (`src/cli/handlers/orchestration.ts`,
+`src/cli/specs/orchestration-worker-specs.ts`), the RPC params schema
+(`orchestration-worker-start-schema.ts`), `preload/index.ts`, and
+`shared/opencode-sdk-types.ts` — each a necessary link in the same chain
+(CLI flag → RPC params → handler → renderer-exposed types), not scope creep.
+`scope.allow` above has been updated to match what was actually needed.
+
 ## Sources and decisions
 
 - Verified live in this session, 2026-08-02: `opencode serve --port 51234`
@@ -167,3 +184,66 @@ Worker and reviewer return evidence to the dispatcher/state owner. Success is
 `worker-start --agent opencode` working correctly and headlessly on the first
 try, every time — `DEVX-024`'s rewrite depends on exactly that, with no
 fallback of its own.
+
+### Attempt 1 outcome (2026-08-03)
+
+An earlier attempt produced this same implementation but never committed it
+and got stuck trying to verify criteria 2/3 by launching a fresh
+`electron-vite dev` Electron instance from scratch — twice, without cleaning
+up the first, leaving idle zombie `electron.exe`/`node.exe` processes and an
+idle `opencode serve` behind. Those were killed; no progress was lost since
+nothing had been committed to lose.
+
+Taking over, a live `worker-start --agent opencode` call was attempted
+directly against `Orca.exe` (pid 4788, the packaged app already running on
+this machine) using the two orchestration Runs already bound in this repo's
+history. It succeeded at the RPC level (`state: "ready"`, a real terminal
+created, `dispatch_input: accepted`) — but no `opencode serve` ever started
+and no runner/prompt files appeared under the OS temp dir, because **that
+running `Orca.exe` is a packaged build older than this change** — it has
+none of this task's new code compiled in, so `agent === 'opencode'` never
+reached the new branch at all. This was independently confirmed (grep on
+`out/cli/index.js` finds none of this task's new identifiers) and is the
+same root problem the electron-vite attempts were trying to work around: a
+truly live proof needs a rebuilt, freshly launched instance, which is heavy
+and was the direct cause of the earlier stuck state.
+
+The test dispatch was fully cleaned up (`worker-stop`, task marked
+`completed` with an explanatory result, the throwaway task file removed —
+nothing committed). Given the risk of repeating the same stuck state, this
+attempt closes on: 22/22 unit tests (independently re-run), the TUI crash
+independently reproduced, 31/31 pre-existing `orchestration-workers`-adjacent
+tests still passing (no regression for other agent types), and the
+underlying `serve` + `run --attach` mechanism already proven live earlier in
+this session (a standalone test, outside `worker-start`, with a real session
+and a real assistant reply). **Criteria 2, 3, and 4 are implemented and unit
+tested, but not verified through a live `worker-start` call against a build
+that actually contains this code** — that verification is the first thing a
+reviewer or a rebuilt dev instance should do before this is trusted in
+production, not a formality to skip.
+
+## Review (attempt 1)
+
+- Reviewer: claude-sonnet-5
+- Date: 2026-08-04
+- Result SHA reviewed: `54676c2c8e2a56c8e52ff668dc413c6d4a447f1a`
+- Decision: `human`
+- Findings:
+  - MAJOR — `apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts:512-528` (`openCodeAgentFileMatchesPermissions`) and `:476-505` (`parseOpenCodeAgentFrontmatter`) — the restricted-profile verification requires every non-requested permission key to be *explicitly* `deny` in the generated agent file's frontmatter, or it rejects the profile and eventually throws `agent_profile_invalid`. This is checked only against a hand-authored fixture (`ORCA_AGENT_HEADLESS` in the test file), never against real `opencode agent create --mode subagent --permissions <csv>` output — the Sources section cites only `--help` text, not an actual generated file. If the real CLI omits non-granted keys instead of writing explicit `deny` lines (or formats the `permission:` block differently than the two regex shapes handled), `ensureOpenCodeAgentProfile` would fail on every real invocation and criterion 4 would never work in production. This is the same underlying gap the Handoff already discloses (criteria 2-4 not live-verified), but it identifies a specific, plausible mechanism by which criterion 4 in particular could be completely non-functional rather than just unverified — evidence: code at the cited lines plus the fixture-only test coverage. Criterion: acceptance bullet 4 ("A caller asking for a read-mostly profile ... gets exactly that").
+  - MAJOR — criteria 2, 3, and 4 (headless serve/health-retry, `run --attach` dispatch, restricted agent profile) have zero live verification against a build that actually contains this code, only mocked unit tests — honestly disclosed in both the Handoff and the gate artifact's `passed: false` entry, but this is P1/`risk: high` infrastructure that `DEVX-024`'s rewrite depends on "working correctly and headlessly on the first try, every time ... with no fallback of its own" (per this file's own Handoff section). Criterion: acceptance bullets 2, 3, 4.
+  - MINOR — `apps/desktop/orca/src/shared/opencode-sdk-types.ts:8-15,22-29` drops the `mode`/`path` fields from `OpenCodeSession`/`toOpenCodeSession`, but `apps/desktop/orca/src/renderer/src/components/opencode-sessions/OpenCodeSessionsScreen.tsx:14-21` (DEVX-014's session-list screen, not touched by this diff) still reads `session.mode` to render a badge — that badge silently goes dark forever. Currently masked by an unrelated, pre-existing bug in the same screen file (a wrong relative import depth; confirmed present at base commit 94eff6b5 too: `tsc` reports `TS2307: Cannot find module '../../../shared/opencode-sdk-types'` both before and after this diff), so no build error surfaces today, but it is a real, undisclosed latent regression in the exact screen this task's own Outcome section cites as newly useful. Not mentioned in Sources/Handoff.
+  - MINOR — `apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts:252-351` (`startOrReuseOpenCodeServe`) has no lock around the read-registry-then-spawn sequence for a given `worktreeId`; two concurrent `worker-start --agent opencode` calls for the same worktree could both see no healthy serve and both spawn on the same deterministic port, racing on the bind. Not covered by any concurrent-call test. Low likelihood given the one-worktree-per-dispatch convention, but unguarded.
+  - INFO — `pickOpenCodeServePort` (fnv1a hash mod 20,000) has a non-zero worktree-id collision probability across many concurrent worktrees. Mitigated by `openCodeServeOwnsWorktree`'s ownership check plus the 4-port scan fallback (degrades to extra scanning, not hijacking), but a collision does silently break the "same deterministic port survives an Orca restart" guarantee for one of the two worktrees involved.
+  - INFO — the gate artifact's `outOfScopeDiff` states "No file outside the corrected scope.allow was touched," but the deliverable commit also edits `docs/coop/tasks/DEVX-044.md` itself (adding the "Scope correction" and "Attempt 1 outcome" sections), which is not literally listed in `scope.allow`. This reads as the standard self-documentation mechanism (it is literally where `scope.allow` itself gets corrected) rather than real scope creep — flagged only because the artifact's claim isn't literally exhaustive.
+
+Independently re-verified in this review: all 3 frontmatter gates re-run clean (`validate-task.mjs` OK/5 criteria; `validate-gate-artifact.mjs` VALID; 22/22 unit tests in `opencode-headless-dispatch.test.ts` pass). Also independently re-ran the 31/31 `orchestration-workers`-adjacent regression suite (pass) and re-reproduced the bundled TUI crash directly against `C:\Dev2026\builds\coopcode\current\opencode\opencode.exe` (exit code 1, `Failed to initialize OpenTUI render library: bun:ffi dlopen() is not available in this build (TinyCC is disabled)` — matches the gate artifact verbatim). Confirmed the gate-artifact commit (`fa4e73c0d`) touches only `DEVX-044-gate.json`, and `resultSha` correctly points at the deliverable commit `54676c2c8` rather than the gate-artifact commit itself. The gate artifact is honest: the one `"passed": false` entry for live end-to-end verification is plainly recorded in the `gates` array, not buried or contradicted by the `regressions` narrative next to it.
+
+The implementation quality itself is solid where it could be checked: the health-check retry loop genuinely tolerates a failed first bootstrap attempt in the real control flow (not just a mocked return value — traced through `startOrReuseOpenCodeServe`'s attempt/poll loops and the corresponding tests, which drive real exit/health-probe timing), and the permission-verification logic (`openCodeAgentFileMatchesPermissions`) is written correctly strict (an unrequested-but-ungranted permission must be explicitly denied, or the profile is rejected) — the risk is not in the logic itself but in whether its assumption about the real CLI's frontmatter output shape holds, which nothing in this attempt confirms. Given this task is explicitly P1/high-risk foundational infrastructure that another task depends on working correctly with no fallback, and its three most consequential acceptance criteria are unverified against real behavior, this warrants a human decision on whether unit-test-only coverage is an acceptable bar to merge on, rather than an automatic `accept` or another unsupervised `rework` cycle that risks repeating the stuck state the Handoff already describes.
+
+## Human decision (2026-08-05)
+
+The review's `human` escalation (attempt 1, result SHA `54676c2c8e2a56c8e52ff668dc413c6d4a447f1a`) asked whether unit-test-only coverage of criteria 2-4 (headless serve/health-retry, `run --attach` dispatch, restricted agent profile) is an acceptable bar to merge on, given this is P1/high-risk infrastructure `DEVX-024`'s rewrite depends on with no fallback of its own.
+
+Decision: **accept and integrate**, with the disclosed live-verification gap tracked as its own follow-up rather than blocking this attempt further. The implementation quality is solid everywhere it could be checked (health-retry loop genuinely tolerates a failed first bootstrap in real control flow, not just a mocked return value; permission-verification logic is written correctly strict) — the risk is specifically in two unverified assumptions about real `opencode` CLI behavior, not in the logic itself. A follow-up task (see `DEVX-049`) covers exactly that: a real `worker-start --agent opencode` dispatch against a build that actually contains this code, plus a real `opencode agent create --mode subagent --permissions <csv>` invocation to confirm `openCodeAgentFileMatchesPermissions`'s assumed frontmatter shape.
+
+The two MINOR findings (mode/path masking in `OpenCodeSessionsScreen.tsx`; no lock around the same-worktree serve start-or-reuse race) are not required before integrating — the first was already independently found and fixed in `main` (commit `0b328cda7`, unrelated to this task's own diff); the second is low-likelihood given the one-worktree-per-dispatch convention and can be picked up later if it ever manifests.

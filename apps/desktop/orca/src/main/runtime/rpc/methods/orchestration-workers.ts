@@ -2,6 +2,18 @@ import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { TuiAgent } from '../../../../shared/types'
 import { buildDispatchPreamble } from '../../orchestration/preamble'
 import { OrchestrationError } from '../../orchestration/orchestration-error'
+import {
+  buildOpenCodeRunTerminalCommand,
+  ensureOpenCodeAgentProfile,
+  getOpenCodeDispatchPromptFilePath,
+  normalizeOpenCodePermissions,
+  prepareOpenCodeRunRunner,
+  removeOpenCodeDispatchPromptFile,
+  sanitizeOpenCodeFileName,
+  startOrReuseOpenCodeServe,
+  waitForOpenCodeDispatchSession,
+  writeOpenCodeDispatchPromptFile
+} from '../../../providers/opencode-headless-dispatch'
 import { defineMethod, type RpcMethod } from '../core'
 import { startFederatedWorker } from './orchestration-federated-worker-start'
 import { assertOrchestrationWorktreeCreationSupported } from './orchestration-folder-worktree-placement'
@@ -87,6 +99,39 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
       if (agent) {
         runtime.validateOrchestrationAgentLauncher(agent as TuiAgent)
       }
+      const opencodeProfile = params.opencodeAgentProfile
+      const opencodePermissions = params.opencodeAgentPermissions
+      if (agent === 'opencode') {
+        if (params.on) {
+          throw new OrchestrationError(
+            'invalid_argument',
+            '--on federation is not supported for --agent opencode; dispatch headlessly on the current server.'
+          )
+        }
+        if (params.terminal) {
+          throw new OrchestrationError(
+            'invalid_argument',
+            '--terminal reuses an existing interactive agent terminal; opencode worker-start is headless-only.'
+          )
+        }
+        if (createsWorktree) {
+          throw new OrchestrationError(
+            'invalid_argument',
+            'opencode worker-start requires an existing worktree; new-worktree agent-first provisioning would launch the crashing interactive TUI.'
+          )
+        }
+        if (opencodePermissions && !opencodeProfile) {
+          throw new OrchestrationError(
+            'invalid_argument',
+            '--opencode-agent-permissions requires --opencode-agent-profile.'
+          )
+        }
+      } else if (opencodeProfile || opencodePermissions) {
+        throw new OrchestrationError(
+          'invalid_argument',
+          '--opencode-agent-profile and --opencode-agent-permissions apply only to --agent opencode.'
+        )
+      }
 
       const coordinatorTerminal = await runtime.showTerminal(params.from)
       const coordinatorWorktree = await runtime.showManagedWorktree(
@@ -154,6 +199,11 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
       let terminalHandle = params.terminal
       let terminalRevealWarning: string | undefined
       let failedStage = 'terminal_create'
+      // Why: DEVX-044 — opencode dispatches through a headless serve + attach
+      // run instead of the interactive TUI, which crashes on this build.
+      let opencodeServeUrl: string | undefined
+      let opencodePromptFile: string | undefined
+      let opencodeSessionId: string | undefined
       let setupReceipt: WorkerSetupReceipt = {
         requested: 'not_applicable',
         effective: 'not_applicable',
@@ -163,7 +213,66 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
         state: 'not_applicable'
       }
       try {
-        if (createsWorktree) {
+        if (agent === 'opencode') {
+          failedStage = 'opencode_profile'
+          let resolvedProfile: string | undefined
+          if (opencodeProfile) {
+            const permissions = opencodePermissions
+              ? normalizeOpenCodePermissions(opencodePermissions)
+              : undefined
+            if (permissions) {
+              const profile = await ensureOpenCodeAgentProfile({
+                profile: opencodeProfile,
+                permissions,
+                worktreeDir: resolvedWorktree!.git.path
+              })
+              resolvedProfile = profile.profile
+            } else {
+              resolvedProfile = sanitizeOpenCodeFileName(opencodeProfile)
+            }
+          }
+          failedStage = 'opencode_serve'
+          const serve = await startOrReuseOpenCodeServe({
+            worktreeId: resolvedWorktree!.id,
+            worktreeDir: resolvedWorktree!.git.path
+          })
+          opencodeServeUrl = serve.url
+          effects.push({
+            kind: 'terminal',
+            role: 'opencode-serve',
+            action: serve.reused ? 'reused' : 'created',
+            id: `${serve.port}@${serve.url}`,
+            state: 'healthy'
+          })
+          failedStage = 'opencode_terminal'
+          db.recordWorkerStage({
+            dispatchId: started.dispatch.id,
+            stage: 'terminal_creating',
+            worktreeId: resolvedWorktree!.id,
+            effects
+          })
+          const runnerPath = prepareOpenCodeRunRunner(started.dispatch.id)
+          opencodePromptFile = getOpenCodeDispatchPromptFilePath(started.dispatch.id)
+          const terminal = await runtime.createTerminal(`id:${resolvedWorktree!.id}`, {
+            command: buildOpenCodeRunTerminalCommand({
+              runnerPath,
+              url: serve.url,
+              title: started.dispatch.id,
+              agentProfile: resolvedProfile,
+              promptFile: opencodePromptFile
+            }),
+            title: `worker-${task.id}`
+          })
+          terminalHandle = terminal.handle
+          effects.push({
+            kind: 'terminal',
+            role: 'agent',
+            action: 'created',
+            id: terminal.handle,
+            surface: terminal.surface,
+            warning: terminal.warning
+          })
+        } else if (createsWorktree) {
           failedStage = 'worktree_create'
           const created = await createWorkerWorktree({
             runtime,
@@ -220,20 +329,22 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
         persistWorkerReadinessStage(setupStage)
 
         failedStage = 'agent_readiness'
-        const wait = await runtime.waitForTerminal(terminalHandle, {
-          condition: 'tui-idle',
-          timeoutMs: params.timeoutMs ?? 60_000
-        })
-        persistWorkerSetupWaitOutcome({ ...setupStage, wait })
-        if (!wait.satisfied) {
-          if (setupReceipt.state === 'failed') {
-            failedStage = 'setup_wait'
+        if (agent !== 'opencode') {
+          const wait = await runtime.waitForTerminal(terminalHandle, {
+            condition: 'tui-idle',
+            timeoutMs: params.timeoutMs ?? 60_000
+          })
+          persistWorkerSetupWaitOutcome({ ...setupStage, wait })
+          if (!wait.satisfied) {
+            if (setupReceipt.state === 'failed') {
+              failedStage = 'setup_wait'
+            }
+            throw new Error(
+              wait.blockedReason
+                ? `Agent startup blocked: ${wait.blockedReason}`
+                : `Agent did not become ready (${wait.status}).`
+            )
           }
-          throw new Error(
-            wait.blockedReason
-              ? `Agent startup blocked: ${wait.blockedReason}`
-              : `Agent did not become ready (${wait.status}).`
-          )
         }
         const paneKey = runtime.getTerminalPaneKey(terminalHandle)
         const processIncarnation = runtime.getTerminalProcessIncarnation(terminalHandle)
@@ -261,7 +372,24 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
           devMode: params.devMode,
           cliCommand: runtime.getTerminalOrchestrationCliCommand(terminalHandle)
         })
-        await runtime.sendTerminalAgentPrompt(terminalHandle, preamble)
+        if (agent === 'opencode') {
+          // Why: the runner terminal blocks until this file exists, then passes
+          // the full preamble (which carries the dispatch capability) to
+          // `opencode run --attach` as its message argument. Readiness is the
+          // live session appearing on the serve (title = dispatch id).
+          writeOpenCodeDispatchPromptFile({
+            dispatchId: started.dispatch.id,
+            prompt: preamble
+          })
+          const session = await waitForOpenCodeDispatchSession({
+            url: opencodeServeUrl!,
+            title: started.dispatch.id,
+            timeoutMs: params.timeoutMs ?? 60_000
+          })
+          opencodeSessionId = session.sessionId
+        } else {
+          await runtime.sendTerminalAgentPrompt(terminalHandle, preamble)
+        }
         effects.push({
           kind: 'dispatch_input',
           role: 'agent',
@@ -287,9 +415,15 @@ export const ORCHESTRATION_WORKER_START_METHODS: RpcMethod[] = [
           timeoutMs: params.timeoutMs ?? 60_000,
           effects,
           residualResources: [],
-          ...(terminalRevealWarning ? { warning: terminalRevealWarning } : {})
+          ...(terminalRevealWarning ? { warning: terminalRevealWarning } : {}),
+          ...(opencodeServeUrl && opencodeSessionId
+            ? { opencode: { serveUrl: opencodeServeUrl, sessionId: opencodeSessionId } }
+            : {})
         }
       } catch (error) {
+        if (opencodePromptFile && agent === 'opencode') {
+          removeOpenCodeDispatchPromptFile(opencodePromptFile)
+        }
         return failWorkerStartWithReceipt({
           db,
           runId: run.id,
