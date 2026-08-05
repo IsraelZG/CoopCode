@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { OpenCodeSession, OpenCodeSdkListSessionsResult } from '../../../shared/opencode-sdk-types'
+import type { OpenCodeSession, OpenCodeSdkListSessionsResult } from '../../../../shared/opencode-sdk-types'
 
 function OpenCodeSessionRow({ session }: { session: OpenCodeSession }) {
   return (
