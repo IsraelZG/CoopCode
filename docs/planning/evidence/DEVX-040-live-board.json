@@ -1,0 +1,618 @@
+{
+  "capturedAt": "2026-08-04T19:08:12.460Z",
+  "repoRoot": "C:/Dev2026/agentic-ide",
+  "summary": {
+    "total": 34,
+    "done": 24,
+    "blocked": 4,
+    "workingViaWorktree": 7
+  },
+  "result": {
+    "repoRoot": "C:\\Dev2026\\agentic-ide",
+    "tasks": [
+      {
+        "id": "DEVX-001",
+        "title": "Map existing Orca orchestration primitives to the CoopCode development loop",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "PLAT-013"
+        ],
+        "blockedOn": [],
+        "blocked": true,
+        "blockingReasons": [
+          "Missing dependency PLAT-013"
+        ],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "c749687330333cc713a43c03a08a216c1c468190",
+          "mergeCommit": "d39dddcdf216bd1955ee4b0116c006cbdaed57f6"
+        }
+      },
+      {
+        "id": "DEVX-002",
+        "title": "Consolidar o contrato Task Spec v1",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-001"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "bd1a015dcf69820c3758b5a9afd89b7a51b6e6e0",
+          "mergeCommit": "391134841811fcf4101a31a7b91c98cc145d7144"
+        }
+      },
+      {
+        "id": "DEVX-003",
+        "title": "Definir o contrato Gate Artifact v1",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-001"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "f1e347a10ba015d9641de742463bfbb1955e4c87",
+          "mergeCommit": "4a96372f5fad8e1fa5fe8e17238305248656465d"
+        }
+      },
+      {
+        "id": "DEVX-004",
+        "title": "Versionar budgets e política overnight",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-002"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "55921de8eb1d318f85fc7dc6999330b638c96b7b",
+          "mergeCommit": "f3ae4761868db5b8fbd06533c114858456a58ff4"
+        }
+      },
+      {
+        "id": "DEVX-005",
+        "title": "Audit spec-ingestion and agent-profile primitives left out of DEVX-001",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-001"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "8212925236d18deacc305ce833159e9f4511844a",
+          "mergeCommit": "9525716b32a29c3340a3db899aa5b01f792819dc"
+        }
+      },
+      {
+        "id": "DEVX-006",
+        "title": "Read Crush sessions in the Orca ai-vault from the per-worktree SQLite database",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "c968b4bd4642330839d2edc972d7d0bf92e553fc",
+          "mergeCommit": "1d3cb465f"
+        }
+      },
+      {
+        "id": "DEVX-007",
+        "title": "Make the ai-vault discover OpenCode sessions in the current on-disk database layout",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "d268226b3628348e3b846704a8b27e8ad41ae76b",
+          "mergeCommit": "a7b059099"
+        }
+      },
+      {
+        "id": "DEVX-008",
+        "title": "Reproduce the ARM64 packaging gate at the current repository layout and version the on-demand build script",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "4c2c5a9cc529dc00fa73a4ddc405c7e1e2c0a00e",
+          "mergeCommit": "b50242e9e"
+        }
+      },
+      {
+        "id": "DEVX-009",
+        "title": "Detect stalled and looping agent sessions from scanned session data",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-006"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "b071dbb43755ad807b5ecbf1af3901b69a437058",
+          "mergeCommit": "fe1635d21"
+        }
+      },
+      {
+        "id": "DEVX-010",
+        "title": "Selecionar a próxima task elegível deterministicamente",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P0",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-002"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "0053c7bee548881adec041be56d4a7cfb5b27625",
+          "mergeCommit": "a96a289481a45b82ef3b3e87ca34bfa0123bea41"
+        }
+      },
+      {
+        "id": "DEVX-011",
+        "title": "Pay the AgentDir Python debt by 2026-08-27: port the evidence core into apps/desktop/orca as TS/JS",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "00d7bbc91ae74b5d9528890704e0ab70bf2c0fd4",
+          "mergeCommit": "61573396a"
+        }
+      },
+      {
+        "id": "DEVX-012",
+        "title": "Rotate crush.db after Orca incorporates all sessions, keeping a timestamped backup",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-006"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "1fa95236debd033f96637f5d4f76c7fe7ddc4f34",
+          "mergeCommit": "f4738e8c3"
+        }
+      },
+      {
+        "id": "DEVX-013",
+        "title": "Triage the 144 pre-existing Orca suite failures: signal or import noise",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-013",
+        "branch": "refs/heads/task/devx-013",
+        "integration": {
+          "reviewDecision": "accept",
+          "mergeCommit": "8d5051ebd"
+        }
+      },
+      {
+        "id": "DEVX-014",
+        "title": "UI-fusion step 2, first slice: render live OpenCode sessions via @opencode-ai/sdk in a purpose-built React screen",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-014",
+        "branch": "refs/heads/task/devx-014",
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "19e99d50d22264f3c5ace731760e009afb885f55",
+          "mergeCommit": "e90af294c"
+        }
+      },
+      {
+        "id": "DEVX-015",
+        "title": "Stop the Orca suite from hanging at teardown: bound resolve-7za-path's real toolset resolution in tests",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "fe4ff0062e9edab4e36efac9e6cee9713b9b52d4",
+          "mergeCommit": "86d59c4c2"
+        }
+      },
+      {
+        "id": "DEVX-016",
+        "title": "Fix the node:path.join separator bug that silently breaks Codex resume and worktree file-watch on Windows",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "15ea16d3170ef04bb8366af0104b485e29f2d1c5",
+          "mergeCommit": "affbb502f"
+        }
+      },
+      {
+        "id": "DEVX-017",
+        "title": "Pin the locale for user-facing schedule labels and number formatting instead of following the host OS",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "c3f184c606259820ba99ae9f8135d1554ef643f5",
+          "mergeCommit": "8ef82083c"
+        }
+      },
+      {
+        "id": "DEVX-018",
+        "title": "Dispatch a ready Coop task by calling Orca's own task-create/worker-start, instead of a copy-paste prompt",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "cb99b192f25911fe58b8b18f789c590741d82bb9",
+          "mergeCommit": "5f7157584"
+        }
+      },
+      {
+        "id": "DEVX-019",
+        "title": "Shard the Orca suite so no single command a worker runs can exceed a bounded, fast wall time",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P1",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "5b611fc554a655ef0bad32056c72db2c0958f3e6",
+          "mergeCommit": "ec627ed16"
+        }
+      },
+      {
+        "id": "DEVX-020",
+        "title": "Finish the node:path.join-on-Windows cluster: repo-detection fallback, ai-vault RPC, dead markdown-discovery module, CI script",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "0e1cb4df6e3dae14150c7ce42a56a93d803a8863",
+          "mergeCommit": "a553eefe8"
+        }
+      },
+      {
+        "id": "DEVX-021",
+        "title": "Fix five remaining isolated DEVX-013 signal findings: EISDIR handling, rate-limit defaults, a malformed loopback path, a real WSL test hang, and an unreliable log-path fallback",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "f7d5854e84214fa1a16e4fd11a782f393625daae",
+          "mergeCommit": "99d4112fe"
+        }
+      },
+      {
+        "id": "DEVX-022",
+        "title": "Retire allowed_write_destinations from the overnight policy; defer to each task's own scope.allow",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-022",
+        "branch": "refs/heads/task/devx-022"
+      },
+      {
+        "id": "DEVX-023",
+        "title": "Extract verifiable learnings from the superapp corpus: deterministic filter plus semantic analysis, every rule traceable to its source",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "707ffbc493c168885190eb9e5737372e482e8f42",
+          "mergeCommit": "7fd55340c"
+        }
+      },
+      {
+        "id": "DEVX-024",
+        "title": "Prove automated loop dispatch on real work, opencode only: CoopCode processes the corpus-learning chunks unattended through a real worker-start, with resumable state",
+        "state": "draft",
+        "frontmatterState": "draft",
+        "priority": "P2",
+        "risk": "high",
+        "dependsOn": [
+          "DEVX-018",
+          "DEVX-023",
+          "DEVX-044"
+        ],
+        "blockedOn": [
+          "DEVX-044"
+        ],
+        "blocked": true,
+        "blockingReasons": [
+          "DEVX-044 is working",
+          "DEVX-044"
+        ]
+      },
+      {
+        "id": "DEVX-025",
+        "title": "Tool/MCP/LSP usage analytics from the Crush session corpus: error rates, context cost, candidate findings",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "8fa61a4de05381a4c7c28cd02a080b98f91f21c7",
+          "mergeCommit": "2e00d4b73"
+        }
+      },
+      {
+        "id": "DEVX-026",
+        "title": "Apply DEVX-023 reviewer findings: immutable SQLite URI and dead-code cleanup in extract-candidates.mjs",
+        "state": "done",
+        "frontmatterState": "done",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-023"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "integration": {
+          "reviewDecision": "accept",
+          "resultSha": "d7c8683a49883cf09e37c2cc7ede6062402e6bfa",
+          "mergeCommit": "f210539fa"
+        }
+      },
+      {
+        "id": "DEVX-027",
+        "title": "Internalize DEVX-025's tool-usage findings into agentic-ide itself, not the target project's PITFALLS.md",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-025"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-027",
+        "branch": "refs/heads/task/devx-027"
+      },
+      {
+        "id": "DEVX-040",
+        "title": "Render the task/spec lifecycle board from git, with real worktree detection instead of trusting frontmatter state alone",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-002",
+          "DEVX-003",
+          "DEVX-014"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-040",
+        "branch": "refs/heads/task/devx-040"
+      },
+      {
+        "id": "DEVX-041",
+        "title": "Show a task's hands-on evidence files inline on the board instead of leaving them as unlinked prose claims",
+        "state": "draft",
+        "frontmatterState": "draft",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-014",
+          "DEVX-040"
+        ],
+        "blockedOn": [
+          "DEVX-040"
+        ],
+        "blocked": true,
+        "blockingReasons": [
+          "DEVX-040 is working",
+          "DEVX-040"
+        ]
+      },
+      {
+        "id": "DEVX-042",
+        "title": "Rank every task that needs a human decision into one attention view, instead of re-reading every task and log by hand",
+        "state": "draft",
+        "frontmatterState": "draft",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-040"
+        ],
+        "blockedOn": [
+          "DEVX-040"
+        ],
+        "blocked": true,
+        "blockingReasons": [
+          "DEVX-040 is working",
+          "DEVX-040"
+        ],
+        "integration": {
+          "reviewDecision": "rework` or `blocked` with no newer"
+        }
+      },
+      {
+        "id": "DEVX-043",
+        "title": "Review a corpus-learning candidate rule next to its replayed source citation, in-app, with a durable verdict that never auto-writes to PITFALLS.md",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P2",
+        "risk": "routine",
+        "dependsOn": [
+          "DEVX-023"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-043",
+        "branch": "refs/heads/task/devx-043"
+      },
+      {
+        "id": "DEVX-044",
+        "title": "Fix orca orchestration worker-start so opencode dispatch is always headless (serve + run --attach), never the crashing TUI",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P1",
+        "risk": "high",
+        "dependsOn": [
+          "DEVX-014",
+          "DEVX-018"
+        ],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-044",
+        "branch": "refs/heads/task/devx-044"
+      },
+      {
+        "id": "DEVX-045",
+        "title": "Stop the packaged app from automatically checking stablyai/orca's GitHub releases for updates",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P0",
+        "risk": "high",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-045",
+        "branch": "refs/heads/task/devx-045"
+      },
+      {
+        "id": "DEVX-046",
+        "title": "Rename the product identity from Orca to CoopCode: appId, productName, package name, CLI binary",
+        "state": "working",
+        "frontmatterState": "ready",
+        "priority": "P2",
+        "risk": "high",
+        "dependsOn": [],
+        "blockedOn": [],
+        "blocked": false,
+        "blockingReasons": [],
+        "worktreePath": "C:/Dev2026/worktrees/CoopCode/DEVX-046",
+        "branch": "refs/heads/task/devx-046"
+      }
+    ]
+  }
+}
