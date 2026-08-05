@@ -1,0 +1,77 @@
+{
+  "task": "DEVX-022",
+  "attempt": 1,
+  "baseSha": "31833a13bf657267ac7a718e738987139b6d2605",
+  "resultSha": "28faccdea69713a241e33294abdd2eb0feaa7c80",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-02T13:10:26.000Z",
+  "finishedAt": "2026-08-02T13:10:33.000Z",
+  "baseline": "docs/planning/evidence/BASELINE.md",
+  "regressions": "none",
+  "outOfScopeDiff": "None. Only the seven files in scope.allow were modified (six deliverable files plus this gate artifact); out-of-scope fixtures still carrying the retired field were left untouched.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-022.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T13:10:26.000Z",
+      "finishedAt": "2026-08-02T13:10:26.000Z",
+      "stdout": "OK: DEVX-022 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "DEVX-022 contract validates as ready/standard with its 5 acceptance criteria intact",
+          "passed": true,
+          "detail": "validate-task.mjs exits 0 and prints OK: DEVX-022 (ready, standard, 5 criteria)"
+        },
+        {
+          "description": "This change closes wayfinder ticket 11 (make the policy describe reality) and does not authorize building or expanding unattended overnight execution, which remains explicitly out of scope",
+          "passed": true,
+          "detail": "The task removes a stale, redundant declaration only; nothing reads allowed_write_destinations at execution time, so no runtime capability is granted."
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-022-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T13:10:33.000Z",
+      "finishedAt": "2026-08-02T13:10:33.000Z",
+      "stdout": "VALID\n"
+    },
+    {
+      "command": "node tools/coop-dev/test-budget-policy.mjs",
+      "purpose": "Self-check of the budget policy validator against its fixtures",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T13:10:28.000Z",
+      "finishedAt": "2026-08-02T13:10:31.000Z",
+      "stdout": "19 passed, 0 failed out of 19 fixtures\n",
+      "criteria": [
+        {
+          "description": "Both valid-* fixtures still pass after allowed_write_destinations was removed from them",
+          "passed": true,
+          "detail": "valid-policy.json and valid-policy-with-extras.json both exit 0 without the field."
+        },
+        {
+          "description": "invalid-overnight.json still fails validation after the field was removed from its own checks, for exactly the six other reasons (max_tasks: 0, max_concurrent_workers: 0, end_time_utc \"25:99\", network \"open\", empty allowed_commands, preserve_evidence not boolean)",
+          "passed": true,
+          "detail": "exit 1 with six errors: overnight.max_tasks must be an integer >= 1; overnight.max_concurrent_workers must be an integer >= 1; overnight.end_time_utc must be a valid HH:MM string; overnight.network must be \"blocked\" or \"allowlisted\"; overnight.allowed_commands must be a non-empty array of strings; overnight.preserve_evidence must be a boolean."
+        },
+        {
+          "description": "All 19 fixtures produce their expected pass/fail verdict (18 invalid-* still fail, 2 valid-* still pass)",
+          "passed": true,
+          "detail": "19 passed, 0 failed out of 19 fixtures."
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-budget-policy.mjs docs/coop/policies/development-budget-v1.json",
+      "purpose": "The real policy file must still validate after the field is removed",
+      "exitCode": 0,
+      "startedAt": "2026-08-02T13:10:31.000Z",
+      "finishedAt": "2026-08-02T13:10:32.000Z",
+      "stdout": "OK: budget policy v1.0.0 (9 stop conditions, 5 prohibited actions)\n"
+    }
+  ]
+}

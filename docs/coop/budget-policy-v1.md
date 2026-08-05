@@ -38,8 +38,11 @@ nenhum worker ou dispatcher pode exceder os limites aqui declarados.
 | `overnight.end_time_utc` | string | Horário limite UTC (formato HH:MM) |
 | `overnight.network` | string | Política de rede: `blocked`, `allowlisted` |
 | `overnight.allowed_commands` | string[] | Comandos permitidos na janela |
-| `overnight.allowed_write_destinations` | string[] | Paths onde escrita é permitida |
 | `overnight.preserve_evidence` | bool | Preservar worktrees e artefatos ao final |
+
+Se a escrita overnight de uma task cai em local permitido é respondido pelo
+`scope.allow` da própria task (já validado por `validate-task.mjs`), não por
+uma segunda lista específica do overnight.
 
 ### 2.3 Ações proibidas
 

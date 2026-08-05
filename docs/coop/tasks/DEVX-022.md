@@ -147,3 +147,12 @@ happened to `allowed_write_destinations` between when it was written
 Worker and reviewer return evidence to the dispatcher/state owner. This task
 closes wayfinder ticket 11. It does not open, imply, or unblock any overnight
 execution task — that decision, if it ever comes, is separate and later.
+
+## Review (attempt 1)
+
+- Reviewer: claude-sonnet-5
+- Date: 2026-08-04
+- Result SHA reviewed: `2baade3e1d2e89261942bd04cf65056f278dc4bd`
+- Decision: `accept`
+- Findings:
+  - MINOR — `docs/coop/budget-policy-v1.md:43-45` — the new deferral note has a subject/verb gender-agreement error in Portuguese ("a escrita ... é respondido" should be "é respondida", and the "Se ... cai em local permitido é respondido" clause reads as a run-on missing a comma after the conditional) — evidence: added lines "Se a escrita overnight de uma task cai em local permitido é respondido pelo `scope.allow` da própria task (já validado por `validate-task.mjs`), não por uma segunda lista específica do overnight." — impact: cosmetic only, meaning is still clear, does not block understanding or any tooling — criterion: Acceptance criterion 3 (field table drops the row and gains a short note).

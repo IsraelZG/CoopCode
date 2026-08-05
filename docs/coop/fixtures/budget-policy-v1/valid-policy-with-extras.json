@@ -18,7 +18,6 @@
     "end_time_utc": "23:59",
     "network": "allowlisted",
     "allowed_commands": ["node", "npm", "git", "cargo"],
-    "allowed_write_destinations": ["docs/", "tools/", "src/"],
     "preserve_evidence": true
   },
   "prohibited_actions": [
