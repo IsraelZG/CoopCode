@@ -2,7 +2,7 @@
 {
   "id": "DEVX-027",
   "title": "Internalize DEVX-025's tool-usage findings into agentic-ide itself, not the target project's PITFALLS.md",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -268,3 +268,10 @@ project — not merely a second copy of `DEVX-025`'s report under a new name.
     `git -C C:\Dev2026\Docs status --porcelain -- PITFALLS.md` and `git -C
     C:\Dev2026\Docs diff --stat -- PITFALLS.md` both empty — still
     untouched.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `3021ac3f4e84760617a985e64e25e4d2f5ed31e7`
+- Merge commit: `a0f981bf7`
+- Gate: task/Gate Artifact validators and `install-skills.mjs --check` (`exit 0`).

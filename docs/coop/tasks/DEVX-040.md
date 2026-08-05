@@ -2,7 +2,7 @@
 {
   "id": "DEVX-040",
   "title": "Render the task/spec lifecycle board from git, with real worktree detection instead of trusting frontmatter state alone",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -189,3 +189,10 @@ re-derive task state from scratch.
   - MINOR — `docs/planning/evidence/DEVX-040-board.png`, `DEVX-040-board.jpg`, and `DEVX-040-live-board.json` are new files under `docs/planning/evidence/` but only `docs/planning/evidence/DEVX-040-gate.json` is named in `scope.allow`. These are exactly the criterion-5 evidence artifacts the task requires, and adding evidence media alongside the gate JSON is standard practice for this repo's hands-on-evidence convention, but the literal `scope.allow` list undercounts them. Same disposition as above: non-blocking, spec-list gap rather than worker overreach. Criterion: none.
   - Carried forward, unchanged, not required for this rework attempt (per the rework brief): the attempt-1 MINOR on `computeBlocking` only being exercised one dependency-hop deep in tests (criterion 3, still true — no multi-level A→B→C fixture was added this round), and the attempt-1 INFO on the declared gate-3 command path (`tools/pnpm-arm64.cmd`) not executing as literally declared in this worktree (pre-existing across ~10 other closed DEVX tasks, independently reproduced again this round via the local vitest binary with matching exit code).
   - Pre-existing, unrelated to this diff: `register-core-handlers.test.ts` (untouched by this diff) has one pre-existing failing test ("passes the store through to handler registrars that need it") that fails at the `registerOpenCodeSdkHandlers` call (missing `ipcMain` export on its `electron` mock) — a mocking gap that predates and is unrelated to the `registerCoopBoardHandlers()` addition; not caused by this task and not a regression.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `672be473688571b3427dcc05d02ab4d7e387e38d`
+- Merge commit: `fb1087ff2`
+- Gate: task/Gate Artifact validators and 5 focused tests (`exit 0`); one pre-existing, unrelated failure in `register-core-handlers.test.ts` (electron-mock gap) confirmed unrelated.

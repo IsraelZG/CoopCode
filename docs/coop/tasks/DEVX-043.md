@@ -2,7 +2,7 @@
 {
   "id": "DEVX-043",
   "title": "Review a corpus-learning candidate rule next to its replayed source citation, in-app, with a durable verdict that never auto-writes to PITFALLS.md",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -198,3 +198,10 @@ BLOCKER precisely because neither writes to any forbidden target.
   - INFO — Re-ran `node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-043-gate.json --result-sha=295b72ed9656f2157d0a1372db36b51c78934090` → `VALID`. Walked HEAD (`eae25ca11`, touches only `docs/planning/evidence/DEVX-043-gate.json`) back to `295b72ed9`, matching the gate artifact's declared `resultSha` — the gate-evidence binding is valid.
   - INFO — Confirmed scope discipline: `git diff --stat` from `1f783be8d` (attempt 2 result) to `295b72ed9` (attempt 3 result) touches exactly 4 files — `coop-learning-review.ts` (single-line import + call-site fix), `coop-learning-review.test.ts` (new test), `docs/coop/tasks/DEVX-043.md` (self-documentation), and `docs/planning/evidence/DEVX-043-gate.json`. `git diff --stat` from base to `295b72ed9` touches only files inside the corrected `scope.allow` plus the task's own spec file. The attempt-2 fixes remain untouched and intact: the titlebar `BookOpen` button in `App.tsx` still dispatches `COOP_LEARNING_REVIEW_OPEN_EVENT`; `hasTraversalSegment` is still enforced for both citation replay and verdict-file paths.
   - No BLOCKER, MAJOR, or MINOR findings. The rework is minimal, correctly targeted, independently reproduced against the real IPC path (not just re-trusted from the gate artifact or the worker's own test), and does not regress any of the fixes confirmed good in attempt 2.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `295b72ed9656f2157d0a1372db36b51c78934090`
+- Merge commit: `3dd904d04`
+- Gate: task/Gate Artifact validators and 22 focused tests (`exit 0`). Merged after resolving a textual conflict with DEVX-040 in `register-core-handlers.ts`, `preload/api-types.ts`, `preload/index.ts`, `App.tsx` (both tasks add independent, non-overlapping registrations at the same insertion point) — kept both additions side by side; re-verified tsc and both tasks' test suites post-merge.
