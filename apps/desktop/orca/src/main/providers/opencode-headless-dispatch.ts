@@ -242,6 +242,10 @@ export function getOpenCodeServeForWorktree(worktreeId: string): OpenCodeServeHa
   return openCodeServes.get(worktreeId)
 }
 
+export function listRegisteredOpenCodeServes(): OpenCodeServeHandle[] {
+  return Array.from(openCodeServes.values())
+}
+
 /**
  * Starts (or reuses) a healthy `opencode serve` bound to the dispatch worktree.
  *

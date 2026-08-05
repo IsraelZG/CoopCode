@@ -11,6 +11,8 @@
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "apps/desktop/orca/src/main/opencode-sdk/client.ts",
+    "apps/desktop/orca/src/main/opencode-sdk/client.test.ts",
+    "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/ipc/opencode-sdk.ts",
     "apps/desktop/orca/src/shared/opencode-sdk-types.ts",
     "apps/desktop/orca/src/renderer/src/components/opencode-sessions/**",
