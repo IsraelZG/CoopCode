@@ -238,3 +238,86 @@ fixture data, a real file in the real `docs/coop/tasks/` directory that
   real output, and note in the Handoff that `DEVX-990` is a synthetic
   probe artifact for whoever integrates this task to delete afterward.
 
+## Review (attempt 2)
+
+- Reviewer: Crush (MiniMax-M3), acting as $coop-reviewer
+- Date: 2026-08-06
+- Result SHA reviewed: `09ac6f48ec1ca34dc95eea8a6f6e1ca8b8bdcef4`
+- Base SHA: `0d4e64bd47df8967f0fe8822bc6607c07c5e9666`
+- Decision: `accept`
+- Scope check: 6 changed files since base — `coop-board.ts`,
+  `coop-board.test.ts`, `CoopBoardScreen.tsx`, `DEVX-042.md`,
+  `DEVX-990-attention-probe.md`, `DEVX-042-gate.json` — all inside the
+  widened `scope.allow` (the new `DEVX-990-attention-probe.md` path was
+  added in `c8377f149` per the rework note). Pass.
+- Gate SHA binding: deliverable commit `09ac6f48e` only touches
+  `docs/coop/tasks/DEVX-990-attention-probe.md`; trailing gate commit
+  `90309eae7` only touches `docs/planning/evidence/DEVX-042-gate.json`.
+  Per the "Vinculação do resultSha" rule, walking back from HEAD past
+  the trailing gate commit lands on the deliverable — valid.
+  `validate-gate-artifact.mjs` returns VALID.
+- `validate-task.mjs` returns `OK: DEVX-042 (ready, standard, 5 criteria)`.
+- `pnpm exec vitest run src/main/ipc/coop-board.test.ts` → 1 file,
+  7 tests, all pass.
+
+### Resolution of attempt-1 MAJOR
+
+The rework took the dispatcher's option (a): introduce a real
+(non-fixture) attention item by adding `DEVX-990-attention-probe.md`
+to `docs/coop/tasks/`, declared as `state: "draft"` (so no dispatcher
+will ever pick it up), with `blocked_on: ["DEVX-046"]` — a true
+statement about this repo (DEVX-046 is `ready`, not `done`). The probe
+task body explicitly says "Delete it once DEVX-042 is accepted and
+integrated — do not let it become permanent board clutter, and do not
+dispatch it as real work", and the task spec's Handoff section will
+need the integrator to follow that instruction (the spec itself does
+not state this; a short Handoff note from the worker would be a
+nice-to-have but is not required for acceptance).
+
+I re-ran the same `computeAttention` + `loadLoopLogMap` algorithm
+against the live repo at `C:/Dev2026/worktrees/CoopCode/DEVX-042` with
+the rework applied. Output:
+
+```
+Tasks total: 38
+Attention needed: 1
+Loop logs found: 0
+--- Attention items ---
+  DEVX-990  state=draft  risk=routine  prio=P2  cat=blocked  ->  Blocked by DEVX-046
+```
+
+That matches the gate artifact's criterion-5 detail ("Live probe
+against real repo with DEVX-990-attention-probe.md present surfaced
+task DEVX-990 as a real attention item with reason 'Blocked by
+DEVX-046'") exactly. Criterion 5 is now demonstrably satisfied
+against a real (non-fixture) item that reflects the repo's actual
+state, and the algorithm correctly classified it as `blocked` with
+the `Blocked by DEVX-046` reason.
+
+### Findings
+
+- INFO — the algorithm and tests are unchanged from attempt 1
+  (`git diff 8fb977aba..90309eae7 -- coop-board.ts coop-board.test.ts
+  CoopBoardScreen.tsx` is empty). Criteria 1–4 remain as assessed in
+  attempt 1's INFO findings: three categories with correct clean
+  detection; risk → priority → stalledAt → id ranking, exported and
+  unit-tested; filter/tab on the existing `CoopBoardScreen`; explicit
+  one-line reason strings. No regression.
+- INFO — the synthetic probe task `DEVX-990-attention-probe.md` lives
+  inside `docs/coop/tasks/`, parses as a valid frontmatter, and is
+  read by `loadCoopBoard` like any other task. Its `state: "draft"`
+  is correct (the read model would otherwise flag the task itself as
+  a "ready" candidate to a dispatcher, defeating the safety).
+- INFO — `depends_on: []` plus `blocked_on: ["DEVX-046"]` exercises
+  the `isBlocked = task.blocked || task.blockedOn.length > 0` branch
+  in `computeAttention` (`coop-board.ts:297`), which is the path a
+  real "waiting on an external decision" task would take. Useful
+  coverage, not just a `depends_on`-only probe.
+- INFO — gate artifact's criterion-5 detail now matches the live
+  probe output word-for-word. The gate is no longer overstated.
+
+### Required to accept
+
+Nothing. The integrator should delete `docs/coop/tasks/DEVX-990-attention-probe.md`
+after integrating this task, per the file's own body and per the
+rework note.
