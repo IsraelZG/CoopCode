@@ -2,7 +2,7 @@
 {
   "id": "DEVX-049",
   "title": "Live-verify DEVX-044's opencode headless dispatch end to end: real worker-start call and a real restricted agent profile from opencode agent create",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P1",
   "risk": "high",
@@ -301,3 +301,12 @@ Criteria 2 and 4, in their full literal form, are downgraded from this
 task's acceptance bar to a smaller, separately-tracked follow-up: see
 `DEVX-050`. This is the same pattern used to close `DEVX-044` and open this
 very task.
+
+## Integration
+
+- Human decision: accept (2026-08-06), despite attempt 3's `rework` verdict — see "Human decision" section above.
+- Result SHA: `4855a2edd08cf9a4ba715bacf583d6825bcce153`
+- Merge commit: (this commit's parent — see git log)
+- Gate: task/Gate Artifact validators, 26/26 unit suite, 4/4 live suite against a real opencode serve (`exit 0`).
+- No conflicts (auto-merged cleanly, including electron-builder.config.cjs which DEVX-046 also touched).
+- Follow-up: `DEVX-050` covers the deferred criteria 2/4 (title-matched live session, real denied-action refusal).
