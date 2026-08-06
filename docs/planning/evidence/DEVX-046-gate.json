@@ -1,0 +1,59 @@
+{
+  "task": "DEVX-046",
+  "attempt": 1,
+  "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
+  "resultSha": "29eac129e31ec5c70300285f49119c0b948d15e8",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-06T09:12:00.000-03:00",
+  "finishedAt": "2026-08-06T09:16:15.000-03:00",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-046.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:15:24.000-03:00",
+      "finishedAt": "2026-08-06T09:15:24.000-03:00",
+      "stdout": "OK: DEVX-046 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Validate task DEVX-046 specification contract",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-046-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:16:16.000-03:00",
+      "finishedAt": "2026-08-06T09:16:17.000-03:00",
+      "stdout": "VALID",
+      "criteria": [
+        {
+          "description": "Gate evidence is bound to result SHA 29eac129e31ec5c70300285f49119c0b948d15e8",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "../../../tools/pnpm-arm64.cmd exec tsc --noEmit -p config/tsconfig.node.json",
+      "purpose": "Confirm the rename does not break the build, from apps/desktop/orca",
+      "exitCode": 1,
+      "startedAt": "2026-08-06T09:14:32.000-03:00",
+      "finishedAt": "2026-08-06T09:14:45.000-03:00",
+      "stdout": "TypeScript typecheck executed with baseline errors outside changed files",
+      "stderr": "7 pre-existing baseline errors in test/session files outside DEVX-046 scope",
+      "criteria": [
+        {
+          "description": "apps/desktop/orca TypeScript build/typecheck has no regressions introduced by product rename to CoopCode",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "baseline": "Pre-existing baseline in apps/desktop/orca reports 7 TypeScript errors in test/session files (session-scanner-crush-cleanup.test.ts, session-scanner-opencode-sources.test.ts, evidence/session.ts, transcript-watch.ts, index.ts). None of those errors are in files touched by DEVX-046, and baseline output in main repo is identical.",
+  "regressions": "None. All changed files (electron-builder.config.cjs, package.json, dispatch-task.mjs) are valid and introduce zero new TypeScript errors.",
+  "outOfScopeDiff": "None. All modifications are strictly within scope.allow."
+}
