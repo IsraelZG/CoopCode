@@ -184,3 +184,45 @@ upstream Orca.
   - Criterion 3 (packaged-build support): the `!autoUpdaterInitialized` early-return was removed; the trailing branch of `getRemoteServerUpdateSupport()` now unconditionally returns `{ automatic: false, reason: 'updater-unavailable' }` for packaged builds. Test at :408 asserts this.
   - Criterion 4 (no auto schedule): `scheduleAutomaticUpdateCheck` is reduced to a no-op that clears any existing timer and sets it to `null` without scheduling a new one. The startup path in `setupAutoUpdater` no longer calls `runBackgroundUpdateCheck` or `scheduleAutomaticUpdateCheck`. Test at :417 advances fake timers 30 days and asserts `checkForUpdates` is never invoked.
   - Criterion 5 (no test regression): 16 tests pass, 4 darwin-only skipped, no test for unrelated features (local-build switch, mac install, quitAndInstall, watchdog, Authenticode) was removed without a replacement or weakened assertion.
+
+## Rework note (2026-08-06)
+
+Dispatcher summary of attempt 2's rework verdict — resolve both, in one new
+attempt:
+
+1. **BLOCKER (criterion 5)**: `apps/desktop/orca/src/main/updater.headless-serve-install.test.ts`
+   (already in `scope.allow`, no widening needed) has 4 failing tests
+   (`:237-239`, `:311`, `:495-500`) because `getRemoteServerUpdateSupport()`
+   now unconditionally returns `automatic: false` for every packaged build,
+   including `installMode: 'interactive'`/`'supervised-headless-serve'`,
+   which that file's tests still expect to report `automatic: true` and
+   actually check for/download updates. Criterion 5 explicitly requires "no
+   unrelated updater test regresses" — this is not unrelated, it is the
+   live headless-serve upgrade path silently breaking. Fix
+   `getRemoteServerUpdateSupport()` so the interactive/supervised-headless-serve
+   install modes keep their existing update-check behavior, and only the
+   `stablyai/orca` GitHub-feed path (the actual thing this task targets) is
+   disabled. Update or add tests as needed; re-run the full
+   `updater.headless-serve-install.test.ts` file and confirm 0 failures, not
+   just the in-scope `updater.test.ts`.
+2. **MAJOR (process)**: the previous attempt's git history had 8 sequential
+   `commit --amend` operations chasing the gate artifact's `resultSha`
+   toward HEAD, the exact anti-pattern `docs/coop/gate-artifact-v1.md` warns
+   against (same failure mode previously seen on `DEVX-012`). Do not amend
+   any commit in this worktree. For this rework: make exactly one new commit
+   with the code fix, then exactly one further new commit that touches only
+   `docs/planning/evidence/DEVX-045-gate.json`, with `resultSha` set to
+   `git rev-parse HEAD` at the code commit — write it once, never re-stamp
+   it afterward, even across multiple gate-command re-runs.
+3. Note for context: because of the amend-chasing in point 2, the exact
+   commit SHAs cited in `## Review (attempt 1)` and `## Review (attempt 2)`
+   above no longer exist in this branch's linear history — both reviews were
+   performed against snapshots that were later rewritten out from under
+   them. Do not try to reconcile SHAs against those two review blocks; treat
+   their *findings* (the BLOCKER and MAJOR above) as authoritative, not
+   their cited hashes.
+
+MINOR from attempt 1 (`pinDefaultReleaseFeed` dead code still hardcoding the
+`stablyai/orca` URL, unreachable but fragile) — fix if small and contained
+while already in this file; otherwise leave it and say so in the handoff,
+per the original reviewer's own framing.
