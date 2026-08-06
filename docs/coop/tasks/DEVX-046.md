@@ -2,7 +2,7 @@
 {
   "id": "DEVX-046",
   "title": "Rename the product identity from Orca to CoopCode: appId, productName, package name, CLI binary",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "high",
@@ -175,3 +175,11 @@ renamed folder, and not a promise that every internal reference is gone.
   - INFO — Gates re-run: `validate-task.mjs` returns `OK: DEVX-046 (ready, standard, 5 criteria)`, `validate-gate-artifact.mjs` returns `VALID` (schema-only check; SHA binding is a walk-back reasoning step which also holds — the implementation commit `5ef98be6a` is the most recent non-gate-only commit on `task/devx-046` after walking past the trailing `d03c2407b` gate-only commit). The `tsc --noEmit -p config/tsconfig.node.json` typecheck was re-run from `apps/desktop/orca` and produced the same 7 baseline errors in the same 5 test/session files (`session-scanner-crush-cleanup.test.ts`, `session-scanner-opencode-sources.test.ts`, `evidence/session.ts`, `transcript-watch.ts`, `preload/index.ts`) — none in the four changed files, so the rename introduces zero regressions. The attempt-1 MINOR about `exitCode: 1` with `passed: true` is also addressed: the new gate explicitly records `baselineSha: 0d4e64bd47df8967f0fe8822bc6607c07c5e9666` in both the criterion `detail` and the top-level `baseline` field, so the soft pass is now anchored to an immutable reference SHA and is no longer ambiguous.
   - INFO — Scope: all changes are within `scope.allow` (the rationale commit adds lines inside `electron-builder.config.cjs`, which is in `scope.allow`; the gate JSON lives at the path declared in `scope.allow`). No out-of-scope diff. The branch `task/devx-046` is 3 commits ahead of `origin/main` (was 2 at attempt 1; the extra commit is the new rationale + gate).
 - Independent re-review note: This verdict was formed cold from the spec, the new diff, and the updated gate, *before* comparing against the attempt-1 `rework` finding set. The two attempts agree — the attempt-1 MAJORs (missing chmod rationale, missing grep confirmation) and the MINOR (soft-pass ambiguity) are all now closed by the worker's two new commits, and no new issues were introduced by the rework itself. The previously-acceptable renames and unchanged files remain acceptable.
+
+## Integration
+
+- Review decision: `accept` (attempt 2)
+- Result SHA: `5ef98be6a6cbce32202871cc1668276b8d95ec7d`
+- Merge commit: (this commit's parent — see git log)
+- Gate: task/Gate Artifact validators, package.json/electron-builder.config.cjs/dispatch-task.mjs syntax re-verified (`exit 0`).
+- No conflicts with anything already on main.
