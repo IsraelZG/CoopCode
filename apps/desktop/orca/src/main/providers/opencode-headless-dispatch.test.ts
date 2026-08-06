@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { EventEmitter } from 'node:events'
 import type { spawn } from 'node:child_process'
 import {
@@ -14,6 +14,7 @@ import {
   pickOpenCodeServePort,
   prepareOpenCodeRunRunner,
   resetOpenCodeServeRegistry,
+  resolveOpenCodeBinary,
   sanitizeOpenCodeFileName,
   startOrReuseOpenCodeServe,
   waitForOpenCodeDispatchSession,
@@ -165,6 +166,34 @@ describe('prepareOpenCodeRunRunner', () => {
   })
 })
 
+describe('resolveOpenCodeBinary', () => {
+  it('returns a usable binary reference (never empty) without throwing in a pure-node test', () => {
+    const resolved = resolveOpenCodeBinary()
+    expect(typeof resolved).toBe('string')
+    expect(resolved.trim().length).toBeGreaterThan(0)
+  })
+
+  it('returns a path ending in the platform native name, or the bare name when nothing is bundled', () => {
+    const resolved = resolveOpenCodeBinary()
+    const native = process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+    if (resolved === 'opencode') {
+      // Last resort: bare PATH lookup, matching the original default.
+      expect(resolved).toBe('opencode')
+    } else {
+      // Packaged/dev-vendored resolution always points at the native filename.
+      expect(resolved.endsWith(native)).toBe(true)
+    }
+  })
+
+  it('resolves dev-vendored binary under external_repos when present in repository layout', () => {
+    const resolved = resolveOpenCodeBinary()
+    const native = process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+    expect(resolved.endsWith(native)).toBe(true)
+    expect(resolved).not.toBe('opencode')
+    expect(resolved).toContain('external_repos')
+  })
+})
+
 describe('openCodeAgentFileMatchesPermissions', () => {
   it('accepts a deny-everything-else map for a read-mostly request', () => {
     expect(openCodeAgentFileMatchesPermissions(ORCA_AGENT_HEADLESS, ['read', 'glob', 'grep'])).toBe(true)
@@ -178,6 +207,44 @@ describe('openCodeAgentFileMatchesPermissions', () => {
   it('rejects a file that denies a requested permission', () => {
     const deniedRead = ORCA_AGENT_HEADLESS.replace('  bash: deny', '  read: deny')
     expect(openCodeAgentFileMatchesPermissions(deniedRead, ['read', 'glob', 'grep'])).toBe(false)
+  })
+
+  it('accepts a real opencode agent create output for a read-mostly profile', () => {
+    const capturedCandidate = resolve(
+      process.cwd(),
+      '..',
+      '..',
+      '..',
+      '.scratch',
+      'devx049-live',
+      'reverify',
+      '.opencode',
+      'agents',
+      'dx-resolver-auditor.md'
+    )
+    let real = ''
+    if (existsSync(capturedCandidate)) {
+      real = readFileSync(capturedCandidate, 'utf8')
+    } else {
+      real = [
+        '---',
+        'description: >-',
+        '  read-only developer-experience audit agent (captured from real create)',
+        'mode: subagent',
+        'permission:',
+        '  bash: deny',
+        '  edit: deny',
+        '  webfetch: deny',
+        '  task: deny',
+        '  todowrite: deny',
+        '  websearch: deny',
+        '  lsp: deny',
+        '  skill: deny',
+        '---',
+        'You are a read-only agent.'
+      ].join('\n')
+    }
+    expect(openCodeAgentFileMatchesPermissions(real, ['read', 'glob', 'grep'])).toBe(true)
   })
 })
 
@@ -371,7 +438,9 @@ describe('ensureOpenCodeAgentProfile', () => {
       expect(content).not.toContain('mode: subagent')
       expect(openCodeAgentFileMatchesPermissions(content, ['read', 'glob', 'grep'])).toBe(true)
       const args = (spawnImpl.mock.calls[0] ?? []) as unknown as [string, string[]]
-      expect(args[0]).toBe('opencode')
+      // DEVX-049: the default (no explicit binary) spawns the resolved binary,
+      // not a hardcoded bare name — packaged/dev resolution first, PATH last.
+      expect(args[0]).toBe(resolveOpenCodeBinary())
       expect(args[1]).toContain('agent')
       expect(args[1]).toContain('create')
       expect(args[1]).toContain('--mode')

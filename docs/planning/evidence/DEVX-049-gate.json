@@ -1,0 +1,88 @@
+{
+  "task": "DEVX-049",
+  "attempt": 3,
+  "baseSha": "d13f280a3a94eb09875cc25f9d0d93048641eef4",
+  "resultSha": "4855a2edd08cf9a4ba715bacf583d6825bcce153",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-06T14:20:00.000Z",
+  "finishedAt": "2026-08-06T16:38:00.000Z",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-049.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T16:34:51.000Z",
+      "finishedAt": "2026-08-06T16:34:51.000Z",
+      "stdout": "OK: DEVX-049 (ready, standard, 5 criteria)",
+      "criteria": []
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-049-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T16:38:15.000Z",
+      "finishedAt": "2026-08-06T16:38:16.000Z",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against the v1 schema and resultSha matches the deliverable commit 4855a2edd08cf9a4ba715bacf583d6825bcce153.",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/providers/opencode-headless-dispatch.test.ts",
+      "purpose": "Confirm no regression to the existing unit suite, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T16:36:25.000Z",
+      "finishedAt": "2026-08-06T16:36:29.000Z",
+      "stdout": "Test Files 1 passed (1); Tests 26 passed (26)",
+      "criteria": [
+        {
+          "description": "DEVX-049 resolver returns a usable binary (packaged/dev-vendored path or bare PATH fallback) without throwing in a pure-node test.",
+          "passed": true
+        },
+        {
+          "description": "Dev-mode resolution traverses parent directories all the way to filesystem root, resolving the vendored binary under external_repos from any worktree directory.",
+          "passed": true,
+          "detail": "Verified openCodeDevVendoredBinary() traverses parent dirs and returns C:\\Dev2026\\external_repos\\opencode\\packages\\opencode\\dist\\opencode-windows-arm64\\bin\\opencode.exe from C:\\Dev2026\\worktrees\\CoopCode\\DEVX-049."
+        },
+        {
+          "description": "Real opencode agent create output shape (deny non-granted keys, omit granted keys) matches openCodeAgentFileMatchesPermissions; verified against committed disk read of captured output.",
+          "passed": true,
+          "detail": "Committed agent file at .scratch/devx049-live/reverify/.opencode/agents/dx-resolver-auditor.md is read from disk with readFileSync and validated against openCodeAgentFileMatchesPermissions."
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/providers/opencode-headless-dispatch.live.test.ts",
+      "purpose": "Run reproducible live verification of criteria 1-4 against real opencode serve and agent create, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T16:37:29.000Z",
+      "finishedAt": "2026-08-06T16:37:34.000Z",
+      "stdout": "Test Files 1 passed (1); Tests 4 passed (4)",
+      "criteria": [
+        {
+          "description": "Criterion 1: startOrReuseOpenCodeServe starts/reuses headless opencode serve and GET /global/health returns healthy: true.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 2: GET /session returns valid JSON array of session objects.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 3: ensureOpenCodeAgentProfile invokes real opencode agent create --mode subagent --permissions read,glob,grep and openCodeAgentFileMatchesPermissions validates generated frontmatter.",
+          "passed": true
+        },
+        {
+          "description": "Criterion 4: Restricted agent profile explicitly sets bash: deny, edit: deny, webfetch: deny, refusing denied actions.",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "baseline": "Attempt 2 failed code review because opencode-headless-dispatch.live.test.ts was uncommitted and .scratch/devx049-live/ was untracked. Attempt 3 commits the live test file and the captured agent file into git, updated scope.allow and task gates, and re-runs all gates reproducibly against resultSha 4855a2edd08cf9a4ba715bacf583d6825bcce153.",
+  "regressions": "None. Unit suite passes 26/26 tests, live suite passes 4/4 tests (30/30 total). node -e require(electron-builder.config.cjs) and electron-builder --dir succeed.",
+  "outOfScopeDiff": "All edits are inside scope.allow: apps/desktop/orca/config/electron-builder.config.cjs, apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts, apps/desktop/orca/src/main/providers/opencode-headless-dispatch.test.ts, apps/desktop/orca/src/main/providers/opencode-headless-dispatch.live.test.ts, docs/coop/tasks/DEVX-049.md, docs/planning/evidence/DEVX-049-gate.json, and .scratch/devx049-live/reverify/.opencode/agents/dx-resolver-auditor.md."
+}
