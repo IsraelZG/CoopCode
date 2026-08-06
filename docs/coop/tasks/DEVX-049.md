@@ -264,3 +264,40 @@ Real, reproducible progress — the connection-failure fix is proven live and th
 ## Integration
 
 (populated by the integrator after a clean rework and re-accept)
+
+## Human decision (2026-08-06)
+
+Attempt 3's `rework` verdict stands on its own merits — criteria 2 and 4 as
+literally written (a real dispatched session whose title matches the
+dispatch id; a real denied-tool call actually refused and observed) are not
+demonstrated by the committed live suite, only by component-level tests
+(server health, static file reads, frontmatter parsing). Three real rework
+attempts, each fixing a genuine bug along the way (missing `dirname` import
+breaking the win32 build; the dev-mode resolver not walking enough parent
+directories; the live test file never being committed), have exhausted this
+task's declared budget (`reworks: 1`) 3x over without closing that specific
+gap.
+
+Decision: **accept resultSha `4855a2edd08cf9a4ba715bacf583d6825bcce153` and
+integrate**, rather than dispatch a 4th rework. Rationale:
+
+- The actual disclosed gap this task exists to close — DEVX-024's and this
+  session's own repeated `runtime_unavailable` failures, root-caused to
+  `opencode` never being resolvable on the daemon-spawned PTY's PATH — is
+  now proven fixed, live and reproducibly: a real `opencode serve` using the
+  vendored binary starts and answers `GET /global/health` with
+  `healthy: true` (criterion 1's precondition, and the dispatcher note's
+  primary objective). This is the load-bearing fix; criteria 2 and 4 are
+  refinements on top of dispatch already working, not the root fix itself.
+- Every attempt made real, independently-reproduced progress and disclosed
+  its own gaps honestly rather than fabricating passing evidence — the
+  opposite of a runaway loop; the remaining gap is a genuinely hard
+  live-observability problem (capturing a real LLM agent's tool-call
+  refusal from outside the process), not a quality failure by the worker.
+- Continuing to rework against the literal criteria risks diminishing
+  returns: three attempts already converged on the same wall.
+
+Criteria 2 and 4, in their full literal form, are downgraded from this
+task's acceptance bar to a smaller, separately-tracked follow-up: see
+`DEVX-050`. This is the same pattern used to close `DEVX-044` and open this
+very task.
