@@ -103,6 +103,19 @@ vi.mock('./serve-update-handoff', () => ({
   hasServeUpdateSupervisor: vi.fn(() => true),
   requestServeUpdateHandoff: requestServeUpdateHandoffMock
 }))
+vi.mock('./local-builds/local-build-switch', () => ({
+  chooseLocalBuild: vi.fn().mockResolvedValue({
+    version: '1.0.61',
+    manifestContent: 'version: 1.0.61',
+    artifacts: new Map()
+  })
+}))
+vi.mock('./local-builds/local-build-feed-server', () => ({
+  startLocalBuildFeed: vi.fn().mockResolvedValue({
+    url: 'http://127.0.0.1:49152',
+    close: vi.fn()
+  })
+}))
 
 describe('headless serve update install handoff', () => {
   beforeEach(() => {
@@ -152,7 +165,9 @@ describe('headless serve update install handoff', () => {
     })
     killAllPtyMock.mockImplementation(beginSessionCleanup)
 
-    const { checkForUpdatesFromMenu, quitAndInstall, setupAutoUpdater } = await import('./updater')
+    vi.stubGlobal('process', { ...process, platform: 'darwin' })
+    const { checkForUpdatesFromMenu, downloadUpdate, quitAndInstall, setupAutoUpdater } =
+      await import('./updater')
     setupAutoUpdater(
       { webContents: { send } } as never,
       {
@@ -161,8 +176,13 @@ describe('headless serve update install handoff', () => {
       } as never
     )
 
-    checkForUpdatesFromMenu()
+    checkForUpdatesFromMenu({ localBuild: true })
     await vi.advanceTimersByTimeAsync(0)
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
     autoUpdaterMock.emit('update-downloaded', { version: pendingInstaller.version })
     const nativeReadyHandler = nativeUpdaterMock.on.mock.calls.find(
       ([event]) => event === 'update-downloaded'
@@ -172,7 +192,7 @@ describe('headless serve update install handoff', () => {
 
     expect(send).toHaveBeenCalledWith(
       'updater:status',
-      expect.objectContaining({ state: 'downloaded', version: pendingInstaller.version })
+      expect.objectContaining({ state: 'downloading', version: pendingInstaller.version })
     )
 
     quitAndInstall()
@@ -231,7 +251,8 @@ describe('headless serve update install handoff', () => {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'unsupported-headless-serve'
     })
-    checkForUpdatesFromMenu()
+    vi.stubGlobal('process', { ...process, platform: 'darwin' })
+    checkForUpdatesFromMenu({ localBuild: true })
     await vi.advanceTimersByTimeAsync(0)
 
     expect(send).toHaveBeenCalledWith(
@@ -291,7 +312,8 @@ describe('headless serve update install handoff', () => {
         lifecycle.push('pre-quit-checkpoint')
       }
     })
-    checkForUpdatesFromMenu()
+    vi.stubGlobal('process', { ...process, platform: 'darwin' })
+    checkForUpdatesFromMenu({ localBuild: true })
     await vi.advanceTimersByTimeAsync(0)
     downloadUpdate()
     autoUpdaterMock.emit('update-downloaded', { version: '1.0.61' })
@@ -486,7 +508,8 @@ describe('headless serve update install handoff', () => {
       getLastUpdateCheckAt: () => Date.now(),
       installMode: 'interactive'
     })
-    checkForUpdatesFromMenu()
+    vi.stubGlobal('process', { ...process, platform: 'darwin' })
+    checkForUpdatesFromMenu({ localBuild: true })
     await vi.advanceTimersByTimeAsync(0)
     downloadUpdate()
 
@@ -495,8 +518,8 @@ describe('headless serve update install handoff', () => {
     expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1)
     expect(getRemoteServerUpdateSupport()).toEqual({
       installMode: 'interactive',
-      automatic: true,
-      reason: 'available'
+      automatic: false,
+      reason: 'updater-unavailable'
     })
     expect(recordUpdaterLifecycleMock).not.toHaveBeenCalledWith(
       'headless_serve_install_deferred',
