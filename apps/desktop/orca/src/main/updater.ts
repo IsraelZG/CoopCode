@@ -902,17 +902,10 @@ export function getRemoteServerUpdateSupport(): RemoteServerUpdateSupport {
       reason: 'manual-service-update-required'
     }
   }
-  if (!autoUpdaterInitialized) {
-    return {
-      installMode: updateInstallMode,
-      automatic: false,
-      reason: 'updater-unavailable'
-    }
-  }
   return {
     installMode: updateInstallMode,
-    automatic: true,
-    reason: 'available'
+    automatic: false,
+    reason: 'updater-unavailable'
   }
 }
 

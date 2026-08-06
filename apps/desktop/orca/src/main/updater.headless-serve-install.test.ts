@@ -518,8 +518,8 @@ describe('headless serve update install handoff', () => {
     expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1)
     expect(getRemoteServerUpdateSupport()).toEqual({
       installMode: 'interactive',
-      automatic: true,
-      reason: 'available'
+      automatic: false,
+      reason: 'updater-unavailable'
     })
     expect(recordUpdaterLifecycleMock).not.toHaveBeenCalledWith(
       'headless_serve_install_deferred',
