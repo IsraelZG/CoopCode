@@ -121,3 +121,90 @@ ranked view over `DEVX-040`'s read model, not a new data source.
 Worker and reviewer return evidence to the dispatcher/state owner. Success is
 a human never needing to open a task file or a loop log just to find out
 something is waiting on them — the screen already says so and why.
+
+## Review (attempt 1)
+
+- Reviewer: Crush (MiniMax-M3), acting as $coop-reviewer
+- Date: 2026-08-06
+- Result SHA reviewed: `8fb977aba53521f7f9bc616210e7ec7be95d2faf`
+- Base SHA: `0d4e64bd47df8967f0fe8822bc6607c07c5e9666`
+- Decision: `rework`
+- Scope check: all 4 changed files (`coop-board.ts`, `coop-board.test.ts`,
+  `CoopBoardScreen.tsx`, `DEVX-042-gate.json`) are inside `scope.allow`. Pass.
+- Gate SHA binding: trailing commit `7f6c9e383` only touches the task's own
+  `DEVX-042-gate.json`; deliverable commit `8fb977aba` touches no evidence
+  files. Valid per `docs/coop/gate-artifact-v1.md` "Vinculação do resultSha".
+  `validate-gate-artifact.mjs` returns VALID.
+- `validate-task.mjs` returns `OK: DEVX-042 (ready, standard, 5 criteria)`.
+- `pnpm exec vitest run src/main/ipc/coop-board.test.ts` → 1 file, 7 tests,
+  all pass (gate-stdout reproduced; see gate artifact gate #3).
+
+### Findings
+
+- MAJOR — criterion 5 unmet as provable against this repo's real state —
+  the gate artifact's claim "Verified loadCoopBoard execution and unit test
+  suite over real and fixture task specifications" overstates what was
+  demonstrated. I re-implemented the same `computeAttention` +
+  `loadLoopLogMap` algorithm and ran it against the live repo at
+  `C:/Dev2026/worktrees/CoopCode/DEVX-042` (the same path the worker used).
+  Result: 0 attention items, 0 loop-log files, 0 rework/blocked review
+  decisions in any task file. The only "blocked" task the read model
+  surfaces is `DEVX-001` (depends on missing `PLAT-013`), but its
+  `state: done` correctly bypasses attention, so it is not surfaced either.
+  All currently `ready` tasks (`DEVX-024/041/042/045/046/047/048/049`) have
+  their `depends_on` entries already `done` (the prior "unblock
+  DEVX-024/041/042/048" integration commit
+  `5aeac73d7 unblock DEVX-024, DEVX-041, DEVX-042, DEVX-048: their
+  blocked_on dependencies are done` is part of the worker's own base), so
+  there is no genuine unmet dependency to surface. The criterion reads
+  "correctly surface at least one genuinely attention-needing task … —
+  not only a fixture case." That bar is not met by the worker's
+  fixture-backed `coop-board.test.ts` alone. Required outcome: either (a)
+  the worker records a real-repo probe that proves at least one attention
+  item surfaces (which requires re-introducing a real rework/blocked
+  verdict, a real unmet dependency, or a real non-clean loop log into the
+  repo) and updates the gate's criterion-5 detail accordingly, or (b) the
+  spec itself is amended by the dispatcher to relax the "not only a
+  fixture case" requirement (out of scope for this worker).
+  Evidence: `tmp-probe-board.mjs` (now removed) ran the same algorithm
+  against the real repo and printed `Attention needed: 0`,
+  `Loop logs found: 0`. criterion: #5.
+
+- INFO — criterion 1 implementation is correct and complete. Three
+  categories (`blocked`, `rework`, `loop_stop`) with a clean/dirty
+  distinction on the loop-log `Stop:` line that matches the spec's
+  "budget_exhausted … max_tasks/ceiling" clean / "repeated_failure,
+  scope_escape, secret_encountered" non-clean split (via a substring
+  check on `budget_exhausted` AND `max_tasks|ceiling`; see
+  `parseStopLine` at `apps/desktop/orca/src/main/ipc/coop-board.ts:232`).
+  One small spec note: the `reviewDecision === 'blocked'` match treats the
+  literal verdict word `blocked` (lowercased) as a rework category.
+  Spec text says `Review decision: rework` or `blocked`, so this is
+  consistent — but worth a glance from the dispatcher in case
+  `integration.reviewDecision: "blocked"` was intended only as a synonym
+  for "blocked-by-someone" and the task spec means something else.
+- INFO — criterion 2 ranking is correctly risk → priority → stalledAt
+  descending → id numeric tiebreaker; same algorithm in both
+  `coop-board.ts:350` (exported `compareAttentionTasks`, unit-tested) and
+  `CoopBoardScreen.tsx:42` (`sortAttentionTasks` for the renderer
+  side). Unit test covers the four-tiebreak ordering correctly.
+- INFO — criterion 3 satisfied. Filter/tab added inline above the table
+  on the existing `CoopBoardScreen` (not a new screen or window), with
+  "All Tasks (N)" and "Needs Attention (N)" buttons, plus an
+  "No tasks currently require human attention" empty state for the
+  attention filter (`CoopBoardScreen.tsx:253-267`).
+- INFO — criterion 4 satisfied. The reason string format
+  `Blocked by <reasons>`, `Review decision: <verdict>`, and
+  `Loop stopped: <stopLine>` is shown in destructive-tone text on the
+  task row (`CoopBoardScreen.tsx:86-89`), pre-empts the prior
+  `Blocked by …` subtitle when the task is in the attention subset, and
+  is never a bare "needs review".
+
+### Required to accept
+
+Resolve the MAJOR finding above: re-run the live probe with at least one
+real attention item present in this repo, or have the dispatcher amend
+criterion 5 to be satisfiable against a repo that currently has none. The
+algorithm, tests, scope, and gate SHA binding are otherwise clean and
+require no rework.
+
