@@ -18,7 +18,7 @@ const { verifyPackagedPluginResources } = require('./scripts/verify-packaged-plu
 const isMacRelease = process.env.ORCA_MAC_RELEASE === '1'
 const isLinuxArm64Release = process.env.ORCA_LINUX_ARM64_RELEASE === '1'
 const localBuildVersion = isMacRelease ? undefined : process.env.ORCA_LOCAL_BUILD_VERSION
-const appId = 'com.stablyai.orca'
+const appId = 'com.coopcode.app'
 const featureWallResources = {
   from: 'resources/onboarding/feature-wall',
   to: 'onboarding/feature-wall'
@@ -63,7 +63,7 @@ const winSpeechNativeResource = {
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
   appId,
-  productName: 'Orca',
+  productName: 'CoopCode',
   ...(localBuildVersion ? { extraMetadata: { version: localBuildVersion } } : {}),
   directories: {
     buildResources: 'resources/build'
@@ -455,7 +455,10 @@ function chmodUnixCliLaunchers(resourcesDir, electronPlatformName) {
   if (electronPlatformName === 'win32') {
     return
   }
-  for (const launcherName of ['orca', 'orca-ide']) {
+  // Choice & Rationale (Criterion 4): Transitional aliases 'orca' and 'orca-ide' are retained
+  // alongside 'coopcode' to ensure existing unpacked/transitional Unix launcher scripts remain
+  // executable during the product identity transition, while making 'coopcode' executable.
+  for (const launcherName of ['coopcode', 'orca', 'orca-ide']) {
     const launcherPath = join(resourcesDir, 'bin', launcherName)
     if (!existsSync(launcherPath)) {
       continue

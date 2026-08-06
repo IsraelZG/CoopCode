@@ -1,11 +1,11 @@
 {
-  "name": "orca",
+  "name": "coopcode",
   "version": "1.4.160-rc.3",
   "description": "Next-gen IDE for parallel agentic development",
   "homepage": "https://github.com/stablyai/orca",
   "author": "stablyai",
   "bin": {
-    "orca": "./out/cli/index.js",
+    "coopcode": "./out/cli/index.js",
     "orca-dev": "./config/scripts/orca-dev.mjs"
   },
   "main": "./out/main/index.js",
