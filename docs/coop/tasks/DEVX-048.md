@@ -2,7 +2,7 @@
 {
   "id": "DEVX-048",
   "title": "OpenCode Sessions must list real per-worktree opencode serve instances, not a hardcoded global port nothing ever listens on",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -174,3 +174,13 @@ never a permanent, unconditional error for a target that was never real.
 ### Test-quality note
 
 The empty-registry test would have *failed* against the pre-change `client.ts` (which would have tried `127.0.0.1:54321` and returned `{ sessions: [], error: ... }` instead of `{ sessions: [] }`), so the new suite is a genuine regression test for criterion 3, not a tautology.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `5edb638a61c6998054bf6045067aea4092c1f001`
+- Merge commit: (this commit's parent — see git log)
+- Gate: task/Gate Artifact validators and 3/3 opencode-sdk vitest suite (`exit 0`, local vitest fallback — pnpm-arm64.cmd unavailable, same pre-existing gap documented elsewhere).
+- Note: `opencode-headless-dispatch.ts` was touched outside original scope.allow
+  (2-line `listRegisteredOpenCodeServes()` export); review found this justified
+  and the spec was retroactively amended by the worker. No further action needed.
