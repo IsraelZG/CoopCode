@@ -1,0 +1,100 @@
+{
+  "task": "DEVX-047",
+  "attempt": 1,
+  "baseSha": "0b328cda7743b6715b7deb95b728de72ab9de529",
+  "resultSha": "4b4374334421e95ef7265325da64760a4cec0798",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-05T16:54:32.000Z",
+  "finishedAt": "2026-08-05T16:56:46.558Z",
+  "baseline": "Base 0b328cda7743b6715b7deb95b728de72ab9de529 contains the DEVX-047 task spec. At base, App.tsx mounted CoopBoardScreen and OpenCodeSessionsScreen unconditionally inside RecoverableRenderErrorBoundary blocks (boundaryId overlay.coop-board / overlay.opencode-sessions) for every activeView; both screens returned a bare <Card className='mx-auto mt-8 ...'> with no visibility gate, so they visually appeared stacked in whatever empty space remained below the active screen (observed directly 2026-08-05 on the Automations view). CoopLearningReviewScreen (DEVX-043) already gated correctly on a coop-learning-review:open window event dispatched from a titlebar button — the precedent this task was asked to match if a pane fit did not. Investigation of the pane fit (criterion 1): lib/pane-manager's PaneManager is terminal/PTY-scoped (createInitialPane -> openTerminal, ptyId, terminal.focus(), WebGL/GPU rendering control, TerminalLeafId); tab-group's geometry/split layer is keyed per-worktree (every DOM lookup, captureTabGroupPanelGeometrySnapshot, resolvePanelEdgePaneColumnSplit and layout map uses data-worktree-id / groupsByWorktree / layoutByWorktree). The pane/tab model is inherently scoped to one worktree's workspace and cannot host a repo-root-scoped screen like the Coop Task Board (reads repoRoot via coopBoard:listTasks) or the global OpenCode Sessions registry without inventing a generic-widget pane kind the task explicitly forbids. Settings/SkillsPage-style activeView pages are the app's other non-worktree utility surface, but TopLevelView lives in shared/types.ts and sidebar entries in SidebarNav.tsx — both outside this task's scope.allow. Chosen fit: titlebar-button + window-event-gated docked overlay panels in App.tsx, matching the DEVX-043 precedent while staying fully inside scope.allow (App.tsx + the two component dirs). Result commit 4b4374334421e95ef7265325da64760a4cec0798 (relocate Coop Board and OpenCode Sessions into on-demand docked panels) makes both screens render null until their open event fires, docks them as right-side pointer-events-transparent panels (surrounding UI stays usable), and adds titlebar triggers.",
+  "regressions": "None observed. Both screens' pre-existing tsc errors (CoopBoardScreen.tsx:8 import depth TS2307 for ../../../main/ipc/coop-board and the getTaskStateLabel switch TS2366) are unchanged from base — verified by diffing base 0b328cda against HEAD: identical lines, not introduced by this task (DEVX-043's artifact documented the same pre-existing base errors). App.tsx and OpenCodeSessionsScreen.tsx typecheck clean. The two pre-existing TS6307 project-structure errors in tsconfig.web.json (main-process files not listed) are config noise unrelated to this change. No product behavior outside the relocated screens was modified.",
+  "outOfScopeDiff": "docs/planning/evidence/DEVX-047-board-open.png is a criterion-5 evidence artifact (hands-on screenshot of the board open in its new docked panel against this repo's real docs/coop/tasks, with the surrounding terminal/sidebar visible) — same convention DEVX-040's reviewer accepted for DEVX-040-board.png; the task's scope.allow names only the gate JSON, so the screenshot is recorded here as evidence media per repo convention, not as a code change. No source file outside scope.allow was touched.",
+  "artifacts": [
+    {
+      "path": "docs/planning/evidence/DEVX-047-board-open.png",
+      "sha256": "916037ef5ab046458a2f6ae38a4bcc6a2749a2c96e8e89f8c2a5e4f01e27b880"
+    }
+  ],
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-047.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-05T16:55:13.242Z",
+      "finishedAt": "2026-08-05T16:55:13.370Z",
+      "stdout": "OK: DEVX-047 (ready, standard, 5 criteria)\n",
+      "criteria": [
+        {
+          "description": "Task contract is valid and executable from base 0b328cda7743b6715b7deb95b728de72ab9de529.",
+          "passed": true,
+          "detail": "validate-task.mjs exits 0: 'OK: DEVX-047 (ready, standard, 5 criteria)'."
+        },
+        {
+          "description": "Criterion 1: pane-model worktree-scoping investigated and the fit chosen, documented in the Handoff/commit message.",
+          "passed": true,
+          "detail": "PaneManager is PTY-terminal-scoped and tab-group geometry/layout is keyed by data-worktree-id; the pane model cannot host a repo-root-scoped screen without the forbidden generic-widget system. Chosen: titlebar-button + window-event-gated docked overlay (DEVX-043 precedent), fully inside scope.allow."
+        },
+        {
+          "description": "Criterion 2: both screens reachable on demand and no longer mounted for every activeView.",
+          "passed": true,
+          "detail": "Titlebar buttons dispatch coop-board:open / opencode-sessions:open; each screen renders null until its event fires (verified by unit tests and the real-app capture)."
+        },
+        {
+          "description": "Criterion 3: each screen mounts only while open and unmounts when closed — no residual DOM node when closed.",
+          "passed": true,
+          "detail": "Screens return null when closed (matching CoopLearningReviewScreen); close button and Escape both remove the panel; unit tests assert the DOM node is gone after close."
+        },
+        {
+          "description": "Criterion 4: data fetch on open, refresh button, loading/error/empty states preserved.",
+          "passed": true,
+          "detail": "Fetch moves from mount-time to open-time; refresh/loading/error/empty JSX unchanged inside the new panel wrapper; 11 renderer tests cover all states including the real-app ENOENT error for a repo without docs/coop/tasks."
+        },
+        {
+          "description": "Criterion 5: hands-on evidence — screenshot of the board open in its new home with surrounding UI usable at the same time.",
+          "passed": true,
+          "detail": "docs/planning/evidence/DEVX-047-board-open.png captured 2026-08-05 through the real built Electron app (electron-headless Playwright): board panel open showing this repo's real tasks (including DEVX-047's own row 'Stop floating the Coop Task Board and OpenCode Se…'), with the left sidebar (Tasks nav, DEVX-047 repo entry) and terminal surface visible alongside — proving it no longer floats over unrelated screens. sha256 916037ef5ab046458a2f6ae38a4bcc6a2749a2c96e8e89f8c2a5e4f01e27b880."
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-047-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-05T16:57:41.851Z",
+      "finishedAt": "2026-08-05T16:57:41.954Z",
+      "stdout": "VALID\n",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against gate-artifact-v1 schema and is bound to resultSha 4b4374334421e95ef7265325da64760a4cec0798.",
+          "passed": true,
+          "detail": "validate-gate-artifact.mjs exits 0 (VALID); resultSha fixed at git rev-parse HEAD after the deliverable commit, before this artifact was written, never re-stamped (per docs/coop/gate-artifact-v1.md)."
+        }
+      ]
+    },
+    {
+      "command": "npx vitest run --config config/vitest.renderer.config.ts src/renderer/src/components/coop-board src/renderer/src/components/opencode-sessions",
+      "purpose": "Run this task's renderer tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-05T16:56:41.531Z",
+      "finishedAt": "2026-08-05T16:56:46.558Z",
+      "stdout": "\n RUN  v4.1.5 C:/Dev2026/worktrees/CoopCode/DEVX-047/apps/desktop/orca\n\n\n Test Files  2 passed (2)\n      Tests  11 passed (11)\n   Start at  13:56:43\n   Duration  2.55s (transform 147ms, setup 0ms, import 1.33s, tests 133ms, environment 2.31s)\n",
+      "criteria": [
+        {
+          "description": "CoopBoardScreen.test.tsx: 5/5 pass — gating (renders nothing until open event), fetch-on-open, task rows with state/blocking reasons, close button, Escape close, error state.",
+          "passed": true
+        },
+        {
+          "description": "OpenCodeSessionsScreen.test.tsx: 6/6 pass — gating, fetch-on-open, session rows, close button, Escape close, empty state, error state.",
+          "passed": true
+        },
+        {
+          "description": "Gate command deviation: the task's declared gate-3 command (tools/pnpm-arm64.cmd exec vitest run ...) cannot execute as literally declared in this worktree — tools/pnpm-arm64.cmd references a .toolchains/ directory absent from this checkout (pre-existing convention shared by ~10 closed DEVX tasks, documented in DEVX-040's review INFO). The equivalent local vitest binary was used with identical config and paths.",
+          "passed": true,
+          "detail": "Exit 0 with the same vitest.config.renderer include set and the same two test directories; matches DEVX-040's reviewer-validated fallback pattern."
+        }
+      ]
+    }
+  ]
+}
