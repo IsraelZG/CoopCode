@@ -12,8 +12,10 @@
   "scope": {"allow": [
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.test.ts",
+    "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.live.test.ts",
     "apps/desktop/orca/config/electron-builder.config.cjs",
-    "docs/planning/evidence/DEVX-049-gate.json"
+    "docs/planning/evidence/DEVX-049-gate.json",
+    ".scratch/devx049-live/reverify/.opencode/agents/dx-resolver-auditor.md"
   ]},
   "profiles": {"worker": "high", "reviewer": "high"},
   "budget": {"wall_minutes": 150, "attempts": 1, "reworks": 1},
@@ -29,6 +31,10 @@
     {
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/providers/opencode-headless-dispatch.test.ts",
       "purpose": "Confirm no regression to the existing unit suite, from apps/desktop/orca"
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/providers/opencode-headless-dispatch.live.test.ts",
+      "purpose": "Run reproducible live verification of criteria 1-4 against real opencode serve and agent create, from apps/desktop/orca"
     }
   ]
 }
