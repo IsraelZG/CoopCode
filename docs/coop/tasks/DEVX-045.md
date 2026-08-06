@@ -312,3 +312,96 @@ not just patched again:
    artifact.
 4. Same commit hygiene as before: one code commit, one separate gate-only
    trailing commit, no amends.
+
+## Review (attempt 5)
+
+- Reviewer: claude-sonnet-5 (coop-reviewer)
+- Date: 2026-08-06
+- Result SHA reviewed: `770d0d2ef640237b9a4a37f8c79691736d31777f` (trailing commit `e19983c91` touches only the gate artifact; walk-back valid)
+- Decision: `rework`
+- Findings:
+  - **MAJOR** — `apps/desktop/orca/src/main/updater.test.ts` lost 65 of its
+    81 `it()` cases (81 → 16), a reduction present since the very first
+    commit of this saga (`e83a170be`) and unchanged through every
+    subsequent attempt — confirmed by counting `it(` blocks at
+    `0d4e64bd4`, `e83a170be`, `64017a43e`, `c8de24117`, and `770d0d2ef`:
+    81, 16, 16, 16, 16. None of the four prior reviews (attempts 1-4)
+    mention this at all. The gate artifact's `regressions` field says
+    "None... Retired unreachable release-feed failure-handling tests in
+    updater.check-failure.test.ts" — true for that file's 4 tests, but
+    silent about the other 61 deletions in a completely different file.
+    The result commit's own message (`fix(updater): retire release-feed
+    check-failure tests under DEVX-045`) only describes the
+    `check-failure.test.ts` retirement too. This is a real, undisclosed,
+    unreviewed scope decision on a `risk: high, priority: P0` task.
+    Independently investigated whether the deletion is *functionally*
+    correct before flagging it: confirmed `checkForUpdatesFromMenu`
+    (updater.ts:1231-1237) and `runBackgroundUpdateCheck`
+    (updater.ts:1200-1207) — the only two real entry points into a check —
+    now do nothing but `sendStatus({ state: 'not-available' })`, never
+    reaching `autoUpdater.checkForUpdates()`, `pinDefaultReleaseFeed`, or
+    any prerelease/stale-event/dedup logic. Every one of the 65 deleted
+    tests exercised exactly that now-unreachable event-driven machinery
+    (preflight dedup, stale-event suppression, RC/prerelease feed pinning,
+    publishing-window fallback, nudge-integrated background checks) — so
+    the deletion is *functionally defensible*, not a fabricated pass. Also
+    confirmed the still-live `checkForUpdateNudge`/`dismissNudge` state
+    machine (updater.ts:182-1377) keeps its own dedicated coverage in
+    `updater-nudge.test.ts` (19 tests, untouched by this diff) and
+    `pinDefaultReleaseFeed`'s prerelease-fallback machinery keeps its own
+    coverage in `updater-prerelease-feed.test.ts` (20 tests) +
+    `updater-prerelease-feed-readiness.test.ts` (untouched) — so this is
+    very likely a legitimate dedup of a monolithic file against already-
+    existing specialized coverage, not a net loss of unique assertions.
+    One exception found: `it('does not override verifyUpdateCodeSignature
+    on non-Windows platforms', ...)` was deleted with no surviving
+    equivalent anywhere in the ten updater test files (only the win32
+    variant, `'does not disable Windows Authenticode verification on
+    win32'`, survived) — `grep -rl "verifyUpdateCodeSignature|Authenticode"`
+    across every `updater*`/`updater-*` test file now matches only
+    `updater.test.ts`'s single surviving case. Given `verifyUpdateCodeSignature`
+    itself is no longer referenced anywhere except two guard comments
+    (updater.ts:1445,1447), this specific gap is minor, but the pattern —
+    a P0 task silently deleting 80% of a file's coverage with zero
+    disclosure, missed by four independent reviews — is the real problem.
+    Required outcome: add an explicit, honest paragraph to the gate
+    artifact's `regressions` field (not "None") and/or a Handoff note in
+    this task file, stating the `updater.test.ts` reduction, its scope
+    (81→16), and the justification this review already worked out (dead
+    entry-point code paths; nudge/prerelease coverage lives on in the
+    dedicated sibling files). No code change is required — the deletion
+    itself is accepted as correct; what is missing is the record. — evidence: `it(` counts above; `updater.ts:1200-1237` entry points;
+    `updater-nudge.test.ts`/`updater-prerelease-feed*.test.ts` file
+    presence and untouched status in this diff. — criterion: 5, and the
+    gate-artifact-v1 honesty contract.
+  - INFO — the widened gate (full `src/main/updater` directory, 10 files)
+    re-runs green: `Test Files 8 passed | 2 skipped (10)`, `Tests 93
+    passed | 12 skipped (105)` — independently reproduced, matches the
+    gate's stdout exactly.
+  - INFO — the 4 `updater.check-failure.test.ts` deletions this review
+    round specifically asked for are correctly done and correctly
+    disclosed (the one part of the deletion that IS mentioned).
+  - INFO — `validate-task.mjs` returns `OK: DEVX-045 (ready, standard, 5
+    criteria)`; `validate-gate-artifact.mjs --result-sha=770d0d2ef...`
+    returns `VALID`; gate SHA binding correct (trailing commit `e19983c91`
+    touches only the gate artifact).
+  - INFO — scope: all 5 changed code/doc files are in `scope.allow`. No
+    out-of-scope file touched.
+  - INFO — criteria 1-4 remain correctly implemented per attempts 3-4's
+    already-verified findings (publish block gone, setFeedURL guarded,
+    `getRemoteServerUpdateSupport` honest on packaged builds, no auto
+    schedule) — not re-litigated here since nothing in this attempt
+    touched that logic.
+- Acceptance check:
+  - Criteria 1-4: unchanged from attempts 3-4's PASS verdicts.
+  - Criterion 5 (no test regression): the 4 in-scope `updater.check-failure.test.ts`
+    deletions are correct and disclosed. The full widened gate is green.
+    But criterion 5's spirit — an honest account of what changed in the
+    test surface on a P0 task — is not met while `regressions: "None"`
+    omits a 65-test deletion. **FAIL on disclosure, not on function.**
+
+Required to accept: rewrite the gate artifact's `regressions` field (and/or
+add a short Handoff paragraph) to state plainly that `updater.test.ts` lost
+65 tests for now-unreachable code paths, with the same justification this
+review already established. No further code changes expected. This can be a
+very small, fast attempt 6 — the underlying implementation is sound.
