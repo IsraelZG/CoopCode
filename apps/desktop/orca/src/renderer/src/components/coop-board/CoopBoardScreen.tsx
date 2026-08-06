@@ -23,6 +23,15 @@ export type CoopTaskEvidenceFile = {
   fileType: 'image' | 'text' | 'json' | 'markdown' | 'other'
 }
 
+export type CoopTaskAttentionCategory = 'blocked' | 'rework' | 'loop_stop'
+
+export type CoopTaskAttention = {
+  needed: boolean
+  category?: CoopTaskAttentionCategory
+  reason?: string
+  stalledAt?: number
+}
+
 export type CoopBoardTask = {
   id: string
   title: string
@@ -40,6 +49,8 @@ export type CoopBoardTask = {
   evidenceFiles: CoopTaskEvidenceFile[]
   evidenceClaimed: boolean
   evidenceMissing: boolean
+  attention?: CoopTaskAttention
+  mtimeMs?: number
 }
 
 export type CoopBoardResult = {
@@ -57,6 +68,45 @@ const STATE_BADGE_VARIANT: Record<CoopTaskState, 'default' | 'secondary' | 'outl
   review: 'secondary',
   done: 'outline',
   blocked: 'destructive'
+}
+
+const RISK_RANK: Record<string, number> = {
+  high: 0,
+  routine: 1
+}
+
+function getRiskRank(risk: string): number {
+  return RISK_RANK[risk.toLowerCase()] ?? 2
+}
+
+function getPriorityRank(priority: string): number {
+  const match = priority.match(/^P(\d+)$/i)
+  return match ? parseInt(match[1], 10) : 99
+}
+
+function compareTaskIdNumbers(a: string, b: string): number {
+  const aNumber = Number(a.match(/\d+$/)?.[0] ?? Number.NaN)
+  const bNumber = Number(b.match(/\d+$/)?.[0] ?? Number.NaN)
+  if (Number.isFinite(aNumber) && Number.isFinite(bNumber) && aNumber !== bNumber) {
+    return aNumber - bNumber
+  }
+  return a.localeCompare(b)
+}
+
+function sortAttentionTasks(a: CoopBoardTask, b: CoopBoardTask): number {
+  const riskDiff = getRiskRank(a.risk) - getRiskRank(b.risk)
+  if (riskDiff !== 0) return riskDiff
+
+  const priorityDiff = getPriorityRank(a.priority) - getPriorityRank(b.priority)
+  if (priorityDiff !== 0) return priorityDiff
+
+  const aStalled = a.attention?.stalledAt ?? a.mtimeMs ?? 0
+  const bStalled = b.attention?.stalledAt ?? b.mtimeMs ?? 0
+  if (bStalled !== aStalled) {
+    return bStalled - aStalled
+  }
+
+  return compareTaskIdNumbers(a.id, b.id)
 }
 
 function getTaskStateLabel(state: CoopTaskState): string {
@@ -140,7 +190,11 @@ function TaskRow({
             </Badge>
           ) : null}
         </div>
-        {task.blockingReasons.length > 0 ? (
+        {task.attention?.needed && task.attention.reason ? (
+          <p className="mt-1 truncate text-xs font-medium text-destructive">
+            {task.attention.reason}
+          </p>
+        ) : task.blockingReasons.length > 0 ? (
           <p className="mt-1 truncate text-xs text-muted-foreground">
             Blocked by {task.blockingReasons.join(', ')}
           </p>
@@ -416,6 +470,7 @@ export default function CoopBoardScreen() {
   const [loading, setLoading] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [previewFile, setPreviewFile] = useState<CoopTaskEvidenceFile | null>(null)
+  const [filter, setFilter] = useState<'all' | 'attention'>('all')
 
   const fetchBoard = useCallback(async () => {
     if (!repoRoot) {
@@ -464,6 +519,16 @@ export default function CoopBoardScreen() {
     if (!result?.tasks) return null
     return result.tasks.find((t) => t.id === selectedTaskId) ?? result.tasks[0] ?? null
   }, [result?.tasks, selectedTaskId])
+
+  const attentionTasks = useMemo(() => {
+    if (!result?.tasks) return []
+    return result.tasks.filter((task) => task.attention?.needed).sort(sortAttentionTasks)
+  }, [result?.tasks])
+
+  const displayedTasks = useMemo(() => {
+    if (!result?.tasks) return []
+    return filter === 'attention' ? attentionTasks : result.tasks
+  }, [filter, result?.tasks, attentionTasks])
 
   if (!open) {
     return null
@@ -516,28 +581,55 @@ export default function CoopBoardScreen() {
               <p className="py-4 text-center text-sm text-muted-foreground">No Coop task specs found.</p>
             ) : (
               <div className="space-y-4">
-                <div className="overflow-hidden rounded-md border">
-                  <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    <span>Task</span>
-                    <span>Lifecycle</span>
-                    <span>State</span>
-                    <span className="text-right">Meta</span>
-                  </div>
-                  <div className="max-h-[380px] divide-y overflow-auto scrollbar-sleek">
-                    {result?.tasks.map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        isSelected={task.id === selectedTask?.id}
-                        onSelect={() => setSelectedTaskId(task.id)}
-                      />
-                    ))}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={filter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilter('all')}
+                  >
+                    All Tasks ({result?.tasks.length ?? 0})
+                  </Button>
+                  <Button
+                    variant={filter === 'attention' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilter('attention')}
+                    className="gap-1.5"
+                  >
+                    Needs Attention
+                    <Badge variant={attentionTasks.length > 0 ? 'destructive' : 'secondary'} className="px-1.5 py-0 text-[10px]">
+                      {attentionTasks.length}
+                    </Badge>
+                  </Button>
                 </div>
 
-                {selectedTask ? (
-                  <TaskDetailSection task={selectedTask} onOpenPreview={(file) => setPreviewFile(file)} />
-                ) : null}
+                {displayedTasks.length === 0 && filter === 'attention' ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No tasks currently require human attention.</p>
+                ) : (
+                  <>
+                    <div className="overflow-hidden rounded-md border">
+                      <div className="grid grid-cols-[112px_1fr_104px_160px] gap-3 border-b bg-muted/40 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span>Task</span>
+                        <span>Lifecycle</span>
+                        <span>State</span>
+                        <span className="text-right">Meta</span>
+                      </div>
+                      <div className="max-h-[380px] divide-y overflow-auto scrollbar-sleek">
+                        {displayedTasks.map((task) => (
+                          <TaskRow
+                            key={task.id}
+                            task={task}
+                            isSelected={task.id === selectedTask?.id}
+                            onSelect={() => setSelectedTaskId(task.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedTask ? (
+                      <TaskDetailSection task={selectedTask} onOpenPreview={(file) => setPreviewFile(file)} />
+                    ) : null}
+                  </>
+                )}
               </div>
             )}
 

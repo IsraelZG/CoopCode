@@ -21,6 +21,15 @@ export type CoopTaskEvidenceFile = {
   fileType: 'image' | 'text' | 'json' | 'markdown' | 'other'
 }
 
+export type CoopTaskAttentionCategory = 'blocked' | 'rework' | 'loop_stop'
+
+export type CoopTaskAttention = {
+  needed: boolean
+  category?: CoopTaskAttentionCategory
+  reason?: string
+  stalledAt?: number
+}
+
 export type CoopBoardTask = {
   id: string
   title: string
@@ -38,6 +47,8 @@ export type CoopBoardTask = {
   evidenceFiles: CoopTaskEvidenceFile[]
   evidenceClaimed: boolean
   evidenceMissing: boolean
+  attention?: CoopTaskAttention
+  mtimeMs?: number
 }
 
 export type CoopBoardResult = {
@@ -270,6 +281,7 @@ async function readTaskFile(
   liveWorktrees: Map<string, WorktreeRecord>,
   evidenceMap: Map<string, CoopTaskEvidenceFile[]>
 ): Promise<CoopBoardTask> {
+  const fileStat = await stat(taskPath)
   const text = await readFile(taskPath, 'utf8')
   const frontmatter = parseFrontmatter(text)
   const id = asString(frontmatter.id)
@@ -297,13 +309,155 @@ async function readTaskFile(
     integration: parseIntegration(text),
     evidenceFiles,
     evidenceClaimed,
-    evidenceMissing
+    evidenceMissing,
+    mtimeMs: fileStat.mtimeMs
   }
+}
+
+type LoopLogStopInfo = {
+  stopLine: string
+  isClean: boolean
+  mtimeMs: number
+}
+
+function parseStopLine(text: string): { stopLine: string; isClean: boolean } | undefined {
+  const lines = text.split(/\r?\n/)
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim()
+    if (line.startsWith('Stop:')) {
+      const stopLineText = line.slice('Stop:'.length).trim()
+      const lower = stopLineText.toLowerCase()
+      const isBudgetExhausted = lower.includes('budget_exhausted')
+      const isCeilingOrMaxTasks = lower.includes('max_tasks') || lower.includes('ceiling')
+      const isClean = isBudgetExhausted && isCeilingOrMaxTasks
+      return { stopLine: stopLineText, isClean }
+    }
+  }
+  return undefined
+}
+
+async function loadLoopLogMap(evidenceRoot: string): Promise<Map<string, LoopLogStopInfo>> {
+  const logMap = new Map<string, LoopLogStopInfo>()
+  try {
+    const entries = await readdir(evidenceRoot, { withFileTypes: true })
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.endsWith('-log.md')) {
+        const match = entry.name.match(/^([A-Z0-9]+-\d+).*-log\.md$/i)
+        if (match) {
+          const taskId = match[1].toUpperCase()
+          const logPath = path.join(evidenceRoot, entry.name)
+          try {
+            const fileStat = await stat(logPath)
+            const text = await readFile(logPath, 'utf8')
+            const parsed = parseStopLine(text)
+            if (parsed) {
+              logMap.set(taskId, {
+                stopLine: parsed.stopLine,
+                isClean: parsed.isClean,
+                mtimeMs: fileStat.mtimeMs
+              })
+            }
+          } catch {
+            // Ignore unreadable log file
+          }
+        }
+      }
+    }
+  } catch {
+    // Evidence directory might not exist
+  }
+  return logMap
+}
+
+function computeAttention(
+  tasks: CoopBoardTask[],
+  logMap: Map<string, LoopLogStopInfo>
+): CoopBoardTask[] {
+  return tasks.map((task) => {
+    if (task.state === 'done') {
+      return {
+        ...task,
+        attention: { needed: false }
+      }
+    }
+
+    const logInfo = logMap.get(task.id)
+    const hasNonCleanLogStop = Boolean(logInfo && !logInfo.isClean)
+    const reviewDecision = task.integration?.reviewDecision?.toLowerCase()
+    const hasReworkVerdict = reviewDecision === 'rework' || reviewDecision === 'blocked'
+    const isBlocked = task.blocked || task.blockedOn.length > 0
+
+    if (!hasNonCleanLogStop && !hasReworkVerdict && !isBlocked) {
+      return {
+        ...task,
+        attention: { needed: false }
+      }
+    }
+
+    let category: CoopTaskAttentionCategory = 'blocked'
+    let reason = ''
+    let stalledAt = task.mtimeMs ?? 0
+
+    if (hasNonCleanLogStop) {
+      category = 'loop_stop'
+      reason = `Loop stopped: ${logInfo?.stopLine}`
+      stalledAt = logInfo?.mtimeMs || stalledAt
+    } else if (hasReworkVerdict) {
+      category = 'rework'
+      reason = `Review decision: ${task.integration?.reviewDecision}`
+    } else if (isBlocked) {
+      category = 'blocked'
+      const reasonsText =
+        task.blockingReasons.length > 0 ? task.blockingReasons.join(', ') : task.blockedOn.join(', ')
+      reason = `Blocked by ${reasonsText}`
+    }
+
+    return {
+      ...task,
+      attention: {
+        needed: true,
+        category,
+        reason,
+        stalledAt
+      }
+    }
+  })
+}
+
+const RISK_RANK: Record<string, number> = {
+  high: 0,
+  routine: 1
+}
+
+function getRiskRank(risk: string): number {
+  return RISK_RANK[risk.toLowerCase()] ?? 2
+}
+
+function getPriorityRank(priority: string): number {
+  const match = priority.match(/^P(\d+)$/i)
+  return match ? parseInt(match[1], 10) : 99
+}
+
+export function compareAttentionTasks(a: CoopBoardTask, b: CoopBoardTask): number {
+  const riskDiff = getRiskRank(a.risk) - getRiskRank(b.risk)
+  if (riskDiff !== 0) return riskDiff
+
+  const priorityDiff = getPriorityRank(a.priority) - getPriorityRank(b.priority)
+  if (priorityDiff !== 0) return priorityDiff
+
+  const aStalled = a.attention?.stalledAt ?? a.mtimeMs ?? 0
+  const bStalled = b.attention?.stalledAt ?? b.mtimeMs ?? 0
+  if (bStalled !== aStalled) {
+    return bStalled - aStalled
+  }
+
+  return compareTaskIds(a.id, b.id)
 }
 
 export async function loadCoopBoard(options: LoadCoopBoardOptions): Promise<CoopBoardResult> {
   const repoRoot = path.resolve(options.repoRoot)
   const tasksRoot = path.join(repoRoot, 'docs', 'coop', 'tasks')
+  const evidenceRoot = path.join(repoRoot, 'docs', 'planning', 'evidence')
   const porcelain = options.worktreePorcelain ?? (await getWorktreePorcelain(repoRoot))
   const liveWorktrees = worktreeByTaskId(parseWorktreePorcelain(porcelain))
   const evidenceMap = await loadEvidenceFilesMap(repoRoot)
@@ -311,11 +465,16 @@ export async function loadCoopBoard(options: LoadCoopBoardOptions): Promise<Coop
   const taskFiles = entries
     .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
     .map((entry) => path.join(tasksRoot, entry.name))
-  const tasks = await Promise.all(taskFiles.map((taskPath) => readTaskFile(taskPath, liveWorktrees, evidenceMap)))
+  const [tasks, logMap] = await Promise.all([
+    Promise.all(taskFiles.map((taskPath) => readTaskFile(taskPath, liveWorktrees, evidenceMap))),
+    loadLoopLogMap(evidenceRoot)
+  ])
   tasks.sort((a, b) => compareTaskIds(a.id, b.id))
+  const blockedTasks = computeBlocking(tasks)
+  const tasksWithAttention = computeAttention(blockedTasks, logMap)
   return {
     repoRoot,
-    tasks: computeBlocking(tasks)
+    tasks: tasksWithAttention
   }
 }
 
