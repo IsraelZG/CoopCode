@@ -1,20 +1,20 @@
 {
   "task": "DEVX-042",
-  "attempt": 1,
+  "attempt": 2,
   "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
-  "resultSha": "8fb977aba53521f7f9bc616210e7ec7be95d2faf",
+  "resultSha": "09ac6f48ec1ca34dc95eea8a6f6e1ca8b8bdcef4",
   "platform": "win32",
   "arch": "arm64",
   "startedAt": "2026-08-05T14:01:30.000Z",
-  "finishedAt": "2026-08-06T08:48:30.000Z",
+  "finishedAt": "2026-08-06T09:51:00.000Z",
   "nodeVersion": "v22.20.0",
   "gates": [
     {
       "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-042.md",
       "purpose": "Validate the task contract",
       "exitCode": 0,
-      "startedAt": "2026-08-05T14:02:00.000Z",
-      "finishedAt": "2026-08-05T14:02:09.000Z",
+      "startedAt": "2026-08-06T09:49:00.000Z",
+      "finishedAt": "2026-08-06T09:49:01.000Z",
       "stdout": "OK: DEVX-042 (ready, standard, 5 criteria)",
       "criteria": [
         {
@@ -27,13 +27,13 @@
       "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-042-gate.json",
       "purpose": "Prove gate evidence is bound to the result SHA",
       "exitCode": 0,
-      "startedAt": "2026-08-06T08:48:35.000Z",
-      "finishedAt": "2026-08-06T08:48:36.000Z",
+      "startedAt": "2026-08-06T09:51:05.000Z",
+      "finishedAt": "2026-08-06T09:51:06.000Z",
       "criteria": [
         {
           "description": "Gate artifact validates against the v1 schema with the fixed result SHA",
           "passed": true,
-          "detail": "resultSha 8fb977aba is git rev-parse HEAD of the deliverable commit, fixed before the artifact was written"
+          "detail": "resultSha 09ac6f48e is git rev-parse HEAD of deliverable commit 09ac6f48e, fixed before the artifact was written"
         }
       ]
     },
@@ -41,8 +41,8 @@
       "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
       "purpose": "Run only this task's tests, from apps/desktop/orca",
       "exitCode": 0,
-      "startedAt": "2026-08-05T16:55:45.000Z",
-      "finishedAt": "2026-08-05T16:55:48.000Z",
+      "startedAt": "2026-08-06T09:50:14.000Z",
+      "finishedAt": "2026-08-06T09:50:15.000Z",
       "stdout": "Test Files  1 passed (1)\nTests  7 passed (7)",
       "criteria": [
         {
@@ -68,7 +68,7 @@
         {
           "description": "Hands-on evidence against real repo state",
           "passed": true,
-          "detail": "Verified loadCoopBoard execution and unit test suite over real and fixture task specifications"
+          "detail": "Live probe against real repo with DEVX-990-attention-probe.md present surfaced task DEVX-990 as a real attention item with reason 'Blocked by DEVX-046'"
         }
       ]
     }
@@ -85,6 +85,10 @@
     {
       "path": "apps/desktop/orca/src/renderer/src/components/coop-board/CoopBoardScreen.tsx",
       "sha256": "af55afcb81926c57f62947f1a22ee4907c0e4a05dc622fef4962ffd4d1cfde52"
+    },
+    {
+      "path": "docs/coop/tasks/DEVX-990-attention-probe.md",
+      "sha256": "e8f039729f00cdacfb1170b452c15e55a95dbe9d5d96ad31c89bf46a5c05d417"
     }
   ]
 }
