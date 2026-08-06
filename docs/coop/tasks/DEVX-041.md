@@ -2,7 +2,7 @@
 {
   "id": "DEVX-041",
   "title": "Show a task's hands-on evidence files inline on the board instead of leaving them as unlinked prose claims",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -144,3 +144,18 @@ extends that read model rather than building a parallel one.
   - INFO — scope compliance. The rework commits add `docs/planning/evidence/DEVX-041-board.{png,jpg}` and `DEVX-041-evidence.md`, none of which is in the original `scope.allow`. However, the spec for criterion 5 (Plan and test mapping item 4) explicitly requires "Capture hands-on evidence … substitute a fixture case … stated plainly" — and the convention in this repo, observed in DEVX-040 (which also has `DEVX-040-board.{png,jpg}` and `DEVX-040-live-board.json` in `docs/planning/evidence/` while its scope.allow only lists `DEVX-040-gate.json`), is that hands-on evidence files are written there regardless. The original spec is internally inconsistent (criterion 5 demands a file under `docs/planning/evidence/DEVX-041-*` that scope.allow doesn't list) — this is a spec-planning defect, not a worker defect. Not blocking. — criterion: 5.
   - INFO — vitest suite re-runs green from `apps/desktop/orca` (7 tests, all pass) in this session. Criteria 1–4 remain as verified in attempt 1: case-insensitive evidence prefix list, inline thumbnail + full-size modal, in-app .md/.json preview, "claimed but missing" destructive badge wired to a real regex that also matches the Portuguese variants. The five naturally-occurring claimed-but-missing cases (DEVX-024, 042, 046, 047, 048) still exist in this repo and would render as flagged on the board.
 - Resolution of attempt-1 findings: BLOCKER on criterion 5 is resolved by the new evidence files and accompanying report. MAJOR on vitest duration is corrected to 63ms (still labelled self-reported, not wall time — see MINOR above). All INFO entries from attempt 1 remain accurate. The implementation, the supporting report, and the gate artifact together satisfy the spec. `accept`.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `9450c517440b6bb0c6f88e717514e5964fa212da`
+- Merge commit: `e6608d935`
+- Gate: task/Gate Artifact validators, 11/11 renderer vitest suite, 7/7 main-process coop-board suite (`exit 0`).
+- Real conflict with `DEVX-047` in `CoopBoardScreen.tsx` (041 branched before
+  047's docked-panel relocation existed): resolved by combining 047's
+  open/close/Escape gating and docked-panel wrapper with 041's task
+  selection state, `TaskDetailSection`, evidence thumbnails, and preview
+  modal. Also fixed 047's own `CoopBoardScreen.test.tsx` fixtures, which
+  predated the `evidenceFiles`/`evidenceClaimed`/`evidenceMissing` fields
+  041 added to `CoopBoardTask` and crashed `TaskRow` at render time without
+  them.
