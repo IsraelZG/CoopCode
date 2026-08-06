@@ -112,7 +112,7 @@ describe('OpenCodeSessionsScreen', () => {
     await renderScreen()
     await openScreen()
     await flushEffects()
-    expect(document.body.textContent).toContain('No sessions found.')
+    expect(document.body.textContent).toContain('No active OpenCode dispatches')
   })
 
   it('shows the load error state from the IPC result', async () => {
