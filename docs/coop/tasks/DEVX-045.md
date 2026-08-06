@@ -14,6 +14,7 @@
     "apps/desktop/orca/src/main/updater.ts",
     "apps/desktop/orca/src/main/updater.test.ts",
     "apps/desktop/orca/src/main/updater.headless-serve-install.test.ts",
+    "apps/desktop/orca/src/main/updater.check-failure.test.ts",
     "apps/desktop/orca/src/main/updater-fallback.ts",
     "docs/planning/evidence/DEVX-045-gate.json"
   ]},
@@ -29,8 +30,8 @@
       "purpose": "Prove gate evidence is bound to the result SHA"
     },
     {
-      "command": "../../../tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/updater.test.ts",
-      "purpose": "Run the updater test suite, from apps/desktop/orca"
+      "command": "../../../tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/updater",
+      "purpose": "Run the FULL updater test surface (all 10 updater*/updater-*.test.ts files, directory-prefix match), from apps/desktop/orca — widened after three rework attempts each broke a sibling file the narrower per-file gate never covered"
     }
   ]
 }
@@ -274,3 +275,40 @@ MINOR from attempt 1 (`pinDefaultReleaseFeed` dead code still hardcoding the
 `stablyai/orca` URL, unreachable but fragile) — fix if small and contained
 while already in this file; otherwise leave it and say so in the handoff,
 per the original reviewer's own framing.
+
+## Rework note 2 (2026-08-06) — attempt 5, root cause of the whack-a-mole
+
+Three reworks in a row each fixed the previous review's finding and broke a
+*different* sibling test file the declared gate never ran — because the
+gate only ever covered `updater.test.ts` (plus a manually-added
+`updater.headless-serve-install.test.ts`), while `apps/desktop/orca/src/main/`
+has **10** `updater*`/`updater-*` test files. This is now fixed structurally,
+not just patched again:
+
+1. **Gate widened for good**: `scope.allow` and the declared gate command
+   above now cover `updater.check-failure.test.ts` and, more importantly,
+   the gate command changed from an enumerated single file to the directory
+   prefix `src/main/updater` — vitest resolves this to all 10 files
+   (verified directly: `Test Files ... (10)`). Do not narrow this back to a
+   single file in this or any future attempt.
+2. **The actual remaining failure**: `updater.check-failure.test.ts` (4
+   tests, all in one `describe('updater check failure handling')` block) is
+   *entirely* about the release-feed check-failure path — `'checking'` →
+   `'error'` transitions, the idle/benign-failure drop, and the
+   consecutive-failure backoff — all of which assumed `autoUpdater.checkForUpdates()`
+   gets called for the release feed and can fail. After this task's own
+   change, that call never happens for the release feed at all (this task's
+   entire point). These 4 tests assert behavior that is now categorically
+   unreachable, not a regression to preserve. Delete the 4 tests (the whole
+   file's only content), with a short comment/commit message explaining why:
+   the release-feed failure-handling path they tested no longer exists
+   because release-feed checking itself is disabled by this task. Do not
+   invent a new assertion that keeps the file "passing" against nothing —
+   remove it cleanly, matching how `pinDefaultReleaseFeed`'s own dead-code
+   status was already documented earlier in this file's review history.
+3. Re-run the full widened gate (`vitest run --config config/vitest.config.ts
+   src/main/updater`) and confirm all 10 files show 0 failures (skips are
+   fine, matches existing darwin-only skip pattern) before writing the gate
+   artifact.
+4. Same commit hygiene as before: one code commit, one separate gate-only
+   trailing commit, no amends.
