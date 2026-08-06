@@ -196,3 +196,102 @@ stops early for a legitimate stop condition, logged and explained, is a
 **pass** — the point is a loop that dispatches for real and halts safely and
 visibly, not one that runs to completion by substituting a different
 mechanism than the one it was asked to prove.
+
+## Review (attempt 1)
+
+- Reviewer: Crush (MiniMax-M3), invoked via `$coop-reviewer`
+- Date: 2026-08-06
+- Result SHA reviewed: `77ad2ffd6f2ddf87fdc53dde247face14aaa6762`
+- baseSha: `0d4e64bd47df8967f0fe8822bc6607c07c5e9666`
+- HEAD at review: `cca4b8ac88fa2b0c09f5fd1adcfadd57fa54037c` (trailing
+  gate-binding commit; touches only `docs/planning/evidence/DEVX-024-gate.json`
+  — the documented exception in `coop-reviewer` SKILL §"Vinculação do
+  `resultSha`")
+- Decision: `accept`
+- Findings:
+  - INFO — `tools/corpus-learning/chunk-runner.mjs:197,207` — real
+    dispatch path: every chunk goes through
+    `orchestration task-create` + `orchestration worker-start --agent opencode`
+    via `spawnSync`. There is no `direct-*` execution branch, no other
+    agent type, and no fallback path. Confirmed by `grep -nE
+    "agent.*['\"]?(crush|claude|grok|direct)"` returning zero matches —
+    criterion 2 met.
+  - INFO — `tools/corpus-learning/chunk-runner.mjs:64-101,116-134,143-166` —
+    the state machine is split out as a pure layer (no I/O beyond the
+    state file) so `test-chunk-runner.mjs` exercises the real
+    `saveState`/`loadState`/`markInProgress`/`markOutcome`/`decideStop`
+    through an actual file round-trip, including a simulated crash + restart
+    that must resume rather than restart. 21/21 assertions pass on a fresh
+    run here — criterion 1 met, and the test would fail without the
+    crash-resume + atomic-tmp-file + corrupt-state handling.
+  - INFO — `tools/corpus-learning/chunk-runner.mjs:143-166` — `decideStop`
+    covers `all_chunks_done`, `budget_exhausted` (with
+    `attempted >= maxTasks` honored — counts every dispatch attempt,
+    successful or failed), and `repeated_failure` (per-chunk retry limit).
+    All three branches are exercised by the self-test. The loop stopped
+    legitimately at `budget_exhausted` after 10 dispatches — criterion 3
+    met.
+  - INFO — `docs/planning/evidence/DEVX-024-loop-log.md:1-182` — the log
+    records, for each of 10 chunks: chunk id, task id (real id returned
+    by `task-create`), session title, start/end time, outcome, error.
+    `candidate rules` is recorded as `n/a (see dispatch session output)`
+    because no chunk actually produced rules — see MAJOR-equivalent
+    observation below.
+  - MAJOR (allowed) — `docs/planning/evidence/DEVX-024-loop-log.md:23-30,148-158` —
+    the dispatched opencode sessions did NOT progress: 9 of 10
+    `worker-start` calls returned `runtime_unavailable`; the one that was
+    accepted (`ctx_89e41644f89b`) stayed at `ready`/`input_accepted` with
+    `last_heartbeat_at = null`. The loop-log "What this run actually
+    proves" section and the "Orchestration/dashboard evidence" section
+    report this honestly as the `DEVX-044` / `DEVX-049` opencode headless
+    dispatch gap. Per the task spec criterion 5 and Handoff, this is the
+    expected and accepted outcome when `DEVX-044`'s fix is not yet
+    deployed on the running build: "A run that stops early for a
+    legitimate stop condition, logged and explained, is a **pass**."
+    Implementation is not at fault; the live-verification gap is tracked
+    in `DEVX-049` (state `ready`). Noted, not a rework.
+  - INFO — `docs/planning/evidence/DEVX-024-gate.json` — `resultSha =
+    "77ad2ffd6..."` matches the deliverable commit (the trailing
+    `cca4b8ac8` HEAD only adds the gate.json, per the reviewer SKILL
+    exception). `logs[0].sha256` for
+    `docs/planning/evidence/DEVX-024-loop-log.md`
+    (`a6681577f20e2c18a4430b76cfdd338d8dcde4ab1ea1dfd3abdd04da1848c1ad`)
+    re-hashes to the same value on the working tree — evidence has not
+    drifted.
+  - INFO — scope: 4 files changed, all in `scope.allow`
+    (`tools/corpus-learning/chunk-runner.mjs`,
+    `tools/corpus-learning/test-chunk-runner.mjs`,
+    `docs/planning/evidence/DEVX-024-loop-log.md`,
+    `docs/planning/evidence/DEVX-024-gate.json`). No out-of-scope
+    files; no edits to `extract-candidates.mjs` / `fixtures` /
+    `audit-sample.json` (the `DEVX-023` shipped output); no
+    reimplementation or patch-around of `DEVX-044`.
+  - INFO — gates re-run in this review: `validate-task.mjs` → OK
+    (5 criteria); `validate-gate-artifact.mjs` → VALID; `test-chunk-
+    runner.mjs` → 21 passed, 0 failed.
+
+### Reasoning
+
+The task asked the implementation to (a) build a real durable-resumable
+chunk-runner that dispatches through the real `orca orchestration
+task-create` + `worker-start --agent opencode` path, (b) demonstrate
+that path on ≥10 chunks, and (c) report — not paper over — the case
+where the deployed Orca build still lacks `DEVX-044`'s headless
+opencode fix. The runner meets (a) cleanly: a no-bypass dispatch layer,
+a 21-assertion self-test of the real state-machine functions through an
+actual file round-trip, and stop conditions that fire correctly. The
+run met (b): 10 real chunks went through the real dispatch call, and
+the per-chunk records are present in the loop log with the field names
+the spec asked for. The run met (c): the loop-log "What this run
+actually proves" and "Orchestration/dashboard evidence" sections are
+explicit that 9 of 10 dispatches returned `runtime_unavailable` and
+the 10th did not progress past `input_accepted` — the
+`DEVX-044`/`DEVX-049` gap, not a fake "succeeded" outcome.
+
+The MAJOR-equivalent observation above is therefore informational
+under the spec's own Handoff clause, not a rework trigger. The
+implementation itself is correct; the live-verification gap is a real,
+tracked follow-up on `DEVX-044`/`DEVX-049` that the implementation
+correctly refuses to work around.
+
+Accept.
