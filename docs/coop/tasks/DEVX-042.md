@@ -13,7 +13,8 @@
     "apps/desktop/orca/src/main/ipc/coop-board.ts",
     "apps/desktop/orca/src/main/ipc/coop-board.test.ts",
     "apps/desktop/orca/src/renderer/src/components/coop-board/**",
-    "docs/planning/evidence/DEVX-042-gate.json"
+    "docs/planning/evidence/DEVX-042-gate.json",
+    "docs/coop/tasks/DEVX-990-attention-probe.md"
   ]},
   "profiles": {"worker": "routine", "reviewer": "routine"},
   "budget": {"wall_minutes": 150, "attempts": 1, "reworks": 1},
@@ -207,4 +208,33 @@ real attention item present in this repo, or have the dispatcher amend
 criterion 5 to be satisfiable against a repo that currently has none. The
 algorithm, tests, scope, and gate SHA binding are otherwise clean and
 require no rework.
+
+## Rework note (2026-08-06)
+
+Dispatcher decision, option (a) from the reviewer's finding: introduce a
+real attention item rather than relaxing criterion 5. `scope.allow` gains
+exactly one new path: `docs/coop/tasks/DEVX-990-attention-probe.md`.
+
+Create that file as a genuine, clearly-labeled probe task — not test
+fixture data, a real file in the real `docs/coop/tasks/` directory that
+`loadCoopBoard` reads like any other task:
+
+- `"id": "DEVX-990"`, `"state": "draft"` (so no dispatcher ever treats it as
+  pickable work), `"blocked_on": ["DEVX-046"]` — real, true today: `DEVX-046`
+  is `ready`, not `done`. This is not a fabricated dependency, it is an
+  accurate statement about this repo's actual state, using an ID range
+  (`990`) that cannot collide with real roadmap numbering.
+- Title and an explicit note in its own body: "This file exists solely to
+  prove DEVX-042's criterion 5 against a real (non-fixture) attention item.
+  Delete it once DEVX-042 is accepted and integrated — do not let it become
+  permanent board clutter, and do not dispatch it as real work."
+- Fill in the rest of the required frontmatter/body shape only as far as
+  `validate-task.mjs` demands for the file to parse; it does not need
+  `gates`/`Acceptance` sections to be genuinely actionable, since it will
+  never be dispatched.
+- Re-run the same live probe against this repo with the file present,
+  confirm at least one attention item now surfaces (the probe task, blocked
+  by `DEVX-046`), update the gate artifact's criterion-5 detail with that
+  real output, and note in the Handoff that `DEVX-990` is a synthetic
+  probe artifact for whoever integrates this task to delete afterward.
 
