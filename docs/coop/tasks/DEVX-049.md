@@ -12,6 +12,7 @@
   "scope": {"allow": [
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.test.ts",
+    "apps/desktop/orca/config/electron-builder.config.cjs",
     "docs/planning/evidence/DEVX-049-gate.json"
   ]},
   "profiles": {"worker": "high", "reviewer": "high"},
@@ -139,3 +140,71 @@ text and a hand-authored test fixture, never against real
 Worker and reviewer return evidence to the dispatcher/state owner. Success is
 `DEVX-044`'s three riskiest claims backed by something that actually ran, not
 only by a mock that agreed with its own assumptions.
+
+## Dispatcher note (2026-08-06) — real root cause found, scope widened
+
+Live verification hit criterion 1's precondition head-on: every real
+`worker-start --agent opencode` dispatch in this environment fails
+(`runtime_unavailable` / "The Orca runtime closed the connection before
+responding"). Traced the actual cause via `$APPDATA/orca/logs/daemon.log`
+and one of its churning `terminal-history/*/output.log` entries:
+
+```
+opencode:
+Line |
+ 102 |  opencode
+     |  ~~~~~~~~
+     | The term 'opencode' is not recognized as a name of a cmdlet, function,
+       script file, or executable program.
+```
+
+`opencode-headless-dispatch.ts` spawns the binary by bare name
+(`args.binary ?? 'opencode'`, see `spawnOpenCodeServe` ~line 273 and the
+`run --attach` spawn ~line 95), relying on `opencode` being resolvable on
+whatever PATH the Orca main process/daemon inherited. On this machine no
+`opencode(.exe)` is anywhere on PATH — the only real binary is vendored at
+`C:\Dev2026\external_repos\opencode\packages\opencode\dist\opencode-windows-arm64\bin\opencode.exe`,
+copied ad hoc into `builds/coopcode/current/opencode/opencode.exe` by
+`tools/build-coopcode.ps1` as a packaging afterthought, never wired into
+`electron-builder.config.cjs`. This is why criteria 1-4 could never actually
+run: the dispatch fails before a session, a serve, or an agent-create call
+ever happens.
+
+Direction, per direct instruction: CoopCode ships as a closed package —
+opencode bundled with it, not a separate install the user must have on
+PATH. Do not fix this by telling the user to add opencode to PATH. Fix it
+so the app never depends on PATH for it, matching the pattern this repo
+already uses for its other bundled native binaries:
+
+1. **Runtime resolution** — in `opencode-headless-dispatch.ts`, replace the
+   bare-name default with a resolver that checks the packaged location
+   first, falling back to PATH only in dev/unpackaged runs. Copy the exact
+   shape of `resolveAgentBrowserBinary()` in
+   `apps/desktop/orca/src/main/browser/agent-browser-bridge.ts:180-198`
+   (`process.resourcesPath` ?? platform-specific `app.getPath('exe')`
+   fallback, `existsSync` check, then a dev-mode fallback path) — that
+   function already solves this exact problem for another bundled binary
+   (`agent-browser`) in this same codebase. The dev-mode fallback should
+   check the vendored path
+   `external_repos/opencode/packages/opencode/dist/opencode-<platform>-<arch>/bin/opencode(.exe)`
+   relative to the repo root (mirroring what `build-coopcode.ps1:27` already
+   assumes) before falling back to a bare `'opencode'` PATH lookup, so local
+   dev runs without a packaged build still work.
+2. **Packaging** — add `opencode` as a per-platform `extraResources` entry in
+   `electron-builder.config.cjs`, same list `bin/orca.exe` and
+   `agent-browser-win32-${arch}.exe` already live in for `win32` (~line 246),
+   with equivalent entries for `darwin`/`linux` if a vendored binary exists
+   for those platforms under `external_repos/opencode/packages/opencode/dist/`
+   — if it does not yet exist for a platform, say so plainly in the report
+   rather than silently skipping it.
+3. Re-run criteria 1-4 against a real dispatch with the fix in place. If the
+   fix resolves the connection failure, capture that as this task's primary
+   evidence — it is at least as important as the two correctness findings
+   the task was originally scoped for.
+
+Preserve what attempt 1 already produced and left uncommitted: the new test
+in `opencode-headless-dispatch.test.ts` locking in a real
+`opencode agent create` output shape, and
+`.scratch/devx049-live/worktree/.opencode/agents/dx-auditor.md` (the real
+captured agent file that test is built from) — both are genuine partial
+progress on criterion 3, not to be discarded.
