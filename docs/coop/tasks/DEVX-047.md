@@ -2,7 +2,7 @@
 {
   "id": "DEVX-047",
   "title": "Stop floating the Coop Task Board and OpenCode Sessions cards over every screen; dock them into the app's real UI structure",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -156,3 +156,15 @@ not one who has them imposed over every other screen.
 - Findings:
   - INFO — gate 3 command execution — task gate declared `tools/pnpm-arm64.cmd exec vitest ...`, but `tools/pnpm-arm64.cmd` is unavailable in this environment due to missing `.toolchains/`. The worker executed local `npx vitest run --config config/vitest.renderer.config.ts src/renderer/src/components/coop-board src/renderer/src/components/opencode-sessions` with identical config and target paths, passing 11/11 tests. This command deviation is acceptable and matches the pattern established in DEVX-040.
 
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `4b4374334421e95ef7265325da64760a4cec0798`
+- Merge commit: `0b26184a1`
+- Gate: task/Gate Artifact validators and 11/11 renderer vitest suite (`exit 0`).
+- Real conflict with `DEVX-048` in `OpenCodeSessionsScreen.tsx` (047 branched
+  before 048's honest-empty-state fix existed): resolved by keeping 047's
+  docked-panel structure with 048's corrected "No active OpenCode dispatches"
+  empty-state text, then fixing the one stale test assertion that still
+  expected the old "No sessions found." copy (`a2a78ae7d`).
