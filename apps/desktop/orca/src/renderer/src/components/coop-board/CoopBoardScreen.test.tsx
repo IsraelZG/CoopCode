@@ -63,7 +63,10 @@ const DONE_TASK: CoopBoardTask = {
   blockedOn: [],
   blocked: false,
   blockingReasons: [],
-  integration: { reviewDecision: 'accept', mergeCommit: 'abc123' }
+  integration: { reviewDecision: 'accept', mergeCommit: 'abc123' },
+  evidenceFiles: [],
+  evidenceClaimed: false,
+  evidenceMissing: false
 }
 
 const BLOCKED_TASK: CoopBoardTask = {
@@ -76,7 +79,10 @@ const BLOCKED_TASK: CoopBoardTask = {
   dependsOn: ['PLAT-013'],
   blockedOn: ['PLAT-013'],
   blocked: true,
-  blockingReasons: ['Missing dependency PLAT-013']
+  blockingReasons: ['Missing dependency PLAT-013'],
+  evidenceFiles: [],
+  evidenceClaimed: false,
+  evidenceMissing: false
 }
 
 const BOARD_RESULT: CoopBoardResult = {

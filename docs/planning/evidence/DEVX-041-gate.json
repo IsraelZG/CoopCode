@@ -1,0 +1,58 @@
+{
+  "task": "DEVX-041",
+  "attempt": 2,
+  "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
+  "resultSha": "9450c517440b6bb0c6f88e717514e5964fa212da",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-08-06T09:10:50.000Z",
+  "finishedAt": "2026-08-06T09:11:05.000Z",
+  "nodeVersion": "22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-041.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:10:56.000Z",
+      "finishedAt": "2026-08-06T09:10:57.000Z",
+      "stdout": "OK: DEVX-041 (ready, standard, 5 criteria)\n"
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-041-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:11:10.000Z",
+      "finishedAt": "2026-08-06T09:11:12.000Z"
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:11:00.000Z",
+      "finishedAt": "2026-08-06T09:11:05.000Z",
+      "stdout": "✓ src/main/ipc/coop-board.test.ts (7 tests) 63ms\nTest Files 1 passed (1)\nTests 7 passed (7)\n",
+      "criteria": [
+        {
+          "description": "Given a task selected on the DEVX-040 board, the screen lists every file under docs/planning/evidence/ whose name starts with that task's ID (case-insensitive prefix match on <ID>-), with file type and size.",
+          "passed": true
+        },
+        {
+          "description": ".png/.jpg/.jpeg evidence files render as an inline thumbnail, openable full-size in-app",
+          "passed": true
+        },
+        {
+          "description": ".md/.json evidence files open in-app using file-preview mechanism",
+          "passed": true
+        },
+        {
+          "description": "If a task's own Acceptance or Handoff text contains the phrase 'hands-on evidence' but no matching evidence file exists under docs/planning/evidence/, the board flags that task ('evidence claimed, file not found')",
+          "passed": true
+        },
+        {
+          "description": "Hands-on evidence: screenshot of the board showing at least one real image thumbnail from this repo's actual evidence directory, and one correctly flagged 'claimed but missing' case",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

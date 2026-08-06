@@ -182,4 +182,46 @@ describe('Coop board read model', () => {
 
     expect(result).toEqual({ repoRoot: '', tasks: [], error: 'repoRoot is required' })
   })
+
+  it('lists evidence files matching task ID prefix case-insensitively', async () => {
+    await writeTask('DEVX-040', { state: 'ready' })
+    const evidenceDir = path.join(repoRoot, 'docs', 'planning', 'evidence')
+    await mkdir(evidenceDir, { recursive: true })
+    await writeFile(path.join(evidenceDir, 'DEVX-040-gate.json'), '{"gate": "ok"}', 'utf8')
+    await writeFile(path.join(evidenceDir, 'devx-040-board.png'), 'fake-png-content', 'utf8')
+
+    const result = await loadCoopBoard({ repoRoot, worktreePorcelain: '' })
+    const task = result.tasks.find((t) => t.id === 'DEVX-040')
+
+    expect(task?.evidenceFiles).toHaveLength(2)
+    expect(task?.evidenceFiles).toEqual([
+      expect.objectContaining({
+        name: 'devx-040-board.png',
+        extension: 'png',
+        fileType: 'image'
+      }),
+      expect.objectContaining({
+        name: 'DEVX-040-gate.json',
+        extension: 'json',
+        fileType: 'json'
+      })
+    ])
+    expect(task?.evidenceMissing).toBe(false)
+  })
+
+  it('flags task as evidenceMissing when hands-on evidence is claimed but no file exists', async () => {
+    await writeTask(
+      'DEVX-042',
+      { state: 'ready' },
+      '## Acceptance\n\n- [ ] Hands-on evidence: run against this repo real state'
+    )
+
+    const result = await loadCoopBoard({ repoRoot, worktreePorcelain: '' })
+    const task = result.tasks.find((t) => t.id === 'DEVX-042')
+
+    expect(task?.evidenceClaimed).toBe(true)
+    expect(task?.evidenceFiles).toHaveLength(0)
+    expect(task?.evidenceMissing).toBe(true)
+  })
 })
+
