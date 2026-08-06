@@ -1,0 +1,63 @@
+{
+  "task": "DEVX-045",
+  "attempt": 2,
+  "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
+  "resultSha": "e83a170be84cb319070a90ac726a65e70c3d6521",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-06T09:00:00.000-03:00",
+  "finishedAt": "2026-08-06T09:56:59.000-03:00",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-045.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:48:42.000-03:00",
+      "finishedAt": "2026-08-06T09:48:43.000-03:00",
+      "stdout": "OK: DEVX-045 (ready, standard, 5 criteria)",
+      "criteria": []
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-045-gate.json --result-sha=e83a170be84cb319070a90ac726a65e70c3d6521",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:57:00.000-03:00",
+      "finishedAt": "2026-08-06T09:57:01.000-03:00",
+      "criteria": []
+    },
+    {
+      "command": "../../../tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/updater.test.ts src/main/updater.headless-serve-install.test.ts",
+      "purpose": "Verify updater unit tests pass across all updater test suites for DEVX-045 disabled auto-update checks",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T09:56:12.000-03:00",
+      "finishedAt": "2026-08-06T09:56:18.000-03:00",
+      "stdout": "Test Files 2 passed (2); Tests 22 passed | 7 skipped (29)",
+      "criteria": [
+        {
+          "description": "getRemoteServerUpdateSupport() returns automatic: false and reason: 'updater-unavailable' on packaged builds.",
+          "passed": true
+        },
+        {
+          "description": "scheduleAutomaticUpdateCheck() and startup/resume listeners do not schedule automatic update check timers or phone home to stablyai/orca.",
+          "passed": true
+        },
+        {
+          "description": "checkForUpdatesFromMenu() returns not-available for manual release checks without phoning home.",
+          "passed": true
+        },
+        {
+          "description": "checkForUpdates() returns not-available for background release checks without phoning home.",
+          "passed": true
+        },
+        {
+          "description": "electron-builder.config.cjs does not contain publish pointing to stablyai/orca.",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "baseline": "Previously Orca packaged builds were configured to publish to stablyai/orca and performed automatic and manual update checks fetching release tags from stablyai/orca on GitHub.",
+  "regressions": "None. All 29 tests across src/main/updater.test.ts and src/main/updater.headless-serve-install.test.ts passed (22 passed, 7 skipped for darwin-only features).",
+  "outOfScopeDiff": "None. Added src/main/updater.headless-serve-install.test.ts to scope.allow per Review (attempt 2) blocker finding to fix expectations for disabled release updates."
+}
