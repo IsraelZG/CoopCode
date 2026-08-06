@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { EventEmitter } from 'node:events'
 import type { spawn } from 'node:child_process'
 import {
@@ -184,6 +184,14 @@ describe('resolveOpenCodeBinary', () => {
       expect(resolved.endsWith(native)).toBe(true)
     }
   })
+
+  it('resolves dev-vendored binary under external_repos when present in repository layout', () => {
+    const resolved = resolveOpenCodeBinary()
+    const native = process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+    expect(resolved.endsWith(native)).toBe(true)
+    expect(resolved).not.toBe('opencode')
+    expect(resolved).toContain('external_repos')
+  })
 })
 
 describe('openCodeAgentFileMatchesPermissions', () => {
@@ -202,29 +210,40 @@ describe('openCodeAgentFileMatchesPermissions', () => {
   })
 
   it('accepts a real opencode agent create output for a read-mostly profile', () => {
-    // Captured verbatim from a real `opencode agent create --mode subagent
-    // --permissions read,glob,grep` run (DEVX-049 live verification, arm64
-    // build 0.0.0-dev-202607281756). The real CLI writes explicit `deny` lines
-    // for every non-granted key and simply omits the granted keys (read, glob,
-    // grep), which the function treats as implicitly-allowed and therefore
-    // correct. Locks the real frontmatter shape against future drift.
-    const real = [
-      '---',
-      'description: >-',
-      '  read-only developer-experience audit agent (captured from real create)',
-      'mode: subagent',
-      'permission:',
-      '  bash: deny',
-      '  edit: deny',
-      '  webfetch: deny',
-      '  task: deny',
-      '  todowrite: deny',
-      '  websearch: deny',
-      '  lsp: deny',
-      '  skill: deny',
-      '---',
-      'You are a read-only agent.'
-    ].join('\n')
+    const capturedCandidate = resolve(
+      process.cwd(),
+      '..',
+      '..',
+      '..',
+      '.scratch',
+      'devx049-live',
+      'reverify',
+      '.opencode',
+      'agents',
+      'dx-resolver-auditor.md'
+    )
+    let real = ''
+    if (existsSync(capturedCandidate)) {
+      real = readFileSync(capturedCandidate, 'utf8')
+    } else {
+      real = [
+        '---',
+        'description: >-',
+        '  read-only developer-experience audit agent (captured from real create)',
+        'mode: subagent',
+        'permission:',
+        '  bash: deny',
+        '  edit: deny',
+        '  webfetch: deny',
+        '  task: deny',
+        '  todowrite: deny',
+        '  websearch: deny',
+        '  lsp: deny',
+        '  skill: deny',
+        '---',
+        'You are a read-only agent.'
+      ].join('\n')
+    }
     expect(openCodeAgentFileMatchesPermissions(real, ['read', 'glob', 'grep'])).toBe(true)
   })
 })

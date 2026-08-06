@@ -75,18 +75,25 @@ function openCodeDevVendoredBinary(): string | null {
     openCodeNativeName()
   ]
   for (const base of roots) {
-    for (const dir of [base, dirname(base)]) {
-      if (!dir) {
-        continue
-      }
+    let curr = base
+    while (curr) {
       try {
-        const candidate = join(dir, ...relative)
+        const candidate = join(curr, ...relative)
         if (existsSync(candidate)) {
           return candidate
+        }
+        const candidateSibling = join(curr, '..', ...relative)
+        if (existsSync(candidateSibling)) {
+          return candidateSibling
         }
       } catch {
         // ignore
       }
+      const parent = dirname(curr)
+      if (parent === curr) {
+        break
+      }
+      curr = parent
     }
   }
   return null
@@ -99,7 +106,7 @@ function openCodeDevVendoredBinary(): string | null {
  * binary under external_repos, then a bare PATH lookup as the last resort.
  */
 export function resolveOpenCodeBinary(): string {
-  let resourcesPath = process.resourcesPath
+  let resourcesPath: string | undefined = process.resourcesPath
   if (!resourcesPath) {
     const app = electronRef()?.app
     if (app) {
