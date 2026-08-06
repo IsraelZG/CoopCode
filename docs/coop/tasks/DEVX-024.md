@@ -2,7 +2,7 @@
 {
   "id": "DEVX-024",
   "title": "Prove automated loop dispatch on real work, opencode only: CoopCode processes the corpus-learning chunks unattended through a real worker-start, with resumable state",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "high",
@@ -295,3 +295,15 @@ tracked follow-up on `DEVX-044`/`DEVX-049` that the implementation
 correctly refuses to work around.
 
 Accept.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `77ad2ffd6f2ddf87fdc53dde247face14aaa6762`
+- Merge commit: (this commit's parent — see git log)
+- Gate: task/Gate Artifact validators and 21/21 chunk-runner self-test fixtures (`exit 0`).
+- Note: the review accepted the disclosed `runtime_unavailable` dispatch gap
+  (9 of 10 real `worker-start --agent opencode` calls failed against this
+  environment's still-broken opencode PATH resolution) as a legitimate,
+  honestly-reported stop condition per the task's own Handoff clause — not a
+  defect in this implementation. Root cause and fix are tracked in `DEVX-049`.
