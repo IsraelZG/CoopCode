@@ -455,6 +455,9 @@ function chmodUnixCliLaunchers(resourcesDir, electronPlatformName) {
   if (electronPlatformName === 'win32') {
     return
   }
+  // Choice & Rationale (Criterion 4): Transitional aliases 'orca' and 'orca-ide' are retained
+  // alongside 'coopcode' to ensure existing unpacked/transitional Unix launcher scripts remain
+  // executable during the product identity transition, while making 'coopcode' executable.
   for (const launcherName of ['coopcode', 'orca', 'orca-ide']) {
     const launcherPath = join(resourcesDir, 'bin', launcherName)
     if (!existsSync(launcherPath)) {
