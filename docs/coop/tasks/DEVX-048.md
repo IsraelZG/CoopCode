@@ -11,6 +11,8 @@
   "capabilities": ["repository-read", "repository-write"],
   "scope": {"allow": [
     "apps/desktop/orca/src/main/opencode-sdk/client.ts",
+    "apps/desktop/orca/src/main/opencode-sdk/client.test.ts",
+    "apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts",
     "apps/desktop/orca/src/main/ipc/opencode-sdk.ts",
     "apps/desktop/orca/src/shared/opencode-sdk-types.ts",
     "apps/desktop/orca/src/renderer/src/components/opencode-sessions/**",
@@ -142,3 +144,33 @@ nothing has ever listened on in this app's actual architecture.
 Worker and reviewer return evidence to the dispatcher/state owner. Success is
 a screen that tells the truth about what's actually dispatched right now —
 never a permanent, unconditional error for a target that was never real.
+
+## Review (attempt 1)
+
+- Reviewer: coop-reviewer (MiniMax-M3 via Crush)
+- Date: 2026-08-06
+- Result SHA reviewed: `5edb638a61c6998054bf6045067aea4092c1f001`
+- Gate evidence commit: `b176f6444` (single file, the task's own gate JSON — resultSha binding valid)
+- Decision: `accept`
+
+### Findings
+
+- INFO — `apps/desktop/orca/src/main/providers/opencode-headless-dispatch.ts` was modified in the result commit even though it was not in the original `scope.allow`. The diff is a 2-line addition of `listRegisteredOpenCodeServes(): OpenCodeServeHandle[]` (returning `Array.from(openCodeServes.values())`) sitting between the already-exported `getOpenCodeServeForWorktree` and `startOrReuseOpenCodeServe`. No equivalent registry-enumeration export existed before. This is exactly the user's stated exception ("precisou expor algo do registry que não era exportado"). The spec was retroactively amended in the result commit to add the file (and the new `client.test.ts`) to `scope.allow`; both additions are justified. Criterion: 1 (and gate runnability).
+- INFO — `apps/desktop/orca/src/main/opencode-sdk/client.test.ts` is a new file not in original `scope.allow`. Same justification: required to satisfy acceptance criterion 4's "fixture/mock-backed test" branch and to make the declared vitest gate runnable against the new dependency-injected `listOpenCodeSessions`. Spec was retroactively amended; `OpenCodeServeHandle` was already exported (no re-export needed).
+
+### Criterion verification
+
+- Criterion 1 (registry enumeration, delete fixed-port fallback): PASS. `client.ts:12-45` no longer contains `getBaseUrl`/`54321`/`OPENCODE_BASE_URL`. `listOpenCodeSessions` iterates every `OpenCodeServeHandle` returned by `getServes()` (defaulted to `listRegisteredOpenCodeServes`). `grep` over `apps/desktop/orca/src` confirms no remaining `127.0.0.1:54321` reference in the opencode-sdk code path. The remaining `OPENCODE_BASE_URL` matches are in `main/rate-limits/opencode-go-*` and refer to `https://opencode.ai` (unrelated to per-worktree dispatch).
+- Criterion 2 (per-session worktree attribution rendered): PASS. `shared/opencode-sdk-types.ts:13-14` adds optional `worktreeId`/`worktreeDir` to `OpenCodeSession`. `client.ts:28-32` attaches both from each `serve` handle. `OpenCodeSessionRow` (`OpenCodeSessionsScreen.tsx:13-25`) renders `worktreeId` as a `Badge` and `worktreeDir` as the secondary line, replacing the old `mode` line when attribution is present.
+- Criterion 3 (honest empty state vs. real connection error): PASS. `client.ts:17-19` short-circuits to `{ sessions: [] }` (no error) when no serves are registered. `OpenCodeSessionsScreen.tsx:79-82` renders "No active OpenCode dispatches" for that case. Errors are now only emitted for serves that are registered but fail to respond (criterion 3's preserved case). Test 3 (`captures error when a registered serve fails to respond`) confirms the reserved semantics.
+- Criterion 4 (hands-on or fixture-backed evidence, gap not silently skipped): PASS via the disjunct. No live `worker-start --agent opencode` dispatch was running at review time; the gate artifact and `client.test.ts` provide the fixture-backed branch and explicitly call out the gap in each gate entry's `detail` field. The three tests cover the empty-registry, multi-serve-enumeration, and serve-error branches — all three behaviors described by criteria 1–3.
+
+### Gate re-verification (independent)
+
+- `node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-048-gate.json` → `VALID`
+- `rtk pnpm exec vitest run --config config/vitest.config.ts src/main/opencode-sdk` (from `apps/desktop/orca`) → `Test Files 1 passed (1) / Tests 3 passed (3)`, duration 540ms
+- Gate-evidence commit `b176f6444` touches only the task's own `docs/planning/evidence/DEVX-048-gate.json` (73 insertions, 0 deletions); resultSha binding valid per the `validate-gate-artifact` schema.
+
+### Test-quality note
+
+The empty-registry test would have *failed* against the pre-change `client.ts` (which would have tried `127.0.0.1:54321` and returned `{ sessions: [], error: ... }` instead of `{ sessions: [] }`), so the new suite is a genuine regression test for criterion 3, not a tautology.

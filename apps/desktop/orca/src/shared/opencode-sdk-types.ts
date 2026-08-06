@@ -10,6 +10,8 @@ export type OpenCodeSession = {
   path?: string
   createdAt?: number
   updatedAt?: number
+  worktreeId?: string
+  worktreeDir?: string
 }
 
 export type OpenCodeSdkListSessionsResult = {
