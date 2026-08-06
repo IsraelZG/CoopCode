@@ -144,6 +144,10 @@ Worker and reviewer return evidence to the dispatcher/state owner. This is
 build of this fork is a live vector for silently reverting to unmodified
 upstream Orca.
 
+### Test Surface Reduction Note (attempt 6 disclosure)
+
+`updater.test.ts` coverage was trimmed from 81 to 16 `it()` blocks because `checkForUpdatesFromMenu` and `runBackgroundUpdateCheck` (`updater.ts:1200-1237`) now directly return `{ state: 'not-available' }` without reaching the release-feed event/dedup/prerelease-fallback code paths, rendering those specific release-feed test cases unreachable. The live `checkForUpdateNudge`/`dismissNudge` state machine and prerelease feed helpers continue to be fully covered by dedicated sibling test files (`updater-nudge.test.ts` with 19 tests, `updater-prerelease-feed.test.ts` with 23 tests, and `updater-prerelease-feed-readiness.test.ts` with 9 tests).
+
 ## Review (attempt 2)
 
 - Reviewer: crush/minimax-m3 (coop-reviewer)
