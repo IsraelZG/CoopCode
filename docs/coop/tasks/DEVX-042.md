@@ -2,7 +2,7 @@
 {
   "id": "DEVX-042",
   "title": "Rank every task that needs a human decision into one attention view, instead of re-reading every task and log by hand",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P2",
   "risk": "routine",
@@ -321,3 +321,20 @@ the `Blocked by DEVX-046` reason.
 Nothing. The integrator should delete `docs/coop/tasks/DEVX-990-attention-probe.md`
 after integrating this task, per the file's own body and per the
 rework note.
+
+## Integration
+
+- Review decision: `accept`
+- Result SHA: `09ac6f48ec1ca34dc95eea8a6f6e1ca8b8bdcef4`
+- Merge commit: `bffe05b4e`
+- Gate: task/Gate Artifact validators, 9/9 main-process coop-board suite, 5/5 renderer suite (`exit 0`).
+- Real conflict with `DEVX-041` in `coop-board.ts` and `CoopBoardScreen.tsx`
+  (both extended the same `readTaskFile`/`CoopBoardTask`/`TaskRow` surface
+  independently): resolved by combining evidence-file fields
+  (`evidenceFiles`/`evidenceClaimed`/`evidenceMissing`, `041`) with
+  attention fields (`attention`/`mtimeMs`, `042`) on the shared type, and
+  the attention filter/tab UI (`042`) with task-selection/evidence-detail UI
+  (`041`) in the same screen.
+- Removed `docs/coop/tasks/DEVX-990-attention-probe.md` (commit `75dd79d8a`)
+  per the task's own rework note and review — it was a synthetic probe
+  artifact only needed to prove criterion 5, not permanent board content.
