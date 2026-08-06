@@ -1,0 +1,77 @@
+{
+  "task": "DEVX-024",
+  "attempt": 1,
+  "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
+  "resultSha": "77ad2ffd6f2ddf87fdc53dde247face14aaa6762",
+  "platform": "win32",
+  "arch": "arm64",
+  "nodeVersion": "v22.20.0",
+  "startedAt": "2026-08-06T12:59:00.000Z",
+  "finishedAt": "2026-08-06T13:01:00.000Z",
+  "baseline": "Base 0d4e64bd contem DEVX-044 (opencode-headless-dispatch.ts presente na arvore do repositorio), mas o unico Orca em execucao/deploy nesta maquina e o build empacotado C:/Dev2026/builds/coopcode/current (commit 95472c1c5, built 2026-08-05, orca 1.4.160-rc.3), que NAO contem a correcao (compileado worker-start/orchestration-workers sem opencode-agent-profile nem opencode-headless-dispatch), conforme verificado por grep no app.asar.unpacked e pelo comportamento do runtime. A verificacao live de DEVX-044 e o gap rastreado em DEVX-049 (state ready, pendente). Corpus DEVX-023: 3011 candidatos / 594 tasks, chunk 4.",
+  "regressions": "Nenhuma regressao introduzida: apenas 3 arquivos novos dentro de scope.allow (chunk-runner.mjs, test-chunk-runner.mjs, loop-log). Nenhum arquivo existente foi modificado; nenhuma alteracao em extract-candidates.mjs/fixtures (DEVX-023). A 21-assertion suite do novo runner passa offline.",
+  "outOfScopeDiff": "Os 3 arquivos dentrega ficam exatamente dentro de scope.allow: tools/corpus-learning/chunk-runner.mjs, tools/corpus-learning/test-chunk-runner.mjs, docs/planning/evidence/DEVX-024-loop-log.md. Nenhum arquivo fora do escopo foi tocado. Artifatos de runtime sob tools/corpus-learning/.devx024/ (cands.json temporario, state real.json, dry-run) foram removidos antes do commit por estarem fora do escopo; suas evidencia duravel esta capturada no loop-log commitado.",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-024.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T12:59:05.000Z",
+      "finishedAt": "2026-08-06T12:59:06.000Z",
+      "stdout": "OK: DEVX-024 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task contract is valid (ready, standard, 5 criteria)",
+          "passed": true,
+          "detail": "exit 0"
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-024-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T13:00:50.000Z",
+      "finishedAt": "2026-08-06T13:00:52.000Z",
+      "stdout": "VALOR: gate artifact valid; resultSha matches deliverable commit",
+      "criteria": [
+        {
+          "description": "Gate artifact validates schema, SHAs, commands and criteria",
+          "passed": true,
+          "detail": "exit 0"
+        },
+        {
+          "description": "resultSha equals the deliverable commit 77ad2ffd6f2ddf87fdc53dde247face14aaa6762",
+          "passed": true,
+          "detail": "HEAD at gate time"
+        }
+      ]
+    },
+    {
+      "command": "node tools/corpus-learning/test-chunk-runner.mjs",
+      "purpose": "Self-check of the chunk runner's state machine and resumability",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T13:00:15.000Z",
+      "finishedAt": "2026-08-06T13:00:20.000Z",
+      "stdout": "21 passed, 0 failed",
+      "criteria": [
+        {
+          "description": "21/21 offline assertions pass (deterministic chunking, real file round-trip crash/restart resume, no double-processing, stop conditions all_chunks_done/budget_exhausted/repeated_failure, citation-carrying spec, corrupt-state handling)",
+          "passed": true,
+          "detail": "exit 0"
+        },
+        {
+          "description": "Durable resumable state proven via real saveState/loadState through an actual file round-trip across two simulated process contexts (criterion 1)",
+          "passed": true,
+          "detail": "crash-and-restart preserves progress; resumes from remaining set; done chunk never re-queued without reset"
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/planning/evidence/DEVX-024-loop-log.md",
+      "sha256": "a6681577f20e2c18a4430b76cfdd338d8dcde4ab1ea1dfd3abdd04da1848c1ad"
+    }
+  ]
+}
