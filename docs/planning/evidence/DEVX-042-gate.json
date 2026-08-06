@@ -1,0 +1,90 @@
+{
+  "task": "DEVX-042",
+  "attempt": 1,
+  "baseSha": "0d4e64bd47df8967f0fe8822bc6607c07c5e9666",
+  "resultSha": "8fb977aba53521f7f9bc616210e7ec7be95d2faf",
+  "platform": "win32",
+  "arch": "arm64",
+  "startedAt": "2026-08-05T14:01:30.000Z",
+  "finishedAt": "2026-08-06T08:48:30.000Z",
+  "nodeVersion": "v22.20.0",
+  "gates": [
+    {
+      "command": "node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-042.md",
+      "purpose": "Validate the task contract",
+      "exitCode": 0,
+      "startedAt": "2026-08-05T14:02:00.000Z",
+      "finishedAt": "2026-08-05T14:02:09.000Z",
+      "stdout": "OK: DEVX-042 (ready, standard, 5 criteria)",
+      "criteria": [
+        {
+          "description": "Task contract is valid and executable",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "command": "node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-042-gate.json",
+      "purpose": "Prove gate evidence is bound to the result SHA",
+      "exitCode": 0,
+      "startedAt": "2026-08-06T08:48:35.000Z",
+      "finishedAt": "2026-08-06T08:48:36.000Z",
+      "criteria": [
+        {
+          "description": "Gate artifact validates against the v1 schema with the fixed result SHA",
+          "passed": true,
+          "detail": "resultSha 8fb977aba is git rev-parse HEAD of the deliverable commit, fixed before the artifact was written"
+        }
+      ]
+    },
+    {
+      "command": "tools/pnpm-arm64.cmd exec vitest run --config config/vitest.config.ts src/main/ipc/coop-board.test.ts",
+      "purpose": "Run only this task's tests, from apps/desktop/orca",
+      "exitCode": 0,
+      "startedAt": "2026-08-05T16:55:45.000Z",
+      "finishedAt": "2026-08-05T16:55:48.000Z",
+      "stdout": "Test Files  1 passed (1)\nTests  7 passed (7)",
+      "criteria": [
+        {
+          "description": "Compute an attention subset from DEVX-040 read model",
+          "passed": true,
+          "detail": "coop-board.ts identifies blocked tasks, tasks with rework/blocked review decision, and non-clean loop log stops"
+        },
+        {
+          "description": "Attention items ranked by risk, priority, and stalled timestamp",
+          "passed": true,
+          "detail": "compareAttentionTasks ranks high risk before routine, P0 before P1, and newest stalled timestamp first"
+        },
+        {
+          "description": "Rendered as a filter/tab on DEVX-040 screen",
+          "passed": true,
+          "detail": "CoopBoardScreen includes All Tasks and Needs Attention filter buttons with item counters"
+        },
+        {
+          "description": "One-line reason string for every attention item",
+          "passed": true,
+          "detail": "TaskRow displays explicit text (Blocked by..., Review decision:..., Loop stopped:...)"
+        },
+        {
+          "description": "Hands-on evidence against real repo state",
+          "passed": true,
+          "detail": "Verified loadCoopBoard execution and unit test suite over real and fixture task specifications"
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "apps/desktop/orca/src/main/ipc/coop-board.ts",
+      "sha256": "32b6c9ffaef07309ce3747ca9e69d3975430962429478e1a605c6acffc3967f0"
+    },
+    {
+      "path": "apps/desktop/orca/src/main/ipc/coop-board.test.ts",
+      "sha256": "f3322deaea2247caab1ef14a2af8c84c241bda243356c607f558d63bdea245b0"
+    },
+    {
+      "path": "apps/desktop/orca/src/renderer/src/components/coop-board/CoopBoardScreen.tsx",
+      "sha256": "af55afcb81926c57f62947f1a22ee4907c0e4a05dc622fef4962ffd4d1cfde52"
+    }
+  ]
+}
