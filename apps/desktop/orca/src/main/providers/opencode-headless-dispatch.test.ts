@@ -14,6 +14,7 @@ import {
   pickOpenCodeServePort,
   prepareOpenCodeRunRunner,
   resetOpenCodeServeRegistry,
+  resolveOpenCodeBinary,
   sanitizeOpenCodeFileName,
   startOrReuseOpenCodeServe,
   waitForOpenCodeDispatchSession,
@@ -165,6 +166,26 @@ describe('prepareOpenCodeRunRunner', () => {
   })
 })
 
+describe('resolveOpenCodeBinary', () => {
+  it('returns a usable binary reference (never empty) without throwing in a pure-node test', () => {
+    const resolved = resolveOpenCodeBinary()
+    expect(typeof resolved).toBe('string')
+    expect(resolved.trim().length).toBeGreaterThan(0)
+  })
+
+  it('returns a path ending in the platform native name, or the bare name when nothing is bundled', () => {
+    const resolved = resolveOpenCodeBinary()
+    const native = process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+    if (resolved === 'opencode') {
+      // Last resort: bare PATH lookup, matching the original default.
+      expect(resolved).toBe('opencode')
+    } else {
+      // Packaged/dev-vendored resolution always points at the native filename.
+      expect(resolved.endsWith(native)).toBe(true)
+    }
+  })
+})
+
 describe('openCodeAgentFileMatchesPermissions', () => {
   it('accepts a deny-everything-else map for a read-mostly request', () => {
     expect(openCodeAgentFileMatchesPermissions(ORCA_AGENT_HEADLESS, ['read', 'glob', 'grep'])).toBe(true)
@@ -178,6 +199,33 @@ describe('openCodeAgentFileMatchesPermissions', () => {
   it('rejects a file that denies a requested permission', () => {
     const deniedRead = ORCA_AGENT_HEADLESS.replace('  bash: deny', '  read: deny')
     expect(openCodeAgentFileMatchesPermissions(deniedRead, ['read', 'glob', 'grep'])).toBe(false)
+  })
+
+  it('accepts a real opencode agent create output for a read-mostly profile', () => {
+    // Captured verbatim from a real `opencode agent create --mode subagent
+    // --permissions read,glob,grep` run (DEVX-049 live verification, arm64
+    // build 0.0.0-dev-202607281756). The real CLI writes explicit `deny` lines
+    // for every non-granted key and simply omits the granted keys (read, glob,
+    // grep), which the function treats as implicitly-allowed and therefore
+    // correct. Locks the real frontmatter shape against future drift.
+    const real = [
+      '---',
+      'description: >-',
+      '  read-only developer-experience audit agent (captured from real create)',
+      'mode: subagent',
+      'permission:',
+      '  bash: deny',
+      '  edit: deny',
+      '  webfetch: deny',
+      '  task: deny',
+      '  todowrite: deny',
+      '  websearch: deny',
+      '  lsp: deny',
+      '  skill: deny',
+      '---',
+      'You are a read-only agent.'
+    ].join('\n')
+    expect(openCodeAgentFileMatchesPermissions(real, ['read', 'glob', 'grep'])).toBe(true)
   })
 })
 
@@ -371,7 +419,9 @@ describe('ensureOpenCodeAgentProfile', () => {
       expect(content).not.toContain('mode: subagent')
       expect(openCodeAgentFileMatchesPermissions(content, ['read', 'glob', 'grep'])).toBe(true)
       const args = (spawnImpl.mock.calls[0] ?? []) as unknown as [string, string[]]
-      expect(args[0]).toBe('opencode')
+      // DEVX-049: the default (no explicit binary) spawns the resolved binary,
+      // not a hardcoded bare name — packaged/dev resolution first, PATH last.
+      expect(args[0]).toBe(resolveOpenCodeBinary())
       expect(args[1]).toContain('agent')
       expect(args[1]).toContain('create')
       expect(args[1]).toContain('--mode')

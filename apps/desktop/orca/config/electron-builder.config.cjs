@@ -59,6 +59,47 @@ const winSpeechNativeResource = {
   from: 'node_modules/sherpa-onnx-win-${arch}',
   to: 'node_modules/sherpa-onnx-win-${arch}'
 }
+// Why: DEVX-049 — opencode ships WITH the packaged CoopCode, never via a PATH
+// install. tools/build-coopcode.ps1 already bundles it into the unpacked build
+// as a packaging afterthought; this wires the same vendored binary into the
+// builder's win32 extraResources so the runtime resolver finds it at
+// process.resourcesPath. Discovery mirrors build-coopcode.ps1:21-27: external_repos
+// sits as a SIBLING of the repo root, reachable from any worktree.
+function resolveVendoredOpenCodeBinary(platformName) {
+  const native = platformName === 'win32' ? 'opencode.exe' : 'opencode'
+  const platDir = platformName === 'win32' ? 'windows' : platformName
+  let dir = process.cwd()
+  while (true) {
+    const externalRepos = join(dir, '..', 'external_repos')
+    if (existsSync(join(externalRepos, 'opencode'))) {
+      return join(
+        externalRepos,
+        'opencode',
+        'packages',
+        'opencode',
+        'dist',
+        `opencode-${platDir}-${process.arch}`,
+        'bin',
+        native
+      )
+    }
+    const parent = dirname(dir)
+    if (parent === dir) {
+      return null
+    }
+    dir = parent
+  }
+}
+function openCodeExtraResource(platformName) {
+  const binary = resolveVendoredOpenCodeBinary(platformName)
+  // Guarded: if no vendored binary exists for a platform we omit the entry and
+  // keep the fallbacks (dev vendored path, then bare PATH lookup) at runtime.
+  if (!binary || !existsSync(binary)) {
+    return []
+  }
+  const native = platformName === 'win32' ? 'opencode.exe' : 'opencode'
+  return [{ from: binary, to: native }]
+}
 
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
@@ -263,6 +304,7 @@ module.exports = {
         from: 'native/computer-use-windows/runtime.ps1',
         to: 'computer-use-windows/runtime.ps1'
       },
+      ...openCodeExtraResource('win32'),
       featureWallResources
     ]
   },

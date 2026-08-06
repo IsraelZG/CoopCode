@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 // Why: DEVX-044 — opencode's bundled TUI (OpenTUI/bun:ffi renderer) crashes on
 // this platform's build, so orchestrated worker-start must dispatch opencode
 // headlessly: one `opencode serve` per worktree + `opencode run --attach`.
@@ -8,6 +9,122 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+
+// Why: Electron is referenced lazily (never a static import) so this module's
+// pure-node unit tests can import it without a missing 'electron' module at load,
+// while the real packaged Electron main process still resolves
+// process.resourcesPath and app.getPath('exe') exactly like
+// resolveAgentBrowserBinary() does for agent-browser.
+type ElectronAppLike = { getPath: (name: string) => string; getAppPath?: () => string }
+type ElectronLike = { app?: ElectronAppLike }
+
+let cachedElectronModule: ElectronLike | null | undefined
+function electronRef(): ElectronLike | null {
+  if (cachedElectronModule !== undefined) {
+    return cachedElectronModule
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('electron') as unknown
+    cachedElectronModule =
+      mod && typeof mod === 'object' ? (mod as ElectronLike) : null
+  } catch {
+    cachedElectronModule = null
+  }
+  return cachedElectronModule
+}
+
+// Why: the vendored binary lives under `dist/opencode-<platform>-<arch>/` where
+// the platform folder is spelled "windows" (not node's "win32"), matching what
+// tools/build-coopcode.ps1 already assumes for the arm64 build.
+function openCodePlatformName(): string {
+  return process.platform === 'win32' ? 'windows' : process.platform
+}
+
+function openCodeNativeName(): string {
+  return process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+}
+
+// Why: dev/unpackaged runs have no resources bundle, so fall back to the vendored
+// binary that tools/build-coopcode.ps1 copies from external_repos (a sibling of the
+// repo root). Mirror the script's discovery: walk repo-root candidates and their
+// parent dirs for an `external_repos/opencode/...` tree.
+function openCodeDevVendoredBinary(): string | null {
+  const roots: string[] = []
+  try {
+    roots.push(process.cwd())
+  } catch {
+    // ignore
+  }
+  const app = electronRef()?.app
+  if (app?.getAppPath) {
+    try {
+      roots.push(app.getAppPath())
+    } catch {
+      // ignore
+    }
+  }
+  const relative = [
+    'external_repos',
+    'opencode',
+    'packages',
+    'opencode',
+    'dist',
+    `opencode-${openCodePlatformName()}-${process.arch}`,
+    'bin',
+    openCodeNativeName()
+  ]
+  for (const base of roots) {
+    for (const dir of [base, dirname(base)]) {
+      if (!dir) {
+        continue
+      }
+      try {
+        const candidate = join(dir, ...relative)
+        if (existsSync(candidate)) {
+          return candidate
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return null
+}
+
+/**
+ * Resolves the opencode binary the same way `resolveAgentBrowserBinary()` resolves
+ * agent-browser: the packaged bundle first (process.resourcesPath, with the
+ * platform-specific `app.getPath('exe')` fallback), then the dev-mode vendored
+ * binary under external_repos, then a bare PATH lookup as the last resort.
+ */
+export function resolveOpenCodeBinary(): string {
+  let resourcesPath = process.resourcesPath
+  if (!resourcesPath) {
+    const app = electronRef()?.app
+    if (app) {
+      try {
+        resourcesPath =
+          process.platform === 'darwin'
+            ? join(app.getPath('exe'), '..', '..', 'Resources')
+            : join(app.getPath('exe'), '..', 'resources')
+      } catch {
+        resourcesPath = undefined
+      }
+    }
+  }
+  if (resourcesPath) {
+    const bundled = join(resourcesPath, openCodeNativeName())
+    if (existsSync(bundled)) {
+      return bundled
+    }
+  }
+  const devVendored = openCodeDevVendoredBinary()
+  if (devVendored) {
+    return devVendored
+  }
+  return 'opencode'
+}
 
 export const OPENCODE_PERMISSION_KEYS = [
   'bash',
@@ -41,9 +158,10 @@ export const OPENCODE_RUN_PROMPT_WAIT_TIMEOUT_MS = 90_000
 // through PTY stdin (the CLI requires a message argument and blocks on open
 // stdin) and embedding it in a shell command is fragile across cmd/PowerShell/
 // bash. This runner is written to the OS temp dir at dispatch time and spawned
-// as `node <runner> --url <url> --title <id> [--agent <profile>] --prompt <file>
-// --wait-ms <n>`; it waits for the prompt file (written after the dispatch
-// authority is prepared), then spawns `opencode run --attach ... --auto` with
+// as `node <runner> --url <url> --title <id> [--agent <profile>]
+// [--binary <path>] --prompt <file> --wait-ms <n>`; it waits for the prompt file
+// (written after the dispatch authority is prepared), then spawns
+// `opencode run --attach ... --auto` with
 // the prompt as a real argv element. Embedding the source keeps packaged builds
 // self-contained (no extra bundled asset or build-config change).
 export const OPENCODE_RUN_RUNNER_SOURCE = `#!/usr/bin/env node
@@ -56,7 +174,7 @@ function parseArgs(argv) {
   const args = {}
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
-    if (token === '--url' || token === '--title' || token === '--agent' || token === '--prompt' || token === '--wait-ms') {
+    if (token === '--url' || token === '--title' || token === '--agent' || token === '--binary' || token === '--prompt' || token === '--wait-ms') {
       args[token.slice(2)] = argv[i + 1]
       i += 1
     }
@@ -80,9 +198,9 @@ async function waitForPromptFile(file, timeoutMs) {
 }
 
 async function main() {
-  const { url, title, agent, prompt, 'wait-ms': waitMs } = parseArgs(process.argv.slice(2))
+  const { url, title, agent, binary, prompt, 'wait-ms': waitMs } = parseArgs(process.argv.slice(2))
   if (!url || !title || !prompt) {
-    process.stderr.write('usage: opencode-headless-dispatch-runner.mjs --url <server-url> --title <title> [--agent <profile>] --prompt <prompt-file> [--wait-ms <ms>]\\n')
+    process.stderr.write('usage: opencode-headless-dispatch-runner.mjs --url <server-url> --title <title> [--agent <profile>] [--binary <path>] --prompt <prompt-file> [--wait-ms <ms>]\\n')
     process.exit(2)
   }
   const promptText = await waitForPromptFile(prompt, Number(waitMs) || 90000)
@@ -92,7 +210,7 @@ async function main() {
   }
   opencodeArgs.push('--auto', promptText)
 
-  const child = spawn('opencode', opencodeArgs, {
+  const child = spawn(binary || 'opencode', opencodeArgs, {
     cwd: process.cwd(),
     stdio: 'inherit',
     env: process.env
@@ -270,7 +388,7 @@ export async function startOrReuseOpenCodeServe(args: {
     registered.proc?.kill()
   }
 
-  const binary = args.binary ?? 'opencode'
+  const binary = args.binary ?? resolveOpenCodeBinary()
   const healthAttempts = args.healthAttempts ?? OPENCODE_SERVE_HEALTH_ATTEMPTS
   const healthIntervalMs = args.healthIntervalMs ?? OPENCODE_SERVE_HEALTH_INTERVAL_MS
   const startupAttempts = args.startupAttempts ?? OPENCODE_SERVE_STARTUP_ATTEMPTS
@@ -431,11 +549,15 @@ export function writeOpenCodeDispatchPromptFile(args: {
  * `opencode run` directly with a proper argv so no multi-KB prompt ever has to
  * survive shell quoting.
  */
+// Why: the `--binary` argument threads the resolved packaged/dev binary into the
+// detached runner, so the spawned `node <runner>` never depends on opencode being
+// on the daemon's PATH (the exact failure that blocked DEVX-049 criteria 1-4).
 export function buildOpenCodeRunTerminalCommand(args: {
   runnerPath: string
   url: string
   title: string
   agentProfile?: string
+  binary?: string
   promptFile: string
   promptWaitMs?: number
 }): string {
@@ -455,6 +577,7 @@ export function buildOpenCodeRunTerminalCommand(args: {
   if (args.agentProfile) {
     parts.push('--agent', `"${args.agentProfile}"`)
   }
+  parts.push('--binary', `"${args.binary ?? resolveOpenCodeBinary()}"`)
   return parts.join(' ')
 }
 
@@ -550,7 +673,7 @@ export async function ensureOpenCodeAgentProfile(args: {
   if (!profile) {
     throw new OpenCodeHeadlessDispatchError('agent_profile_invalid', 'An opencode agent profile name is required.')
   }
-  const binary = args.binary ?? 'opencode'
+  const binary = args.binary ?? resolveOpenCodeBinary()
   const createRetries = args.createRetries ?? 1
   const spawnImpl = args.spawnImpl ?? spawn
   const targetFile = join(args.worktreeDir, '.opencode', 'agents', `${profile}.md`)
