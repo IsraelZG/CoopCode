@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
   ipcMain: { handle: handleMock }
 }))
 
-import { loadCoopBoard, registerCoopBoardHandlers } from './coop-board'
+import { compareAttentionTasks, loadCoopBoard, registerCoopBoardHandlers } from './coop-board'
 
 let repoRoot: string
 
@@ -30,6 +30,15 @@ async function writeTask(id: string, fields: Record<string, unknown>, body = '')
   await writeFile(
     path.join(repoRoot, 'docs', 'coop', 'tasks', `${id}.md`),
     `---\n${JSON.stringify(frontmatter, null, 2)}\n---\n\n# ${id} · ${title}\n\n${body}`,
+    'utf8'
+  )
+}
+
+async function writeLoopLog(id: string, stopLine: string): Promise<void> {
+  await mkdir(path.join(repoRoot, 'docs', 'planning', 'evidence'), { recursive: true })
+  await writeFile(
+    path.join(repoRoot, 'docs', 'planning', 'evidence', `${id}-loop-log.md`),
+    `# Loop log for ${id}\n\nStop: ${stopLine}\n`,
     'utf8'
   )
 }
@@ -171,6 +180,88 @@ describe('Coop board read model', () => {
         blockingReasons: ['Missing dependency DEVX-999']
       })
     )
+  })
+
+  it('computes attention subset for blocked tasks, rework review decision, and non-clean loop logs', async () => {
+    await writeTask('DEVX-010', { state: 'done' })
+    await writeTask('DEVX-011', { state: 'ready', depends_on: ['DEVX-010'] }) // Clean ready task
+    await writeTask('DEVX-012', { state: 'ready', depends_on: ['DEVX-999'] }) // Blocked task
+    await writeTask(
+      'DEVX-013',
+      { state: 'ready' },
+      '## Integration\n\n- Review decision: `rework`'
+    ) // Rework verdict
+    await writeTask('DEVX-014', { state: 'ready' }) // Loop log non-clean
+    await writeLoopLog('DEVX-014', 'repeated_failure — 3 consecutive attempt failures')
+    await writeTask('DEVX-015', { state: 'ready' }) // Loop log clean ceiling
+    await writeLoopLog('DEVX-015', 'budget_exhausted — max_tasks=10 reached (10 dispatches)')
+
+    const result = await loadCoopBoard({ repoRoot, worktreePorcelain: '' })
+
+    const task11 = result.tasks.find((t) => t.id === 'DEVX-011')
+    expect(task11?.attention?.needed).toBe(false)
+
+    const task12 = result.tasks.find((t) => t.id === 'DEVX-012')
+    expect(task12?.attention).toEqual(
+      expect.objectContaining({
+        needed: true,
+        category: 'blocked',
+        reason: 'Blocked by Missing dependency DEVX-999'
+      })
+    )
+
+    const task13 = result.tasks.find((t) => t.id === 'DEVX-013')
+    expect(task13?.attention).toEqual(
+      expect.objectContaining({
+        needed: true,
+        category: 'rework',
+        reason: 'Review decision: rework'
+      })
+    )
+
+    const task14 = result.tasks.find((t) => t.id === 'DEVX-014')
+    expect(task14?.attention).toEqual(
+      expect.objectContaining({
+        needed: true,
+        category: 'loop_stop',
+        reason: 'Loop stopped: repeated_failure — 3 consecutive attempt failures'
+      })
+    )
+
+    const task15 = result.tasks.find((t) => t.id === 'DEVX-015')
+    expect(task15?.attention?.needed).toBe(false)
+  })
+
+  it('ranks attention items by risk: high before routine, priority P0 before P1, and newest stalled timestamp first', () => {
+    const taskHighP2 = {
+      id: 'DEVX-001',
+      risk: 'high',
+      priority: 'P2',
+      attention: { needed: true, stalledAt: 100 }
+    } as any
+    const taskRoutineP0 = {
+      id: 'DEVX-002',
+      risk: 'routine',
+      priority: 'P0',
+      attention: { needed: true, stalledAt: 200 }
+    } as any
+    const taskRoutineP1Old = {
+      id: 'DEVX-003',
+      risk: 'routine',
+      priority: 'P1',
+      attention: { needed: true, stalledAt: 100 }
+    } as any
+    const taskRoutineP1New = {
+      id: 'DEVX-004',
+      risk: 'routine',
+      priority: 'P1',
+      attention: { needed: true, stalledAt: 500 }
+    } as any
+
+    const list = [taskRoutineP1Old, taskRoutineP0, taskHighP2, taskRoutineP1New]
+    list.sort(compareAttentionTasks)
+
+    expect(list.map((t) => t.id)).toEqual(['DEVX-001', 'DEVX-002', 'DEVX-004', 'DEVX-003'])
   })
 
   it('registers a read-only list handler that requires repoRoot', async () => {
