@@ -44,8 +44,8 @@ function run(command, commandArgs, cwd = repoRoot, allowFailure = false) {
   return result
 }
 
-// Step 1: Determine orca CLI command (ORCA_CLI_COMMAND env var or fallback to "orca")
-const orcaCmd = process.env.ORCA_CLI_COMMAND || 'orca'
+// Step 1: Determine orca CLI command (ORCA_CLI_COMMAND env var or fallback to "coopcode")
+const orcaCmd = process.env.ORCA_CLI_COMMAND || 'coopcode'
 
 // Step 2: Check Orca is reachable
 async function checkOrca() {
