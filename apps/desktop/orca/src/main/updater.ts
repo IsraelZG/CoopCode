@@ -895,13 +895,6 @@ export function getRemoteServerUpdateSupport(): RemoteServerUpdateSupport {
       reason: 'unpackaged-build'
     }
   }
-  if (!autoUpdaterInitialized) {
-    return {
-      installMode: updateInstallMode,
-      automatic: false,
-      reason: 'updater-unavailable'
-    }
-  }
   if (updateInstallMode === 'unsupported-headless-serve') {
     return {
       installMode: updateInstallMode,
@@ -909,7 +902,11 @@ export function getRemoteServerUpdateSupport(): RemoteServerUpdateSupport {
       reason: 'manual-service-update-required'
     }
   }
-  return { installMode: updateInstallMode, automatic: true, reason: 'available' }
+  return {
+    installMode: updateInstallMode,
+    automatic: false,
+    reason: 'updater-unavailable'
+  }
 }
 
 export function getRemoteServerUpdaterSnapshot(runtimeId: string): RemoteServerUpdaterSnapshot {
@@ -963,23 +960,11 @@ export function installRemoteServerUpdate(runtimeId: string): RemoteServerUpdate
 
 let consecutiveAutomaticRetrySchedules = 0
 
-function scheduleAutomaticUpdateCheck(delayMs: number): void {
-  let effectiveDelayMs = delayMs
-  // All retry-cadence callers pass exactly this constant, so keying backoff on it keeps one choke point instead of threading a flag through every schedule site.
-  if (delayMs === AUTO_UPDATE_RETRY_INTERVAL_MS) {
-    effectiveDelayMs = Math.min(
-      AUTO_UPDATE_RETRY_INTERVAL_MS * 2 ** consecutiveAutomaticRetrySchedules,
-      MAX_AUTO_UPDATE_RETRY_INTERVAL_MS
-    )
-    consecutiveAutomaticRetrySchedules += 1
-  }
+function scheduleAutomaticUpdateCheck(_delayMs?: number): void {
   if (autoUpdateCheckTimer) {
     clearTimeout(autoUpdateCheckTimer)
+    autoUpdateCheckTimer = null
   }
-  autoUpdateCheckTimer = setTimeout(() => {
-    // Why: Orca runs for days, so keep the next background check scheduled in the main process rather than tying it to relaunches or renderer lifetime.
-    runBackgroundUpdateCheck()
-  }, effectiveDelayMs)
 }
 
 function recordCompletedUpdateCheck(): void {
@@ -1213,48 +1198,12 @@ function retryPrereleaseFallbackAfterMissingManifest(
 }
 
 function runBackgroundUpdateCheck(
-  nudgeId: string | null = getPersistedPendingUpdateNudgeId()
+  _nudgeId: string | null = getPersistedPendingUpdateNudgeId()
 ): void {
   if (activeUpdateSource === 'local' || localBuildSelectionInProgress) {
     return
   }
-  if (backgroundCheckLaunchPending || currentStatus.state === 'checking') {
-    return
-  }
-  if (!app.isPackaged || is.dev) {
-    sendStatus({ state: 'not-available' })
-    return
-  }
-  // Why: set the nudge marker before any events arrive so later checks can't inherit a stale campaign id; persisted id keeps a nudge card dismissable after relaunch.
-  activeUpdateNudgeId = nudgeId
-  // Why: 'checking-for-update' arrives a tick later, so a second focus/resume can slip in before status flips; track launch in memory to dedupe that gap.
-  backgroundCheckLaunchPending = true
-  backgroundCheckPromotedToUserInitiated = false
-  const attemptId = beginUpdateCheckAttempt()
-  // Don't send 'checking' here — the 'checking-for-update' handler does; sending from both dupes notifications (issue #35).
-  const autoUpdater = getAutoUpdater()
-  const launch = (): Promise<unknown> | undefined => {
-    if (!isActiveUpdateCheckAttempt(attemptId)) {
-      return undefined
-    }
-    markUpdateCheckLaunched(attemptId)
-    return autoUpdater.checkForUpdates()
-  }
-  const run = pinDefaultReleaseFeed().then(launch)
-  void Promise.resolve(run)
-    .then(() => handleSettledUpdateCheckPromise(attemptId))
-    .catch((err) => {
-      if (!isActiveUpdateCheckAttempt(attemptId)) {
-        return
-      }
-      const wasUserInitiated = getSettledCheckUserInitiated()
-      backgroundCheckLaunchPending = false
-      backgroundCheckPromotedToUserInitiated = false
-      if (wasUserInitiated) {
-        userInitiatedCheck = false
-      }
-      void sendCheckFailureStatus(String(err?.message ?? err), wasUserInitiated, 'promise', err)
-    })
+  sendStatus({ state: 'not-available' })
 }
 
 export function checkForUpdates(): void {
@@ -1280,87 +1229,11 @@ function enableIncludePrerelease(): void {
 
 /** Menu-triggered check — delegates feedback to renderer toasts via userInitiated flag */
 export function checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
-  if (!app.isPackaged || is.dev) {
-    sendStatus({ state: 'not-available', userInitiated: true })
-    return
-  }
   if (options?.localBuild) {
     void checkForLocalBuildFromMenu()
     return
   }
-  if (localBuildSelectionInProgress) {
-    return
-  }
-  if (
-    activeUpdateSource === 'local' &&
-    (currentStatus.state === 'checking' || currentStatus.state === 'downloading')
-  ) {
-    return
-  }
-  restoreReleaseUpdateSource()
-
-  const checkVariant = getUpdateCheckVariant(options)
-  if (checkVariant === 'prerelease') {
-    clearPrereleaseFallbackContext()
-    enableIncludePrerelease()
-  } else if (checkVariant === 'perf') {
-    clearPrereleaseFallbackContext()
-    // Why: perf checks need prerelease manifests now, but must not opt future default/background checks into the RC channel.
-    enablePrereleaseManifestChecks()
-  }
-
-  const checkAlreadyInFlight = backgroundCheckLaunchPending || currentStatus.state === 'checking'
-  userInitiatedCheck = true
-  // Why: manual checks are nudge-independent; clear the marker so a later dismiss can't consume the campaign by accident.
-  activeUpdateNudgeId = null
-  // Why: respond visibly before feed pinning/updater events; duplicate broadcasts are suppressed by status equality below.
-  sendStatus({ state: 'checking', userInitiated: true })
-  if (checkAlreadyInFlight) {
-    backgroundCheckPromotedToUserInitiated = true
-    rearmActiveUpdateCheckStallTimer()
-    if (checkVariant !== 'default') {
-      // Why: in-flight check may have pinned the stable feed; queue a fresh modifier check to avoid a stale-channel result.
-      pendingUserInitiatedCheckAfterInFlight = checkVariant
-    }
-    return
-  }
-
-  const attemptId = beginUpdateCheckAttempt()
-  const autoUpdater = getAutoUpdater()
-  const launch = (): Promise<unknown> | undefined => {
-    if (!isActiveUpdateCheckAttempt(attemptId)) {
-      return undefined
-    }
-    markUpdateCheckLaunched(attemptId)
-    return autoUpdater.checkForUpdates()
-  }
-  const run = pinDefaultReleaseFeed(checkVariant).then((preflightResult) => {
-    if (preflightResult === 'not-available') {
-      if (!isActiveUpdateCheckAttempt(attemptId)) {
-        return false
-      }
-      userInitiatedCheck = false
-      finishActiveUpdateCheckAttempt()
-      recordCompletedUpdateCheck()
-      sendStatus({ state: 'not-available', userInitiated: true })
-      return false
-    }
-    return launch()
-  })
-  void Promise.resolve(run)
-    .then((launchResult) => {
-      if (launchResult === false) {
-        return
-      }
-      handleSettledUpdateCheckPromise(attemptId)
-    })
-    .catch((err) => {
-      if (!isActiveUpdateCheckAttempt(attemptId)) {
-        return
-      }
-      userInitiatedCheck = false
-      void sendCheckFailureStatus(String(err?.message ?? err), true, 'promise', err)
-    })
+  sendStatus({ state: 'not-available', userInitiated: true })
 }
 
 async function checkForLocalBuildFromMenu(): Promise<void> {
@@ -1571,13 +1444,7 @@ export function setupAutoUpdater(
 
   // Security: never re-add a verifyUpdateCodeSignature override — a no-op disables electron-updater's built-in Authenticode check and accepts any installer.
 
-  // Why: generic provider avoids the native GitHub provider's RC-channel filtering; per-check repinning to a concrete /releases/download/<tag>/ URL avoids /latest redirect drift between check and download.
-  if (activeUpdateSource === 'release') {
-    autoUpdater.setFeedURL({
-      provider: 'generic',
-      url: 'https://github.com/stablyai/orca/releases/latest/download'
-    })
-  }
+  // Security: never re-add a verifyUpdateCodeSignature override — a no-op disables electron-updater's built-in Authenticode check and accepts any installer.
 
   if (autoUpdaterInitialized) {
     return
@@ -1632,34 +1499,10 @@ export function setupAutoUpdater(
 
   const checkDailyOnWake = () => {
     void checkForUpdateNudge()
-    if (
-      backgroundCheckLaunchPending ||
-      currentStatus.state === 'checking' ||
-      currentStatus.state === 'downloading'
-    ) {
-      return
-    }
-    const lastCheck = _getLastUpdateCheckAt?.() ?? null
-    const msSince = lastCheck === null ? Number.POSITIVE_INFINITY : Date.now() - lastCheck
-    if (msSince >= AUTO_UPDATE_CHECK_INTERVAL_MS) {
-      runBackgroundUpdateCheck()
-      scheduleAutomaticUpdateCheck(AUTO_UPDATE_CHECK_INTERVAL_MS)
-    }
   }
 
   powerMonitor.on('resume', checkDailyOnWake)
   app.on('browser-window-focus', checkDailyOnWake)
-
-  const lastUpdateCheckAt = opts?.getLastUpdateCheckAt?.() ?? null
-  const msSinceLastCheck =
-    lastUpdateCheckAt === null ? Number.POSITIVE_INFINITY : Date.now() - lastUpdateCheckAt
-
-  if (msSinceLastCheck >= AUTO_UPDATE_CHECK_INTERVAL_MS) {
-    runBackgroundUpdateCheck()
-    scheduleAutomaticUpdateCheck(AUTO_UPDATE_CHECK_INTERVAL_MS)
-  } else {
-    scheduleAutomaticUpdateCheck(AUTO_UPDATE_CHECK_INTERVAL_MS - msSinceLastCheck)
-  }
 }
 
 export function downloadUpdate(): void {
@@ -1669,7 +1512,7 @@ export function downloadUpdate(): void {
   // Why: allow retry from 'error' (availableVersion stays cached) so the error card's Retry Download button works.
   const canStart =
     currentStatus.state === 'available' ||
-    (currentStatus.state === 'error' && hasInstallableDownloadedVersion())
+    (currentStatus.state === 'error' && (availableVersion !== null || hasInstallableDownloadedVersion()))
   if (!canStart) {
     return
   }
