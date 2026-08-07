@@ -2,7 +2,7 @@
 {
   "id": "DEVX-045",
   "title": "Stop the packaged app from automatically checking stablyai/orca's GitHub releases for updates",
-  "state": "ready",
+  "state": "done",
   "lane": "standard",
   "priority": "P0",
   "risk": "high",
@@ -429,3 +429,14 @@ very small, fast attempt 6 — the underlying implementation is sound.
   - Criterion 3 (packaged-build support): `getRemoteServerUpdateSupport()` returns `{ installMode: updateInstallMode, automatic: false, reason: 'updater-unavailable' }` for all packaged builds (the `unsupported-headless-serve` branch returns `reason: 'manual-service-update-required'`). Test at `updater.test.ts:408-415` asserts this. **PASS.**
   - Criterion 4 (no auto schedule): `scheduleAutomaticUpdateCheck` (`updater.ts:963-968`) is a no-op that clears any existing timer without scheduling a new one. Startup path in `setupAutoUpdater` no longer calls either `runBackgroundUpdateCheck` or `scheduleAutomaticUpdateCheck`. Test at `updater.test.ts:417-431` advances fake timers 30 days and asserts `checkForUpdates` is never invoked. **PASS.**
   - Criterion 5 (no test regression, with honest disclosure): full widened gate green: `Test Files 8 passed | 2 skipped (10) | Tests 93 passed | 12 skipped (105)`. The 65-test `updater.test.ts` reduction and the 4-test `updater.check-failure.test.ts` retirement are both explicitly disclosed in the gate artifact's `regressions` field (725-character honest paragraph) and in the task file's "Test Surface Reduction Note (attempt 6 disclosure)" section. **PASS.**
+
+## Integration
+
+- Integrator: claude (coop-integrator)
+- Date: 2026-08-07
+- Merge: `git merge --no-ff task/devx-045` → `13b583e6a` (clean, no conflicts; only `apps/desktop/orca/config/electron-builder.config.cjs` needed auto-merge, resolved cleanly)
+- Revalidated against the exact reviewed resultSha, independently, from `main` post-merge:
+  - `node tools/coop-dev/validate-task.mjs docs/coop/tasks/DEVX-045.md` → `OK: DEVX-045 (ready, standard, 5 criteria)`
+  - `node tools/coop-dev/validate-gate-artifact.mjs docs/planning/evidence/DEVX-045-gate.json` → `VALID`
+  - Composition gate: `pnpm exec vitest run --config config/vitest.config.ts src/main/updater` from `apps/desktop/orca` → `Test Files 8 passed | 2 skipped (10) | Tests 93 passed | 12 skipped (105)`, matches attempt 6's review exactly.
+- `state` set to `done`. Worktree `C:\Dev2026\worktrees\CoopCode\DEVX-045` removed.
